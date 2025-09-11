@@ -5,7 +5,8 @@ local ammoMap = {
 	"cells"
 }
 
-local ammoMap = {
+local weaponMap = {
+	"chainsaw",
 	"brassknuckles",
 	"pistol",
 	"shotgun",
@@ -24,8 +25,8 @@ COM_AddCommand("idkfa", function(player, victim)
 		local max = funcs.getMaxFor(player, aType)
 		funcs.setAmmoFor(player, aType, max)
 	end
-	for i = 1, #ammoMap do
-		funcs.giveWeapon(player, ammoMap[i])
+	for i = 1, #weaponMap do
+		funcs.giveWeapon(player, weaponMap[i])
 	end
 	if not doom.isdoom1 then
 		funcs.giveWeapon(player, "supershotgun")
@@ -38,4 +39,26 @@ end)
 
 COM_AddCommand("doom_endoom", function(player, level)
 	doom.showendoom = true
-end)
+end, COM_ADMIN)
+
+doom.cvars = {}
+CV_RegisterVar({
+	name = "doom_rotateautomap",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = CV_OnOff
+})
+
+CV_RegisterVar({
+	name = "doom_autorotateprefangle",
+	defaultvalue = 0,
+	flags = CV_SAVE|CV_FLOAT,
+	PossibleValue = {MIN = INT32_MIN, MAX = INT32_MAX}
+})
+
+CV_RegisterVar({
+	name = "doom_alwaysshowlines",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = CV_OnOff
+})

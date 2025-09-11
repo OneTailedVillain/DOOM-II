@@ -12,15 +12,15 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_BON1")
-local name = "HealthBonus"
+SafeFreeSlot("SPR_SOUL", "sfx_getpow")
+local name = "SoulSphere"
 
 local object = {
 	radius = 20,
 	height = 16,
-	doomednum = 2014,
-	deathsound = sfx_itemup,
-	sprite = SPR_BON1,
+	doomednum = 2013,
+	deathsound = sfx_getpow,
+	sprite = SPR_SOUL,
 	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
 }
 
@@ -39,7 +39,8 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	player.doom.bonuscount = 32
-	funcs.setHealth(player, min(health + 1, 200))
+	funcs.setHealth(player, min(health + 100, 200))
+	DOOM_DoMessage(player, "GOTROCKBOX")
 end
 
 DefineDoomItem(name, object, states, onPickup)

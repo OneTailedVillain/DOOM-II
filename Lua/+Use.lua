@@ -91,7 +91,8 @@ rawset(_G, "DOOM_GenericRaycast", function(mobj, opts)
         if collided then
             hit = true
             -- If a per-rayline callback exists, call it (it may do the work and/or kill the ray)
-            local cb = mobj.raycastCallbacks
+            if not (mobj and mobj.valid) then return end
+			local cb = mobj.raycastCallbacks
             if cb and cb.online then
                 local ok = pcall(cb.online, mobj, collided) -- collided is the line in MobjLineCollide hook
                 -- if cb returns true, consider it consumed (we already hit so break)
@@ -143,6 +144,8 @@ rawset(_G, "DOOM_TryUse", function(player)
     ray.scale = player.mo.scale
     ray.target = player.mo
     ray.dist = MAX_USE_DIST
+	ray.doom = $ or {}
+	ray.doom.damage = 0
 
     DOOM_GenericRaycast(ray, { maxdist = MAX_USE_DIST,
 	onfinish = function(ray, hit)
@@ -162,15 +165,27 @@ rawset(_G, "DOOM_ShootBullet", function(player, dist)
     DOOM_GenericRaycast(ray, { maxdist = dist or MISSILERANGE })
 end)
 
-addHook("MobjLineCollide", function(ray, hit)
+addHook("MobjLineCollide", function(ray, usedLine)
     if not (ray and ray.valid) then return end
 
-    local usedLine = hit
     local lineSpecial = doom.linespecials[usedLine]
-    if not lineSpecial then return end
+	if not lineSpecial then
+		if not (usedLine.flags & ML_TWOSIDED) or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
+			-- Blocked
+			S_StartSound(ray.target, sfx_noway)
+			P_KillMobj(ray)
+			return
+		end
+	end
     local whatIs = doom.lineActions[lineSpecial]
 
-    if not whatIs then P_KillMobj(ray) return end
+    if not whatIs then
+		if lineSpecial != 0 then
+			print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
+			S_StartSound(ray.target, sfx_noway) P_KillMobj(ray)
+		end
+		return
+	end
     if whatIs.activationType == "interact" then
         if whatIs.type == "exit" then
 			DOOM_ExitLevel()
@@ -182,6 +197,8 @@ addHook("MobjLineCollide", function(ray, hit)
         for sector in sectors.tagged(usedLine.tag) do
             DOOM_AddThinker(sector, whatIs)
         end
+	else
+		S_StartSound(ray.target, sfx_noway)
     end
 
     P_KillMobj(ray)
@@ -198,10 +215,12 @@ local function MaybeHitFloor_Simple(bullet)
     if not bullet.hitenemy and bottom <= bullet.floorz then
         bullet.z = bullet.floorz
         bullet.fuse = 0
+		P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_DOOM_BULLETPUFF)
         bullet.state = S_NULL
     elseif not bullet.hitenemy and top >= bullet.ceilingz then
         bullet.z = bullet.ceilingz - bullet.height
         bullet.fuse = 0
+		P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_DOOM_BULLETPUFF)
         bullet.state = S_NULL
     end
 end
@@ -214,12 +233,8 @@ local function BulletHit_Simple(bullet, target, line)
         if not (target.z + target.height >= bullet.z and target.z <= bullet.z + bullet.height) then return end
     end
 
-    bullet.fuse = 9
-    bullet.state = S_HL1_HIT or S_NULL
-    bullet.momx = 0
-    bullet.momy = 0
-    bullet.momz = 0
-    bullet.hitenemy = true
+	P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_DOOM_BULLETPUFF)
+    bullet.state = S_NULL
 end
 
 local function BulletHitObject_Simple(tmthing, thing)
@@ -231,6 +246,7 @@ local function BulletHitObject_Simple(tmthing, thing)
     local damage = tmthing.doom.damage or 10
     DOOM_DamageMobj(thing, tmthing, tmthing and tmthing.target or tmthing, damage)
     -- tmthing.state = S_HL1_HIT or S_NULL
+	local puff = P_SpawnMobjFromMobj(tmthing, 0, 0, 0, MT_DOOM_BULLETPUFF)
     tmthing.momx = 0
     tmthing.momy = 0
     tmthing.momz = 0
@@ -245,48 +261,78 @@ for _, mt in ipairs({MT_DOOM_BULLET}) do
     addHook("MobjMoveCollide", BulletHitObject_Simple, mt)
 end
 
-rawset(_G, "DOOM_Fire", function(player, dist, horizspread, vertspread, pellets, min, max, incs)
-    if not (player and player.mo) then return end
+rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs)
+    if not (source and source.valid) then return end
+
+    -- normalize arguments
     dist        = dist        or MISSILERANGE
     horizspread = horizspread or 0
     vertspread  = vertspread  or 0
     pellets     = pellets     or 1
 
-    local shooter = player.mo
+    local shooter, player = nil, nil
+
+    -- figure out whether we're dealing with a player or generic mobj
+    if source.player then
+        -- source is a mobj_t belonging to a player
+        shooter = source
+        player  = source.player
+    elseif source.mo then
+        -- source is a player_t
+        shooter = source.mo
+        player  = source
+    else
+        -- probably plain mobj_t?
+        shooter = source
+    end
 
     for i = 1, pellets do
-        -- save original aim state
-        local ogangle, ogaiming = shooter.angle, player.aiming
+        -- save original state
+        local ogangle = shooter.angle
+        local ogaiming = player and player.aiming or 0
 
-        -- random horizontal spread
+        -- spread
         local hspr = FixedMul(P_RandomFixed() - FRACUNIT/2, horizspread*2)
         local vspr = FixedMul(P_RandomFixed() - FRACUNIT/2, vertspread*2)
 
-        shooter.angle  = $ + FixedAngle(hspr)
-        player.aiming  = $ + FixedAngle(vspr)
+        shooter.angle = $ + FixedAngle(hspr)
+        if player then
+            player.aiming = $ + FixedAngle(vspr)
+        end
 
-        -- spawn bullet (MT_DOOM_BULLET already has floor/thing handlers)
-        local bullet = P_SpawnPlayerMissile(shooter, MT_DOOM_BULLET)
+        -- choose spawn call
+        local bullet
+        if player then
+            -- player-based missile (respects vertical aim)
+            bullet = P_SpawnPlayerMissile(shooter, MT_DOOM_BULLET)
+        else
+            -- generic mobj missile
+            local aimtarget = shooter.target
+            bullet = P_SpawnMissile(shooter, aimtarget or shooter, MT_DOOM_BULLET)
+        end
 
-        -- restore angle/aim
-        shooter.angle, player.aiming = ogangle, ogaiming
+        -- restore state
+        shooter.angle = ogangle
+        if player then player.aiming = ogaiming end
 
         if bullet and bullet.valid then
-			-- now get the damage this should deal...
-			local divisor = increment or min
-			bullet.doom = $ or {}
-			bullet.doom.damage = (P_RandomByte() % (max / divisor) + 1) * divisor
+            local divisor = incs or min
+            bullet.doom = $ or {}
+            bullet.doom.damage = (DOOM_Random() % (max / divisor) + 1) * divisor
 
-            bullet.scale  = shooter.scale
-            bullet.target = shooter
-            bullet.shooter = player
-            bullet.dist   = dist
+            bullet.scale   = shooter.scale
+            bullet.target  = shooter
+            bullet.shooter = shooter
+            bullet.dist    = dist
 
-            -- call generic raycast to trace until hit or distance
-            DOOM_GenericRaycast(bullet, { maxdist = dist,
-			onfinish = function(ray, hit)
-				P_KillMobj(ray)
-			end })
+            -- raycast cleanup
+            DOOM_GenericRaycast(bullet, {
+                maxdist = dist,
+                onfinish = function(ray, hit)
+					if not (ray and ray.valid) then return end
+                    P_KillMobj(ray)
+                end
+            })
         end
     end
 end)

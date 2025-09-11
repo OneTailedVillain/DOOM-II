@@ -31,7 +31,7 @@ def lua_literal_from_bytes(b: bytes) -> str:
     """
     Return a Lua expression that builds the byte string, using quoted runs
     for safe ASCII and ..string.char(0xNN).. for bytes that aren't safe ASCII.
-    This preserves exact bytes for >0x7F (as requested).
+    This preserves exact bytes for >0x7F.
     """
     parts = []
     run = bytearray()
@@ -149,10 +149,230 @@ def parse_key_value_pairs_from_text(blob: bytes) -> dict:
         results[key] = val.encode('latin-1')
     return results
 
+def _make_safe_lua_long_bracket_for_bytes(b: bytes) -> str:
+    """
+    Return a Lua long-bracket literal for the given raw bytes.
+    We decode bytes as latin-1 to preserve 1:1 mapping of bytes -> codepoints,
+    then choose a level of '=' signs that doesn't appear in the content.
+    (Maybe should consider using string.char in certain scenarios?)
+    """
+    s = b.decode('latin-1')
+    # Find minimal '=' repetition such that closing sequence is not present
+    n = 0
+    while True:
+        close_seq = ']' + ('=' * n) + ']'
+        if close_seq not in s:
+            open_seq = '[' + ('=' * n) + '['
+            return f"{open_seq}{s}{close_seq}"
+        n += 1
+        # in pathological cases this grows, but practically n will be small
+
+def parse_key_value_pairs_from_text(blob: bytes) -> dict:
+    """
+    Parse classic LANGUAGE / DEHACKED style text and return KEY->value (bytes).
+    - Handles BEX STARTUP boxes of form KEY====...==== (keeps previous behavior).
+    - Parses classic KEY = "value"; style where ; terminates the statement.
+    - Treats ; inside "quotes", 'single-quotes', or [[bracket-strings]] as part of the string.
+    - Concatenated quoted fragments are joined (e.g. "a" "b" -> "ab").
+    - Unquoted RHS tokens (like $$OTHER_ID or $MY_REF) are preserved literally.
+    Returned values are bytes encoded latin-1 (so original byte-by-byte content is kept).
+    """
+    txt = blob.decode('latin-1', errors='replace')
+    results = {}
+
+    # Keep the old BEX box-style capture (STARTUP1..5 etc)
+    bex_re = re.compile(r'([A-Z0-9_]+)\s*={3,}\s*(.*?)\s*={3,}', re.DOTALL)
+    for m in bex_re.finditer(txt):
+        key = m.group(1).strip()
+        val = m.group(2)
+        results[key] = val.encode('latin-1')
+
+    n = len(txt)
+    i = 0
+
+    def skip_whitespace(j):
+        while j < n and txt[j].isspace():
+            j += 1
+        return j
+
+    while i < n:
+        # find next '=' that's outside any string/bracket/comment
+        in_quote = False
+        quote_ch = None
+        in_bracket = False
+        bracket_level = 0
+        j = i
+        eqpos = -1
+        while j < n:
+            ch = txt[j]
+            # handle C-style block comments and line comments (best-effort)
+            if not in_quote and not in_bracket and txt.startswith('//', j):
+                # skip to end of line
+                nl = txt.find('\n', j)
+                j = n if nl == -1 else nl + 1
+                continue
+            if not in_quote and not in_bracket and txt.startswith('/*', j):
+                end = txt.find('*/', j+2)
+                j = n if end == -1 else end + 2
+                continue
+
+            if not in_quote:
+                if txt.startswith('[[', j):
+                    in_bracket = True
+                    j += 2
+                    continue
+                if in_bracket:
+                    if txt.startswith(']]', j):
+                        in_bracket = False
+                        j += 2
+                        continue
+                    j += 1
+                    continue
+
+            if not in_quote and ch in ('"', "'"):
+                in_quote = True
+                quote_ch = ch
+                j += 1
+                continue
+            if in_quote:
+                # handle escapes inside quoted strings
+                if ch == '\\' and j+1 < n:
+                    j += 2
+                    continue
+                if ch == quote_ch:
+                    in_quote = False
+                    quote_ch = None
+                j += 1
+                continue
+
+            # at top-level and not in a string/bracket -> check for '='
+            if ch == '=':
+                eqpos = j
+                break
+            j += 1
+
+        if eqpos == -1:
+            # no more assignments found
+            break
+
+        # Determine left-hand side: take text from line start up to '='
+        line_start = txt.rfind('\n', 0, eqpos) + 1
+        left = txt[line_start:eqpos].strip()
+        # skip empty lefts
+        if not left:
+            i = eqpos + 1
+            continue
+
+        # The left may be prefixed with $ifgame(...) or similar; we want the identifier token
+        # We'll extract the last uppercase-like token from left as the key.
+        mkey = re.search(r'([A-Z][A-Z0-9_]*)\s*$', left.upper())
+        if not mkey:
+            # fallback: use full left stripped upcased (safe)
+            key = left.strip().upper()
+        else:
+            key = mkey.group(1).strip().upper()
+
+        # Parse right-hand side until an unquoted semicolon (;) terminator.
+        segs = []  # list of tuples ('raw'|'quote'|'bracket', content)
+        k = eqpos + 1
+        while k < n:
+            # skip whitespace
+            if txt[k].isspace():
+                k += 1
+                continue
+
+            # line or block comment handling outside strings/brackets
+            if txt.startswith('//', k):
+                nl = txt.find('\n', k)
+                k = n if nl == -1 else nl + 1
+                continue
+            if txt.startswith('/*', k):
+                end = txt.find('*/', k+2)
+                k = n if end == -1 else end + 2
+                continue
+
+            ch = txt[k]
+            if txt.startswith('[[' , k):
+                # bracket string
+                k2 = txt.find(']]', k+2)
+                if k2 == -1:
+                    # unterminated bracket -> take rest
+                    content = txt[k+2:]
+                    segs.append(('bracket', content))
+                    k = n
+                    break
+                content = txt[k+2:k2]
+                segs.append(('bracket', content))
+                k = k2 + 2
+                continue
+
+            if ch in ('"', "'"):
+                quotech = ch
+                k += 1
+                start_q = k
+                buf = []
+                while k < n:
+                    c = txt[k]
+                    if c == '\\' and k+1 < n:
+                        # keep escapes exactly as written: store backslash and next char
+                        buf.append('\\')
+                        buf.append(txt[k+1])
+                        k += 2
+                        continue
+                    if c == quotech:
+                        k += 1
+                        break
+                    buf.append(c)
+                    k += 1
+                segs.append(('quote', ''.join(buf)))
+                # after closing quote, skip optional whitespace and allow another quoted fragment
+                continue
+
+            # If we hit a semicolon at top-level -> terminate statement
+            if ch == ';':
+                k += 1
+                break
+
+            # Otherwise, gather an unquoted raw token until whitespace or ; or comment
+            start_r = k
+            while k < n and not txt[k].isspace() and txt[k] not in ';':
+                # stop if comment start encountered
+                if txt.startswith('//', k) or txt.startswith('/*', k) or txt.startswith('[[', k):
+                    break
+                k += 1
+            rawtok = txt[start_r:k]
+            if rawtok:
+                segs.append(('raw', rawtok))
+            # loop continues until semicolon or break
+
+        # Assemble value bytes: join quoted/bracket inner contents, and raw tokens as-is
+        parts = []
+        for typ, content in segs:
+            if typ in ('quote', 'bracket'):
+                # keep the content exactly as-present (backslashes preserved above)
+                parts.append(content.encode('latin-1'))
+            else:  # raw
+                # raw tokens (like $$ID or $ID) should be preserved literally
+                ct = content.strip()
+                if ct:
+                    parts.append(ct.encode('latin-1'))
+        if parts:
+            valbytes = b"".join(parts)
+        else:
+            valbytes = b""
+        results[key] = valbytes
+
+        # continue scanning after the semicolon we consumed (k)
+        i = k
+
+    return results
+
+
 def build_lua_deh_table(mapping: dict) -> bytes:
     """
     Build a Lua lump that populates doom.dehacked.<KEY> = <value string>
-    Values are encoded preserving bytes using string.char for unsafe bytes.
+    For LANGUAGE-style textual values we emit Lua long-bracket strings (e.g. [=[ ... ]=])
+    so we don't need to escape quotes/backslashes, and so embedded \n stays literal text.
     """
     lines = [
         'if not doom then',
@@ -163,44 +383,28 @@ def build_lua_deh_table(mapping: dict) -> bytes:
         ''
     ]
     for key, raw in mapping.items():
-        # make a valid Lua identifier for indexing: use table key style doom.dehacked.KEY
-        # keys from BEX/DEHACKED are usually safe upper identifers; fallback: bracketed string
+        # create LHS as earlier
         if re.match(r'^[A-Z_][A-Z0-9_]*$', key):
             lhs = f"doom.dehacked.{key}"
         else:
             lhs = f'doom.dehacked["{key}"]'
-        rhs = lua_literal_from_bytes(raw)
-        lines.append(f'{lhs} = {rhs}')
+
+        # prefer long-bracket literal for readability / minimal escaping
+        bracket_literal = _make_safe_lua_long_bracket_for_bytes(raw)
+        # The bracket literal is formed from latin-1-decoded content; produce a line
+        lines.append(f'{lhs} = {bracket_literal}')
     lines.append('')
+    # encode as UTF-8 for the Lua file; content was built via latin-1 decoding so bytes are
+    # preserved in a deterministic way if the original wasn't valid UTF-8.
     return ("\n".join(lines)).encode("utf-8")
 
 # TEXTURE conversion functions
-def parse_pnames(lump_bytes: bytes) -> list:
-    """
-    PNAMES structure:
-    int32 numnames, then numnames * 8-byte zero-padded ASCII names
-    """
-    if len(lump_bytes) < 4:
-        return []
-    num = int.from_bytes(lump_bytes[0:4], 'little')
-    names = []
-    off = 4
-    for i in range(num):
-        if off + 8 > len(lump_bytes):
-            break
-        raw = lump_bytes[off:off+8]
-        name = raw.split(b'\x00', 1)[0].decode('ascii', errors='replace')
-        names.append(name)
-        off += 8
-    return names
-
 def parse_texture_lump_to_text(pnames: list, lumps_bytes: bytes) -> str:
     """
     Parse TEXTURE1/TEXTURE2 binary and emit a ZDoom-style TEXTURES text block.
     This is a simplified conversion intended for editing / SLADE-like output.
     """
-    buf = io.BytesIO(lumps_bytes)
-    data = buf.read()
+    data = lumps_bytes
     if len(data) < 4:
         return ""
     numtextures = int.from_bytes(data[0:4], 'little')
@@ -223,12 +427,11 @@ def parse_texture_lump_to_text(pnames: list, lumps_bytes: bytes) -> str:
             continue
         name_raw = data[off:off+8]
         texname = name_raw.split(b'\x00', 1)[0].decode('ascii', errors='replace')
-        if texname.upper() == "NULLTEXT":  # NullTexture variants; skip safely; some editors use NullTexture
+        if texname.upper() == "NULLTEXT":  # NullTexture variants; skip safely
             continue
         masked = int.from_bytes(data[off+8:off+12], 'little')
         width = int.from_bytes(data[off+12:off+14], 'little', signed=False)
         height = int.from_bytes(data[off+14:off+16], 'little', signed=False)
-        # skip columndirectory and read patchcount
         patchcount = int.from_bytes(data[off+20:off+22], 'little')
         out_lines.append(f'WallTexture "{texname}", {width}, {height}')
         out_lines.append("{")
@@ -241,7 +444,6 @@ def parse_texture_lump_to_text(pnames: list, lumps_bytes: bytes) -> str:
             patch_index = int.from_bytes(data[p_off+4:p_off+6], 'little', signed=False)
             # skip stepdir and colormap
             p_off += 10
-            # patch_index indexes into PNAMES
             patch_name = pnames[patch_index] if 0 <= patch_index < len(pnames) else f"PNAME_{patch_index}"
             out_lines.append(f'\tPatch "{patch_name}", {originx}, {originy}')
         out_lines.append("}")
@@ -274,6 +476,57 @@ def force_colormap_size(blob: bytes) -> bytes:
         i += 1
     print(f"Padded COLORMAP from {cur} -> {len(output)} bytes")
     return bytes(output[:target])
+
+def parse_pnames(lump_bytes: bytes) -> list:
+    """
+    Parse a PNAMES lump and return a list of patch names (strings).
+
+    PNAMES format:
+      int32 nummappatches (little-endian)
+      nummappatches * 8-byte zero-padded ASCII names
+
+    Behavior:
+    - If lump_bytes is too small or missing, returns [].
+    - If header's count is larger than available data, clamp to available entries.
+    - Names are decoded with ASCII (errors -> replacement), NUL/space-trimmed and uppercased.
+    """
+    if not lump_bytes or len(lump_bytes) < 4:
+        return []
+
+    # read number of patch names (little-endian uint32)
+    try:
+        nummappatches = int.from_bytes(lump_bytes[0:4], "little", signed=False)
+    except Exception:
+        return []
+
+    # guard against absurd values
+    if nummappatches <= 0:
+        return []
+
+    # how many full 8-byte entries are actually present
+    available = (len(lump_bytes) - 4) // 8
+    if available <= 0:
+        return []
+
+    if nummappatches > available:
+        print(f"Warning: PNAMES header claims {nummappatches} names but only {available} entries present; clamping.")
+        nummappatches = available
+
+    names = []
+    off = 4
+    for i in range(nummappatches):
+        raw = lump_bytes[off:off+8]
+        # ensure length 8 for safe splitting
+        if len(raw) < 8:
+            raw = raw.ljust(8, b'\x00')
+        # split at first NUL, decode (ASCII preferred), trim trailing spaces
+        name = raw.split(b'\x00', 1)[0].decode('ascii', errors='replace').rstrip(' ')
+        # canonicalize to uppercase (WAD lump names are typically uppercase)
+        name = name.upper()
+        names.append(name)
+        off += 8
+
+    return names
 
 # High-level processor
 def process_special_lumps(src_wad, out_wad, src_wadio):
@@ -312,7 +565,7 @@ def process_special_lumps(src_wad, out_wad, src_wadio):
         if name == "ENDOOM" or name == "ENDBOOM":
             try:
                 lua_bytes = parse_endoom_and_build_lua(lump_bytes)
-                out_name = "LUA_END"
+                out_name = "LUA_ENDM"
                 safe_add_lump_to_data(out_wad, out_name, WadIO._LumpFromBytes(lua_bytes) if hasattr(WadIO, '_LumpFromBytes') else Lump(lua_bytes))
                 print(f"Inserted {out_name} (ENDOOM -> Lua endoom)")
             except Exception as e:

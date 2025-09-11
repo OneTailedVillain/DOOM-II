@@ -12,8 +12,8 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("sfx_swtchn", "sfx_swtchx", "sfx_slop",
-"sfx_pistol", "sfx_secret",
+SafeFreeSlot("sfx_swtchn", "sfx_swtchx", "sfx_slop", "sfx_noway", "sfx_oof",
+"sfx_pistol", "sfx_shotgn", "sfx_secret",
 "MT_TROOPSHOT", "S_DOOM_IMPFIRE", "SPR_BAL1", "sfx_firsht", "sfx_bgact", "sfx_bgdth1", "sfx_bgdth2", "sfx_bgsit1", "sfx_bgsit2", "sfx_claw",
 "sfx_podth1", "sfx_podth2", "sfx_podth3", "sfx_popain", "sfx_posact", "sfx_posit1", "sfx_posit2", "sfx_posit3", "MT_DOOM_TELEFOG", "SPR_TFOG", "sfx_telept")
 
@@ -31,8 +31,88 @@ SafeFreeSlot(
 "S_TELEFOG11",
 "S_TELEFOG12",
 "TOL_DOOM",
-"MT_DOOM_TELETARGET"
+"MT_DOOM_TELETARGET",
+"MT_DOOM_BULLETPUFF",
+"S_DOOM_PUFF1",
+"S_DOOM_PUFF2",
+"S_DOOM_PUFF3",
+"S_DOOM_PUFF4",
+"S_DOOM_BLOOD1",
+"S_DOOM_BLOOD2",
+"S_DOOM_BLOOD3",
+"S_DOOM_BLOOD4",
+"SPR_PUFF"
 )
+
+states[S_DOOM_PUFF1] = {
+    sprite = SPR_PUFF,
+    frame = A,
+    tics = 4,
+    nextstate = S_DOOM_PUFF2
+}
+
+states[S_DOOM_PUFF2] = {
+    sprite = SPR_PUFF,
+    frame = B,
+    tics = 4,
+    nextstate = S_DOOM_PUFF3
+}
+
+states[S_DOOM_PUFF3] = {
+    sprite = SPR_PUFF,
+    frame = C,
+    tics = 4,
+    nextstate = S_DOOM_PUFF4
+}
+
+states[S_DOOM_PUFF4] = {
+    sprite = SPR_PUFF,
+    frame = D,
+    tics = 4,
+    nextstate = S_NULL
+}
+
+states[S_DOOM_BLOOD1] = {
+    sprite = SPR_BLUD,
+    frame = A,
+    tics = 4,
+    nextstate = S_DOOM_BLOOD2
+}
+
+states[S_DOOM_BLOOD2] = {
+    sprite = SPR_BLUD,
+    frame = B,
+    tics = 4,
+    nextstate = S_DOOM_BLOOD3
+}
+
+states[S_DOOM_BLOOD3] = {
+    sprite = SPR_BLUD,
+    frame = C,
+    tics = 4,
+    nextstate = S_DOOM_BLOOD4
+}
+
+states[S_DOOM_BLOOD4] = {
+    sprite = SPR_BLUD,
+    frame = D,
+    tics = 4,
+    nextstate = S_NULL
+}
+
+mobjinfo[MT_DOOM_BULLETPUFF] = {
+	spawnstate = S_DOOM_PUFF1,
+	spawnhealth = 1000,
+	deathstate = S_NULL,
+	radius = 1*FRACUNIT,
+	height = 1*FRACUNIT,
+	dispoffset = 5,
+	flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP,
+}
+
+addHook("MobjThinker", function(mobj)
+	P_MoveOrigin(mobj, mobj.x, mobj.y, mobj.z+FRACUNIT)
+end, MT_DOOM_BULLETPUFF)
 
 G_AddGametype({
     name = "DOOM",
@@ -58,7 +138,7 @@ local function BulletHitObject(tmthing, thing)
 	if not (thing.flags & MF_SHOOTABLE) then return false end
 
 	local damageVals = hardcodedDamageVals[tmthing.type]
-	local damage = (P_RandomByte() % (damageVals[2] / damageVals[1]) + 1) * damageVals[1]
+	local damage = (DOOM_Random() % (damageVals[2] / damageVals[1]) + 1) * damageVals[1]
 
 	tmthing.hitenemy = true
     DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)

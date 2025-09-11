@@ -12,22 +12,22 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_VILE")
+SafeFreeSlot("SPR_SKUL")
 local name = "LostSoul"
 
 local object = {
-	health = 700,
-	radius = 20,
+	health = 100,
+	radius = 16,
 	height = 56,
-	mass = 500,
-	speed = 15,
-	painchance = 200,
-	doomednum = 2047,
+	mass = 50,
+	speed = 8,
+	painchance = 256,
+	doomednum = 3006,
 	seesound = sfx_bgsit1,
 	activesound = sfx_bgact,
 	painsound = sfx_popain,
 	deathsound = sfx_bgdth1,
-	sprite = SPR_VILE,
+	sprite = SPR_SKUL,
 	doomflags = DF_COUNTKILL
 }
 
@@ -37,14 +37,8 @@ local states = {
 		{action = A_DoomLook, frame = B, tics = 10, next = "stand"}
 	},
 	chase = {
-		{action = A_DoomChase, frame = A, tics = 3},
-		{action = A_DoomChase, frame = A, tics = 3},
-		{action = A_DoomChase, frame = B, tics = 3},
-		{action = A_DoomChase, frame = B, tics = 3},
-		{action = A_DoomChase, frame = C, tics = 3},
-		{action = A_DoomChase, frame = C, tics = 3},
-		{action = A_DoomChase, frame = D, tics = 3},
-		{action = A_DoomChase, frame = D, tics = 3, next = "chase"},
+		{action = A_DoomChase, frame = A, tics = 6},
+		{action = A_DoomChase, frame = B, tics = 6},
 	},
 	attack = {
 		{action = A_DoomFaceTarget, frame = E, tics = 8},

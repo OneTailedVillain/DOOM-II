@@ -34,18 +34,19 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     mobjinfo[MT] = {
 		spawnstate   = objData.spawnstate or slots["S_"..prefix.."_STAND1"],
 		spawnhealth  = objData.health,
-		seestate     = objData.seestate or slots["S_"..prefix.."_CHASE1"],
+		seestate     = objData.seestate or slots["S_"..prefix.."_CHASE1"] or slots["S_"..prefix.."_STAND1"],
 		seesound     = objData.seesound,
 		painsound    = objData.painsound,
 		deathsound   = objData.deathsound,
+		attacksound  = objData.attacksound,
 		missilestate = objData.missilestate or slots["S_"..prefix.."_MISSILE1"] or slots["S_"..prefix.."_ATTACK1"],
 		meleestate   = objData.meleestate or slots["S_"..prefix.."_MELEE1"] or slots["S_"..prefix.."_ATTACK1"],
-		painstate    = objData.painstate or slots["S_"..prefix.."_PAIN1"],
+		painstate    = objData.painstate or slots["S_"..prefix.."_PAIN1"] or slots["S_"..prefix.."_CHASE1"] or slots["S_"..prefix.."_STAND1"],
 		deathstate   = objData.deathstate or slots["S_"..prefix.."_DIE1"] or slots["S_"..prefix.."_GIB1"],
 		xdeathstate  = objData.xdeathstate or slots["S_"..prefix.."_GIB1"] or slots["S_"..prefix.."_DIE1"],
-		speed        = objData.speed   * FRACUNIT,
-		radius       = objData.radius  * FRACUNIT,
-		height       = objData.height  * FRACUNIT,
+		speed        = (objData.speed or 0)   * FRACUNIT,
+		radius       = (objData.radius or 0)  * FRACUNIT,
+		height       = (objData.height or 0)  * FRACUNIT,
 		mass         = objData.mass,
 		painchance   = objData.painchance,
 		activesound  = objData.activesound,
@@ -61,16 +62,23 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
         for i, f in ipairs(frames) do
             local thisName = string.format("S_%s_%s%d", prefix, stU, i)
             local nextName  = f.next
-                and string.format("S_%s_%s1", prefix, f.next:upper())
+                and string.format("S_%s_%s%d", prefix, f.next:upper(), tonumber(f.nextframe) or 1)
                 or frames[i+1] 
                     and string.format("S_%s_%s%d", prefix, stU, i+1)
                     or "S_NULL"
 
+			local frame = f.frame
+			if ((objData.doomflags or 0) & DF_SHADOW) then
+				frame = $|FF_MODULATE
+			end
+
             states[ slots[thisName] ] = {
-				sprite    = objData.sprite,
-				frame     = f.frame,
+				sprite    = f.sprite != nil and f.sprite or objData.sprite,
+				frame     = frame,
 				tics      = f.tics,
 				action    = f.action,
+				var1      = f.var1,
+				var2      = f.var2,
 				nextstate = (nextName == "S_NULL")
 							and S_NULL 
 							or slots[nextName]
@@ -86,7 +94,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		mobj.movecount = ($ or 0) + 1
 		if mobj.movecount < 12*TICRATE then return end
 		if leveltime & 31 then return end
-		if P_RandomByte() > 4 then return end
+		if DOOM_Random() > 4 then return end
 		local new = P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, mobj.type)
 		P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, MT_DOOM_TELEFOG)
 		mobj.state = S_TELEFOG1
@@ -108,7 +116,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 
 		target.doom.health = $ - (attacker.damage or damage)
 		target.health = INT32_MAX
-		local rtd = P_RandomByte()
+		local rtd = DOOM_Random()
 
 		if target.doom.health <= 0 then
 			P_KillMobj(target, inflictor, source, damagetype)
@@ -117,10 +125,22 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 			else
 				target.state = S_DEATHSTATE
 			end
-		elseif P_RandomByte() < target.info.painchance then
+		elseif DOOM_Random() < target.info.painchance then
 			target.state = target.info.painstate -- you have ALL the other S_ constants that point to the mobjinfo's statedefs, but NOT one for painstate!?
 		end
 */
+/*
+hitscanners, melee attacks, and lost souls skip this, btw!!
+monsters cannot infight archviles
+			or ( (inflictor.target.type == MT_KNIGHT and target.type == MT_BARON)
+			  or (inflictor.target.type == MT_BARON and target.type == MT_KNIGHT) )
+*/
+		if inflictor.target and (
+			inflictor.target.type == target.type
+		) then
+			return true
+		end
+		if damage == 0 then return end
 		DOOM_DamageMobj(target, inflictor, source, damage, damagetype)
 		return true
 	end, MT)
@@ -189,7 +209,7 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 		local thisSlot = slots[thisName]
 
         states[thisSlot] = {
-            sprite    = objData.sprite,
+            sprite    = frame.sprite != nil and frame.sprite or objData.sprite,
             frame     = (type(frame) == "table" and frame.frame) and tonumber(frame.frame),
             tics      = (type(frame) == "table" and frame.tics) and tonumber(frame.tics),
             nextstate = nextSlot or S_NULL,
@@ -217,12 +237,12 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
     mobjinfo[MT] = {
         spawnstate  = slots[firstStateName],
         spawnhealth = objData.health or 0,
-        radius      = (objData.radius or 16) * FRACUNIT,
-        height      = (objData.height or 16) * FRACUNIT,
+        radius      = (objData.radius or 0) * FRACUNIT,
+        height      = (objData.height or 0) * FRACUNIT,
         mass        = objData.mass or 100,
         doomednum   = objData.doomednum or -1,
         speed       = 0,
-        flags       = objData.flags|MF_SCENERY,
+        flags       = objData.flags and objData.flags|MF_SCENERY or MF_SCENERY,
         activesound = objData.activesound,
         painsound   = objData.painsound,
         deathsound  = objData.deathsound,
@@ -244,7 +264,7 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
 		local thisSlot = slots[thisName]
 
         states[thisSlot] = {
-            sprite    = objData.sprite,
+            sprite    = frame.sprite != nil and frame.sprite or objData.sprite,
             frame     = (type(frame) == "table" and frame.frame) and tonumber(frame.frame),
             tics      = (type(frame) == "table" and frame.tics) and tonumber(frame.tics),
             nextstate = nextSlot or S_NULL,
@@ -252,8 +272,76 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
     end
 end)
 
+local function P_CheckMissileSpawn(th)
+    if not th then return end
+    -- randomize tics slightly
+/*
+	-- FIXME: What is going wrong to make this not function properly?
+    th.tics = th.tics - (DOOM_Random() & 3)
+    if th.tics < 1 then
+        th.tics = 1
+    end
+
+    -- nudge forward a little so an angle can be computed
+	P_SetOrigin(th, 
+    th.x + (th.momx >> 1),
+    th.y + (th.momy >> 1),
+    th.z + (th.momz >> 1))
+
+    -- if missile is immediately blocked, explode
+    if not P_TryMove(th, th.x, th.y, true) then
+        P_ExplodeMissile(th)
+    end
+*/
+end
+
+rawset(_G, "DOOM_SpawnMissile", function(source, dest, type)
+    if not (source and dest) then return nil end
+
+    local th = P_SpawnMobj(source.x,
+                           source.y,
+                           source.z + 4*8*FRACUNIT,
+                           type)
+    if not th then return nil end
+
+    if th.info.seesound then
+        S_StartSound(th, th.info.seesound)
+    end
+
+    th.target = source
+
+    -- angle to target
+    local an = R_PointToAngle2(source.x, source.y, dest.x, dest.y)
+
+    -- fuzzy player (shadow)
+    if (dest.doom.flags & DF_SHADOW) ~= 0 then
+        an = $ + (DOOM_Random() - DOOM_Random()) << 20
+    end
+
+    th.angle = an
+
+    th.momx = FixedMul(th.info.speed, cos(an))
+    th.momy = FixedMul(th.info.speed, sin(an))
+
+    local dist = P_AproxDistance(dest.x - source.x,
+                                 dest.y - source.y)
+    dist = dist / th.info.speed
+
+    if dist < 1 then dist = 1 end
+
+    th.momz = (dest.z - source.z) / dist
+
+    P_CheckMissileSpawn(th)
+    return th
+end)
+
+rawset(_G, "P_GetSupportsForSkin", function(player)
+	return doom.charSupport[player.mo.skin]
+end)
+
 rawset(_G, "P_GetMethodsForSkin", function(player)
-	return doom.charSupport[player.mo.skin].methods
+	local support = P_GetSupportsForSkin(player)
+	return support.methods
 end)
 
 rawset(_G, "DOOM_GetWeaponDef", function(player)
@@ -285,7 +373,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 
         -- Apply thrust/knockback
         if inflictor and not (target.flags & MF_NOCLIP) and
-           (not source or not source.player or source.player.readyweapon ~= wp_chainsaw) then
+           (not source or not source.player or source.player.curwep ~= "chainsaw") then
             local ang = R_PointToAngle2(inflictor.x, inflictor.y, target.x, target.y)
             local thrust = damage * (FRACUNIT >> 3) * 100 / target.info.mass
 
@@ -307,7 +395,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             -- Handle death
             target.flags = $ & ~(MF_SHOOTABLE|MF_FLOAT)
 			target.flags2 = $ & ~MF2_SKULLFLY
-            if target.type ~= MT_DOOM_LOSTSOUL then
+            if target.type ~= MT_DOOM_LOSTSOUL or target.type ~= MT_DOOM_KEEN then
                 target.flags = $ & ~MF_NOGRAVITY
             end
             target.doom.flags = $ | DF_CORPSE|DF_DROPOFF
@@ -329,31 +417,18 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
                 target.state = target.info.deathstate
             end
 
-            target.tics = $ - (P_RandomByte() & 3)
+            target.tics = $ - (DOOM_Random() & 3)
             if target.tics < 1 then target.tics = 1 end
 
 			local itemDropList = {
 				[MT_DOOM_ZOMBIEMAN] = MT_DOOM_CLIP,
+				[MT_DOOM_SSGUARD] = MT_DOOM_CLIP,
+				[MT_DOOM_CHAINGUNNER] = MT_DOOM_CHAINGUN,
+				[MT_DOOM_SHOTGUNNER] = MT_DOOM_SHOTGUN,
 			}
 
             -- Handle item drops
             local itemtype = itemDropList[target.type]
-
-			/*
-            switch(target.type)
-                case MT_WOLFSS, MT_POSSESSED:
-                    itemtype = MT_CLIP
-                    break
-                case MT_SHOTGUY:
-                    itemtype = MT_SHOTGUN
-                    break
-                case MT_CHAINGUY:
-                    itemtype = MT_CHAINGUN
-                    break
-                default:
-                    return
-            end
-			*/
 
             if itemtype then
                 local mo = P_SpawnMobj(target.x, target.y, ONFLOORZ, itemtype)
@@ -361,9 +436,11 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             end
         else
             -- Handle pain
-            if P_RandomByte() < target.info.painchance and not (target.flags2 & MF2_SKULLFLY) then
+            if DOOM_Random() < target.info.painchance and not (target.flags2 & MF2_SKULLFLY) then
                 target.doom.flags = $ | DF_JUSTHIT
-                target.state = target.info.painstate
+				if target.info.painstate then
+					target.state = target.info.painstate
+				end
             end
 
             target.reactiontime = 0
@@ -372,7 +449,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             if (not target.threshold or target.type == MT_DOOM_ARCHVILE ) and 
                source and source != target and source.type != MT_DOOM_ARCHVILE  then
                 target.target = source
-                target.threshold = 60 --BASETHRESHOLD
+                target.threshold = 100 --BASETHRESHOLD
                 if target.state == states[target.info.spawnstate] and 
 					target.info.seestate != S_NULL then
 					target.state = target.info.painstate
@@ -448,22 +525,192 @@ local function DOOM_WhatInter()
 	end
 end
 
+local function saveStatus(player)
+	player.doom = $ or {}
+	player.mo.doom = $ or {}
+	player.doom.laststate = {}
+	player.doom.laststate.ammo = deepcopy(player.doom.ammo)
+	player.doom.laststate.weapons = deepcopy(player.doom.weapons)
+	player.doom.laststate.oldweapons = deepcopy(player.doom.oldweapons)
+	player.doom.laststate.curwep = deepcopy(player.doom.curwep)
+	player.doom.laststate.curwepslot = deepcopy(player.doom.curwepslot)
+	player.doom.laststate.health = deepcopy(player.mo.doom.health)
+	player.doom.laststate.armor = deepcopy(player.mo.doom.armor)
+	player.doom.laststate.pos = {
+		x = deepcopy(player.mo.x),
+		y = deepcopy(player.mo.y),
+		z = deepcopy(player.mo.z),
+	}
+	player.doom.laststate.momentum = {
+		x = deepcopy(player.mo.momx),
+		y = deepcopy(player.mo.momy),
+		z = deepcopy(player.mo.momz),
+	}
+	player.doom.laststate.map = deepcopy(gamemap)
+end
+
 rawset(_G, "DOOM_ExitLevel", function()
+	if doom.intermission then return end
 	if doom.isdoom1 then
 		doom.animatorOffsets = {}
 		for i = 1, 10 do
-			doom.animatorOffsets[i] = P_RandomByte()
+			doom.animatorOffsets[i] = DOOM_Random()
 		end
 	end
 	for player in players.iterate() do
 		player.doom.intstate = 1
 		player.doom.intpause = TICRATE
 		player.doom.wintime = leveltime
+		saveStatus(player)
 	end
 	doom.intermission = true
 	S_ChangeMusic(DOOM_WhatInter())
 end)
 
-rawset(_G, "DOOM_DoMessage", function(player)
+rawset(_G, "DOOM_DoMessage", function(player, string)
 	player.doom.messageclock = TICRATE*2
+	player.doom.message = doom.dehacked and doom.dehacked[string] or doom.strings[string] or string
+end)
+
+/*
+//
+// P_LookForPlayers
+// If allaround is false, only look 180 degrees in front.
+// Returns true if a player is targeted.
+//
+boolean
+P_LookForPlayers
+( mobj_t*	actor,
+  boolean	allaround )
+{
+    int		c;
+    int		stop;
+    player_t*	player;
+    sector_t*	sector;
+    angle_t	an;
+    fixed_t	dist;
+		
+    sector = actor->subsector->sector;
+	
+    c = 0;
+    stop = (actor->lastlook-1)&3;
+	
+    for ( ; ; actor->lastlook = (actor->lastlook+1)&3 )
+    {
+	if (!playeringame[actor->lastlook])
+	    continue;
+			
+	if (c++ == 2
+	    || actor->lastlook == stop)
+	{
+	    // done looking
+	    return false;	
+	}
+	
+	player = &players[actor->lastlook];
+
+	if (player->health <= 0)
+	    continue;		// dead
+
+	if (!P_CheckSight (actor, player->mo))
+	    continue;		// out of sight
+			
+	if (!allaround)
+	{
+	    an = R_PointToAngle2 (actor->x,
+				  actor->y, 
+				  player->mo->x,
+				  player->mo->y)
+		- actor->angle;
+	    
+	    if (an > ANG90 && an < ANG270)
+	    {
+		dist = P_AproxDistance (player->mo->x - actor->x,
+					player->mo->y - actor->y);
+		// if real close, react anyway
+		if (dist > MELEERANGE)
+		    continue;	// behind back
+	    }
+	}
+		
+	actor->target = player->mo;
+	return true;
+    }
+
+    return false;
+}
+*/
+
+rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
+    local c = 0
+    local stop = (actor.lastlook - 1) & 3
+    local sector = actor.subsector.sector
+
+    while true do
+        -- Increment lastlook cyclically
+        actor.lastlook = ($ + 1) & 3
+
+        if c == 2 or actor.lastlook == stop then
+            -- Done looking
+            return false
+        end
+
+        c = c + 1
+        local player = players[actor.lastlook]
+
+		if not player then
+			continue
+		end
+
+        if player.mo.doom.health <= 0 then
+            continue -- dead
+        end
+
+        if not P_CheckSight(actor, player.mo) then
+            continue -- out of sight
+        end
+
+        if not allaround then
+            local an = R_PointToAngle2(actor.x, actor.y, player.mo.x, player.mo.y) - actor.angle
+            if an > ANGLE_90 and an < ANGLE_270 then
+                local dist = P_AproxDistance(player.mo.x - actor.x, player.mo.y - actor.y)
+                if dist > MELEERANGE then
+                    continue
+                end
+            end
+        end
+
+        actor.target = player.mo
+        return true
+    end
+
+    return false
+end)
+
+rawset(_G, "DOOM_SwitchWeapon", function(player, wepname)
+	if not (player and player.valid) then return end
+	if not player.doom then return end
+	if not player.doom.weapons[wepname] then return end -- player must own it
+
+	-- Find which slot + order this weapon belongs to
+	for slot, weplist in pairs(doom.weaponnames) do
+		for order, w in ipairs(weplist) do
+			if w == wepname then
+				-- Emulate manual switch
+				player.doom.curwepcat = slot
+				player.doom.curwepslot = order
+				player.doom.wishwep = wepname
+				player.doom.switchingweps = true
+				player.doom.switchtimer = 0
+				return true
+			end
+		end
+	end
+
+	return false -- weapon exists but wasn’t found in any slot (bad config?)
+end)
+
+rawset(_G, "DOOM_Random", function()
+    doom.prndindex = (doom.prndindex+1)&0xff;
+    return doom.rndtable[doom.prndindex + 1];
 end)

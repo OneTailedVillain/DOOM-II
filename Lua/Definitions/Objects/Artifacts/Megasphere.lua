@@ -12,33 +12,36 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_BROK", "sfx_itemup")
-local name = "RocketBox"
+SafeFreeSlot("SPR_MEGA")
+local name = "MegaSphere"
 
 local object = {
 	radius = 20,
 	height = 16,
-	doomednum = 2046,
-	deathsound = sfx_itemup,
-	sprite = SPR_BROK,
-	doomflags = DF_COUNTITEM
+	doomednum = 83,
+	deathsound = sfx_getpow,
+	sprite = SPR_MEGA,
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
 }
 
-mobjinfo[MT_JACKO2].doomednum = -1
-
 local states = {
-	{frame = A, tics = 6},
+		{frame = A, tics = 6},
+		{frame = B, tics = 6},
+		{frame = C, tics = 6},
+		{frame = D, tics = 6},
 }
 
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local ammo = funcs.getAmmoFor(player, "rockets")
-	local maxammo = funcs.getMaxFor(player, "rockets")
-	if ammo >= maxammo then return true end
+	local health = funcs.getHealth(player)
+	local armor = funcs.getArmor(player)
+	if health == 200 and armor == 200 then return true end
 	player.doom.bonuscount = 32
-	funcs.setAmmoFor(player, "rockets", min(ammo + 5, maxammo))
+	funcs.setHealth(player, 200)
+	funcs.setArmor(player, 200)
+	DOOM_DoMessage(player, "GOTROCKBOX")
 end
 
 DefineDoomItem(name, object, states, onPickup)

@@ -1,4 +1,4 @@
-DOOM_Freeslot("sfx_pistol", "sfx_barexp", "sfx_sgcock")
+DOOM_Freeslot("sfx_pistol", "sfx_sgcock")
 
 local doom1Pars = {
 	{30, 75, 120, 90, 165, 180, 180, 30, 165},
@@ -8,7 +8,7 @@ local doom1Pars = {
 }
 
 local doom2Pars = {
-	30, 90, 120, 90, 150, 120, 120, 270, 90,
+	30, 90, 120, 120, 90, 150, 120, 120, 270, 90,
 	210, 150, 150, 150, 210, 150, 320, 150, 210, 150,
 	240, 150, 180, 150, 150, 300, 330, 420, 300, 180,
 	120, 30
@@ -73,6 +73,7 @@ MAP31 = MAP32
 Secret exits outside of the above maps restart the current map.
 */
 
+-- TODO: MAPINFO has these set, usually... Make sure to add support for those sometime in the future
 doom.secretExits = $ or {
 	-- DOOM 1
 	[3] = 41,
@@ -87,7 +88,12 @@ doom.secretExits = $ or {
 
 -- print( .. "% KILLS")
 addHook("PlayerThink", function(player)
-	if not doom.intermission then player.cnt_kills = {1, 1, 1} return end
+	if not doom.intermission or player.doom.intstate < 0 then
+		player.doom.cnt_time = 0
+		player.doom.cnt_par = 0
+		player.cnt_kills = {1, 1, 1}
+		return
+	end
 	if player.doom.intstate == 2 then
 		player.cnt_kills[1] = $ + 2
 		local max
@@ -147,6 +153,10 @@ addHook("PlayerThink", function(player)
 		player.doom.cnt_par = ($ or 0) + 3
 		local parTarg = 0
 
+		if player.doom.cnt_time >= player.doom.wintime / TICRATE then
+			player.doom.cnt_time = player.doom.wintime / TICRATE
+		end
+
 		if not (player.doom.bcnt & 3) then
 			S_StartSound(nil, sfx_pistol, player)
 		end
@@ -155,9 +165,9 @@ addHook("PlayerThink", function(player)
 			local Doom1Map = Doom2MapToDoom1[gamemap]
 			local ep = Doom1Map.ep
 			local mis = Doom1Map.map
-			parTarg = doom1Pars[ep][mis]
+			parTarg = doom1Pars[ep] and doom1Pars[ep][mis] or 0
 		else
-			parTarg = doom2Pars[gamemap]
+			parTarg = doom2Pars[gamemap] or $
 		end
 		if player.doom.cnt_par >= parTarg then
 			player.doom.cnt_par = parTarg
@@ -180,14 +190,16 @@ addHook("PlayerThink", function(player)
 		end
 	elseif player.doom.intstate == 12 then
 		player.doom.intpause = TICRATE
+		player.doom.intstate = -1
+		doom.intermission = false
+		player.doom.notrigger = true
 		local nextLev
 		if doom.didSecretExit then
 			nextLev = doom.secretExits[gamemap]
 		else
 			nextLev = mapheaderinfo[gamemap].nextlevel or gamemap + 1
 		end
-		doom.intermission = nil
-		G_SetCustomExitVars(nextLev, 1)
+		G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
 		G_ExitLevel()
 	elseif (player.doom.intstate & 1) then
 		player.doom.intpause = ($ or 1) - 1

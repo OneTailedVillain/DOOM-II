@@ -1,17 +1,3 @@
-local function SafeFreeSlot(...)
-    local ret = {}
-    for _, name in ipairs({...}) do
-        -- If already freed, just use the existing slot
-        if rawget(_G, name) ~= nil then
-            ret[name] = _G[name]
-        else
-            -- Otherwise, safely freeslot it and return the value
-            ret[name] = freeslot(name)
-        end
-    end
-    return ret
-end
-
 states[S_DOOM_IMPFIRE] = {
     sprite    = SPR_BAL1,
     frame     = A|FF_ANIMATE,
@@ -98,7 +84,8 @@ void A_Look (mobj_t* actor)
 */
 
 function A_DoomLook(actor)
-	local targ = actor.subsector.sector.soundtarget
+	local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
+	local targ = secdata and secdata.soundtarget
 	actor.threshold = 0 // any shot will wake up
 
 	local gotoseeyou = false
@@ -116,7 +103,7 @@ function A_DoomLook(actor)
 	end
 
 	if not gotoseeyou then
-		if not P_LookForPlayers(actor, MELEERANGE * 8, false) then
+		if not DOOM_LookForPlayers(actor, false) then
 			return
 		end
 	end
@@ -126,9 +113,9 @@ function A_DoomLook(actor)
 	if actor.info.seesound then
 		local seesound = actor.info.seesound
 		if seesound == sfx_posit1 or seesound == sfx_posit2 or seesound == sfx_posit3 then
-			sound = sfx_posit1 + P_RandomByte()%3
+			sound = sfx_posit1 + DOOM_Random()%3
 		elseif seesound == sfx_bgsit1 or seesound == sfx_bgsit2 then
-			sound = sfx_bgsit1 + P_RandomByte()%2
+			sound = sfx_bgsit1 + DOOM_Random()%2
 		else
 			sound = seesound
 		end
@@ -259,6 +246,70 @@ void A_Chase (mobj_t*	actor)
 }
 */
 
+local function DOOM_CheckMissileRange(actor)
+    local dist;
+	
+    if not P_CheckSight(actor, actor.target) then
+	return false;
+	end
+	
+    if ( actor.doom.flags & DF_JUSTHIT )
+	// the target just hit the enemy,
+	// so fight back!
+	actor.doom.flags = $ & ~DF_JUSTHIT;
+	return true;
+    end
+	
+    if (actor.reactiontime)
+	return false;	// do not attack yet
+	end
+		
+    // OPTIMIZE: get this from a global checksight
+    dist = P_AproxDistance ( actor.x - actor.target.x,
+			     actor.y - actor.target.y) - 64*FRACUNIT;
+    
+    if (not actor.info.meleestate) then
+	dist = $ - 128*FRACUNIT;	// no melee attack, so fire more
+	end
+
+    dist = $ >> FRACBITS;
+
+    if (actor.type == MT_DOOM_ARCHVILE)
+		if (dist > 14*64)	
+			return false;	// too far away
+		end
+	end
+	
+/*
+    if (actor->type == MT_UNDEAD)
+		if (dist < 196)	
+			return false;	// close for fist attack
+		end
+		dist >>= 1;
+    end
+
+    if (actor->type == MT_CYBORG
+	|| actor->type == MT_SPIDER
+	|| actor->type == MT_SKULL)
+    {
+	dist >>= 1;
+    }
+*/  
+    if (dist > 200)
+	dist = 200;
+	end
+/*
+    if (actor.type == MT_CYBORG && dist > 160)
+	dist = 160;
+	end
+*/
+if (DOOM_Random() < dist)
+	return false;
+	end
+    return true;
+
+end
+
 function A_DoomChase(actor)
 	local delta
 
@@ -268,7 +319,7 @@ function A_DoomChase(actor)
 
 	// Modify target threshold
 	if actor.threshold then
-		if not actor.target or actor.target.health <= 0 then
+		if not actor.target or actor.target.doom.health <= 0 then
 			actor.threshold = 0
 		else
 			actor.threshold = $ - 1
@@ -277,19 +328,19 @@ function A_DoomChase(actor)
 
 	// Turn toward movement direction if not there yet
 	if actor.movedir and actor.movedir < 8 then
-		actor.angle = $ & (7 << 29)
+		actor.angle = $ & ANGLE_315
 		delta = actor.angle - (actor.movedir << 29)
 
 		if delta > 0 then
-			actor.angle = $ - (ANGLE_90 / 2)
+			actor.angle = $ - ANGLE_45
 		elseif delta < 0 then
-			actor.angle = $ + (ANGLE_90 / 2)
+			actor.angle = $ + ANGLE_45
 		end
 	end
 
 	// No valid target
 	if not actor.target or not (actor.target.flags & MF_SHOOTABLE) then
-		if P_LookForPlayers(actor, MELEERANGE * 8, true) then
+		if DOOM_LookForPlayers(actor, true) then
 			return
 		end
 
@@ -322,7 +373,7 @@ function A_DoomChase(actor)
 			doMissile = false
 		end
 
-		if doMissile and P_CheckMissileRange(actor) then
+		if doMissile and DOOM_CheckMissileRange(actor) then
 			actor.state = actor.info.missilestate
 			actor.flags2 = $ | MF2_JUSTATTACKED
 			return
@@ -331,7 +382,7 @@ function A_DoomChase(actor)
 
 	// Possibly choose another target if in netgame and can't see player
 	if netgame and actor.threshold == 0 and not P_CheckSight(actor, actor.target) then
-		if P_LookForPlayers(actor, MELEERANGE * 8, true) then
+		if DOOM_LookForPlayers(actor, true) then
 			return
 		end
 	end
@@ -343,7 +394,7 @@ function A_DoomChase(actor)
 	end
 
 	// Play active sound
-	if actor.info.activesound and P_RandomByte() < 3 then
+	if actor.info.activesound and DOOM_Random() < 3 then
 		S_StartSound(actor, actor.info.activesound)
 	end
 end
@@ -366,8 +417,7 @@ void A_FaceTarget (mobj_t* actor)
 }
 */
 
-local function A_DoomFaceTarget(actor)
-	print(actor.target)
+function A_DoomFaceTarget(actor)
     if (not actor.target) then return end
     
     actor.flags2 = $ & ~MF2_AMBUSH
@@ -377,8 +427,8 @@ local function A_DoomFaceTarget(actor)
 				    actor.target.x,
 				    actor.target.y)
     
-    if (actor.target.flags2 & MF2_SHADOW) then
-		actor.angle = $ + (P_RandomByte()-P_RandomByte())<<21
+    if (actor.target.doom.flags & DF_SHADOW) then
+		actor.angle = $ + (DOOM_Random()-DOOM_Random())<<21
 	end
 end
 
@@ -415,14 +465,14 @@ function A_DoomTroopAttack(actor)
     A_FaceTarget(actor);
     if (P_CheckMeleeRange (actor)) then
 		S_StartSound (actor, sfx_claw);
-		damage = (P_RandomByte()%8+1)*3;
+		damage = (DOOM_Random()%8+1)*3;
 		DOOM_DamageMobj(actor.target, actor, actor, damage);
 		return
     end
 
     
     // launch a missile
-    P_SpawnMissile(actor, actor.target, MT_TROOPSHOT)
+    DOOM_SpawnMissile(actor, actor.target, MT_TROOPSHOT)
 end
 
 /*
@@ -483,9 +533,9 @@ function A_DoomScream(actor)
 	if not actor.info.deathsound then
 		return
 	elseif actor.info.deathsound == sfx_podth1 or actor.info.deathsound == sfx_podth2 or actor.info.deathsound == sfx_podth3 then
-		sound = sfx_podth1 + P_RandomByte()%3
+		sound = sfx_podth1 + DOOM_Random()%3
 	elseif actor.info.deathsound == sfx_bgdth1 or actor.info.deathsound == sfx_bgdth2 then
-		sound = sfx_bgdth1 + P_RandomByte()%2
+		sound = sfx_bgdth1 + DOOM_Random()%2
 	else
 		sound = actor.info.deathsound
 	end
@@ -562,12 +612,127 @@ action void A_ReFire(statelabel flash = null, bool autoSwitch = true)
 }
 */
 
+local soundblocks = 0
+
+local function P_LineOpening(line)
+	local openrange
+	local opentop
+	local openbottom
+	local lowfloor
+    if line.sidenum[1] == -1 then
+	// single sided line
+	openrange = 0;
+	return;
+	end
+
+    local front = line.frontsector;
+    local back = line.backsector;
+	
+    if (front.ceilingheight < back.ceilingheight) then
+	opentop = front.ceilingheight;
+    else
+	opentop = back.ceilingheight;
+	end
+
+    if (front.floorheight > back.floorheight) then
+	openbottom = front.floorheight;
+	lowfloor = back.floorheight;
+    else
+	openbottom = back.floorheight;
+	lowfloor = front.floorheight;
+	end
+
+	openrange = opentop - openbottom
+    return openrange -- nonzero = open
+end
+
+local function P_RecursiveSound(sec, soundblocks, emitter)
+	doom.sectordata[sec] = $ or {validcount = -999, soundtraversed = -999}
+	local data = doom.sectordata[sec]
+
+    if data.validcount == doom.validcount and data.soundtraversed <= soundblocks + 1 then
+        return
+    end
+
+    data.validcount = validcount
+    data.soundtraversed = soundblocks + 1
+    data.soundtarget = emitter
+
+    for i = 0, #sec.lines - 1 do
+        local line = sec.lines[i]
+        if not (line.flags & ML_TWOSIDED) then continue end
+
+        local openrange = P_LineOpening(line)
+        if openrange <= 0 then continue end
+
+        local other = nil
+        if line.frontsector == sec then
+            other = line.backsector
+        else
+            other = line.frontsector
+        end
+
+        if (line.flags & ML_EFFECT2) ~= 0 then
+            if soundblocks == 0 then
+                P_RecursiveSound(other, 1, emitter)
+            end
+        else
+            P_RecursiveSound(other, soundblocks, emitter)
+        end
+    end
+end
+
+local function P_NoiseAlert(target, emitter)
+	doom.validcount = $ + 1
+	soundblocks = 0
+	P_RecursiveSound(emitter.subsector.sector, soundblocks, target)
+end
+
+function A_ChainSawSound(actor, sfx)
+	local sawsounds = {sfx_sawidl, sfx_sawful, sfx_sawup, sfx_sawhit}
+	for _, sound in ipairs(sawsounds) do
+		S_StopSoundByID(actor, sound)
+	end
+	S_StartSound(actor, sfx)
+end
+
 function A_DoomPunch(actor)
 	local player = actor.player
 	if player == nil then return end
 	local mult = player.doom.powers[pw_strength] and 10 or 1
 	DOOM_Fire(player, MELEERANGE, 0, 0, 1, 5 * mult, 15 * mult)
 end
+
+function A_SawHit(actor)
+	local player = actor.player
+	if player == nil then return end
+	A_DoomPunch(actor)
+	local mult = player.doom.powers[pw_strength] and 10 or 1
+	A_ChainSawSound(actor, sfx_sawful)
+	DOOM_Fire(player, MELEERANGE, 0, 0, 1, 5 * mult, 15 * mult)
+end
+
+-- Cut-down definitions for SPECIFICALLY enemies
+doom.predefinedWeapons = {
+	{
+		damage = {3, 15},
+		pellets = 1,
+		firesound = sfx_pistol,
+		spread = {
+			horiz = FRACUNIT*59/10,
+			vert = 0,
+		},
+	},
+	{
+		damage = {3, 15},
+		pellets = 3,
+		firesound = sfx_shotgn,
+		spread = {
+			horiz = FRACUNIT*59/10,
+			vert = 0,
+		},
+	},
+}
 
 function A_DoomFire(actor, isPlayer, weaponDef, weapon)
     -- Determine if this is a player or enemy
@@ -576,13 +741,17 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
     
     if isPlayerActor then
         -- Player logic
+		--P_NoiseAlert(actor, actor)
         local funcs = P_GetMethodsForSkin(player)
         local curAmmo = funcs.getCurAmmo(player)
         local curType = funcs.getCurAmmoType(player)
 
         if curAmmo - weapon.shotcost < 0 then return end
 
-        S_StartSound(actor, weapon.firesound)
+		if weapon.firesound then
+			S_StartSound(actor, weapon.firesound)
+		end
+
         local spread
 
         if weapon.noinitfirespread and not player.doom.refire then
@@ -595,13 +764,14 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 
         DOOM_Fire(player, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2])
     else
+		local weapon = doom.predefinedWeapons[weaponDef or 1]
         -- Enemy logic
         S_StartSound(actor, weapon.firesound)
         
         -- For enemies, we need to create a mock player structure for Doom_Fire
         -- or modify Doom_Fire to accept enemy actors directly
         -- This assumes Doom_Fire can handle nil player for enemies
-        DOOM_Fire(nil, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], actor)
+        DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2])
     end
 end
 
@@ -620,4 +790,101 @@ function A_DoomReFire(actor)
 		player.doom.refire = 0
 		DOOM_DoAutoSwitch(player)
 	end
+end
+
+/*
+void A_CPosRefire (mobj_t* actor)
+{	
+    // keep firing unless target got out of sight
+    A_FaceTarget (actor);
+
+    if (P_Random () < 40)
+	return;
+
+    if (!actor->target
+	|| actor->target->health <= 0
+	|| !P_CheckSight (actor, actor->target) )
+    {
+	P_SetMobjState (actor, actor->info->seestate);
+    }
+}
+*/
+
+function A_CPosRefire(actor)
+    A_DoomFaceTarget(actor)
+	
+	if DOOM_Random() < 40 then return end
+	
+	if not actor.target or actor.target.doom.health <= 0 or not P_CheckSight(actor, actor.target) then
+		actor.state = actor.info.seestate
+	end
+end
+
+/*
+void A_SargAttack (mobj_t* actor)
+{
+    int		damage;
+
+    if (!actor->target)
+	return;
+		
+    A_FaceTarget (actor);
+    if (P_CheckMeleeRange (actor))
+    {
+	damage = ((P_Random()%10)+1)*4;
+	P_DamageMobj (actor->target, actor, actor, damage);
+    }
+}
+*/
+
+function A_DoomSargAttack(actor)
+	if not actor.target then return end
+	A_DoomFaceTarget(actor)
+	if P_CheckMeleeRange(actor) then
+		local damage = ((DOOM_Random()%10)+1)*4
+		DOOM_DamageMobj(actor.target, actor, actor, damage)
+	end
+end
+
+local function HL_GetDistance(obj1, obj2) -- get distance between two objects; useful for things like explosion damage calculation
+	if not obj1 or not obj2 then return 0 end -- Ensure both objects exist
+
+	local dx = obj1.x - obj2.x
+	local dy = obj1.y - obj2.y
+	local dz = obj1.z - obj2.z
+
+	return FixedHypot(FixedHypot(dx, dy), dz) -- 3D distance calculationd
+end
+
+local function HLExplode(actor, range, source)
+	if not (actor and actor.valid) then return end -- Ensure the actor exists
+
+	local function DamageAndBoostNearby(refmobj, foundmobj)
+		refmobj.ignoredamagedef = true
+		local dist = HL_GetDistance(refmobj, foundmobj)
+		if dist > range then return end -- Only affect objects within range
+
+		if not foundmobj or foundmobj == refmobj then return end -- Skip if no object or self
+		if not P_CheckSight(refmobj, foundmobj) then return end -- Skip if we don't have a clear view
+		if not (foundmobj.flags & MF_SHOOTABLE) then return end -- Don't attempt to hurt things that shouldn't be hurt
+
+		-- Recheck in case it died from thrust or other edge case
+		if not foundmobj then return end
+
+		-- Calculate and apply damage
+		-- Max damage = range / FRACUNIT, scaled by proximity
+		local damage = max(1, (range / FRACUNIT) * (range - dist) / range)
+		DOOM_DamageMobj(foundmobj, source, source, damage)
+	end
+
+	-- Process nearby objects
+	searchBlockmap("objects", DamageAndBoostNearby,
+		actor,
+		actor.x - range, actor.x + range,
+		actor.y - range, actor.y + range
+	)
+end
+
+function A_DoomExplode(actor)
+	HLExplode(actor, 128*FRACUNIT, actor.target)
 end

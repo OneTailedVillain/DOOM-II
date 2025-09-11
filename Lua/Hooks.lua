@@ -67,7 +67,7 @@ local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
     
     -- Set initial count based on sync
     if (not inSync) then
-        flash.count = (P_RandomByte() & 7) + 1
+        flash.count = (DOOM_Random() & 7) + 1
     else
         flash.count = 1
     end
@@ -98,7 +98,7 @@ local function P_SpawnLightFlash(sector)
         minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
         maxtime = 64,
         mintime = 7,
-        count   = (P_RandomByte() & 64) + 1,
+        count   = (DOOM_Random() & 64) + 1,
     }
 
     DOOM_AddThinker(sector, flash)
@@ -114,7 +114,9 @@ addHook("MapLoad", function(mapid)
 	for mobj in mobjs.iterate() do
 		mobj.flags2 = $ & ~MF2_OBJECTFLIP
 		mobj.eflags = $ & ~MFE_VERTICALFLIP
-		mobj.z = mobj.floorz
+		if not (mobj.info.flags & MF_SPAWNCEILING) then
+			mobj.z = P_FloorzAtPos(mobj.x, mobj.y, mobj.z, 0) -- mobj.floorz
+		end
 	end
 	doom.linespecials = {}
 	doom.linebackups = {}
@@ -158,22 +160,37 @@ addHook("MapLoad", function(mapid)
 		sector.flags = 0
 		sector.specialflags = 0
 		sector.damagetype = 0
-		sector.gravity = -FRACUNIT
+		sector.gravity = -doom.defaultgravity
 	end
 
-	gravity = -FRACUNIT
+	gravity = -doom.defaultgravity
 
 	for player in players.iterate do
 		player.doom.killcount = 0
 	end
 
+	local mthingReplacements = {
+		[5] = MT_DOOM_BLUEKEYCARD,
+		[6] = MT_DOOM_YELLOWKEYCARD,
+		[9] = MT_DOOM_SHOTGUNNER,
+		[10] = MT_DOOM_BLOODYMESS,
+		[13] = MT_DOOM_REDKEYCARD,
+		[14] = MT_DOOM_TELETARGET,
+		[15] = MT_DOOM_CORPSE,
+		[31] = MT_DOOM_SHORTGREENPILLAR,
+	}
+
 	for mthing in mapthings.iterate do
-		if mthing.type == 14 then
-			print("Found DOOM teleporter...")
+		if mthingReplacements[mthing.type] then
 			local x = mthing.x*FRACUNIT
 			local y = mthing.y*FRACUNIT
-			local z = P_FloorzAtPos(x, y, 0, 0)
-			local teleman = P_SpawnMobj(x, y, z, MT_DOOM_TELETARGET)
+			local z
+			if mthing.mobj and (mthing.mobj.info.flags & MF_SPAWNCEILING) then
+				z = P_CeilingzAtPos(x, y, 0, 0)
+			else
+				z = P_FloorzAtPos(x, y, 0, 0)
+			end
+			local teleman = P_SpawnMobj(x, y, z, mthingReplacements[mthing.type])
 			teleman.angle = FixedAngle(mthing.angle*FRACUNIT)
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTKILL) then
@@ -219,6 +236,7 @@ local expectedUserdatas = {
 	flash = "sector_t",
 	floor = "sector_t",
 	ceiling = "sector_t",
+	light = "sector_t",
 }
 
 local thinkers = {
@@ -307,7 +325,7 @@ local thinkers = {
 
 		-- closing
 		else
-			local target = doom.sectorbackups[sector].floor
+			local target = doom.sectorbackups[sector].floor or 0
 			local speed = data.fastdoor and 8*FRACUNIT or 4*FRACUNIT
 
 			if data.init then
@@ -335,24 +353,26 @@ local thinkers = {
 	
 	crusher = function(sector, data)
 		if not data.goingUp then
-			local target = P_FindLowestFloorSurrounding(sector) + 8 * FRACUNIT
-			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
+			local target = (doom.sectorbackups[sector].floor or 0) + 8*FRACUNIT
+			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
 
 			if not data.init then
 				S_StartSound(sector, sfx_pstart)
 				data.init = true
 			end
 
+			if not (sector and sector.valid) then return end
+
 			sector.ceilingheight = $ - speed
 
 			if sector.ceilingheight <= target then
 				S_StartSound(sector, sfx_pstop)
-				sector.floorheight = target
+				sector.ceilingheight = target
 				data.goingUp = true
 			end
 		else
-			local target = doom.sectorbackups[sector].ceiling
-			local speed = data.fastdoor and 8*FRACUNIT or 4*FRACUNIT
+			local target = doom.sectorbackups[sector].ceil or 0
+			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
 
 			if data.init then
 				S_StartSound(sector, sfx_pstart)
@@ -364,10 +384,7 @@ local thinkers = {
 			if sector.ceilingheight >= target then
 				S_StartSound(sector, sfx_pstop)
 				sector.ceilingheight = target
-
-				if data.repeatable then
-					data.goingUp = false
-				end
+				data.goingUp = false
 			end
 		end
 	end,
@@ -423,10 +440,10 @@ local thinkers = {
 
 		if sector.lightlevel == data.maxlight then
 			sector.lightlevel = data.minlight
-			data.count = (P_RandomByte() & data.mintime) + 1
+			data.count = (DOOM_Random() & data.mintime) + 1
 		else
 			sector.lightlevel = data.maxlight
-			data.count = (P_RandomByte() & data.maxtime) + 1
+			data.count = (DOOM_Random() & data.maxtime) + 1
 		end
 	end,
 	
@@ -434,8 +451,12 @@ local thinkers = {
 		local target
 		local dir = "up"
 		local FLOORSPEED = 2*FRACUNIT
+		if not (sector and sector.valid) then return end
 		if data.target == "nextfloor" then
 			target = P_FindNextHighestFloor(sector, sector.floorheight)
+		elseif data.target == "highest" then
+			target = P_FindHighestFloorSurrounding(sector)
+			dir = "down"
 		elseif data.target == "8abovehighest" then
 			target = P_FindHighestFloorSurrounding(sector) + 8 * FRACUNIT
 		elseif data.target == "lowestceiling" then
@@ -445,46 +466,46 @@ local thinkers = {
 		elseif data.target == "lowest" then
 			target = P_FindLowestFloorSurrounding(sector)
 			dir = "down"
-elseif data.target == "shortestlowertex" then
-    -- wiki fallback value when no surrounding lower texture exists
-    local DEFAULT_TARGET = 32000 * FRACUNIT
+		elseif data.target == "shortestlowertex" then
+			-- wiki fallback value when no surrounding lower texture exists
+			local DEFAULT_TARGET = 32000 * FRACUNIT
 
-    local best = DEFAULT_TARGET
+			local best = DEFAULT_TARGET
 
-    -- iterate the linedefs touching this sector
-    for i = 0, #sector.lines - 1 do
-		local line = sector.lines[i]
-        -- determine which side is the "other" side (the side not belonging to `sector`)
-        local othersec, texnum
+			-- iterate the linedefs touching this sector
+			for i = 0, #sector.lines - 1 do
+				local line = sector.lines[i]
+				-- determine which side is the "other" side (the side not belonging to `sector`)
+				local othersec, texnum
 
-        if line.frontsector == sector and line.backsector then
-            othersec = line.backsector
-            texnum = line.backside and line.backside.bottomtexture or 0
-        elseif line.backsector == sector and line.frontsector then
-            othersec = line.frontsector
-            texnum = line.frontside and line.frontside.bottomtexture or 0
-        end
+				if line.frontsector == sector and line.backsector then
+					othersec = line.backsector
+					texnum = line.backside and line.backside.bottomtexture or 0
+				elseif line.backsector == sector and line.frontsector then
+					othersec = line.frontsector
+					texnum = line.frontside and line.frontside.bottomtexture or 0
+				end
 
-        -- only consider this boundary if there *is* a lower texture on the opposite side
-        if othersec and texnum ~= 0 then
-            -- Simple candidate: neighbouring floor height
-            local candidate = othersec.floorheight
+				-- only consider this boundary if there *is* a lower texture on the opposite side
+				if othersec and texnum ~= 0 then
+					-- Simple candidate: neighbouring floor height
+					local candidate = othersec.floorheight
 
-            -- If we have a texture object and it reports a .height (in pixels), use it
-            -- to get a more accurate "texture bottom" height: othersec.floor + texture.height.
-            local tex = doom.texturesByNum[texnum]
-            if tex and tex.height and tex.height > 0 then
-                candidate = othersec.floorheight + (tex.height * FRACUNIT)
-            end
+					-- If we have a texture object and it reports a .height (in pixels), use it
+					-- to get a more accurate "texture bottom" height: othersec.floor + texture.height.
+					local tex = doom.texturesByNum[texnum]
+					if tex and tex.height and tex.height > 0 then
+						candidate = othersec.floorheight + (tex.height * FRACUNIT)
+					end
 
-            -- keep the smallest candidate (shortest)
-            if candidate < best then
-                best = candidate
-            end
-        end
-    end
+					-- keep the smallest candidate (shortest)
+					if candidate < best then
+						best = candidate
+					end
+				end
+			end
 
-    target = best
+			target = best
 		else
 			print("No defined target for '" .. tostring(data.target) .. "'!")
 			doom.thinkers[sector] = nil
@@ -555,6 +576,10 @@ elseif data.target == "shortestlowertex" then
 			
 		end
 	end,
+	
+	light = function(sector, data)
+		sector.lightlevel = data.target or 35
+	end,
 }
 
 addHook("ThinkFrame", function()
@@ -588,7 +613,7 @@ addHook("MobjSpawn", function(mobj)
 		mobj.doom.health = 100
 		mobj.doom.flags = mobj.info.doomflags or 0
 	else
-		mobj.doom.maxhealth = mobj.info.spawnhealth
+		mobj.doom.maxhealth = mobj.info.spawnhealth or 10
 		mobj.doom.health = mobj.doom.maxhealth
 		mobj.doom.flags = mobj.info.doomflags or 0
 		if MFE_DOOMENEMY then
@@ -605,4 +630,29 @@ addHook("MusicChange", function(_, newname, mflags, looping, position, prefade, 
 			return "DM2INT"
 		end
 	end
+end)
+
+-- "SIGMA PLAYER: THIS IS MY SIGMA MESSAGE!"
+-- force caps lock because its funny
+addHook("PlayerMsg", function(source, type, target, msg)
+	if doom.isdoom1 then
+		S_StartSound(nil, sfx_tink)
+	else
+		S_StartSound(nil, sfx_radio)
+	end
+	local baseMessage = source.name .. ":\n" .. msg
+	baseMessage = $:upper()
+	if type == 0 then
+		for player in players.iterate do
+			DOOM_DoMessage(player, baseMessage)
+		end
+	elseif type == 1 then
+		for player in players.iterate do
+			if player.ctfteam != source.ctfteam then continue end
+			DOOM_DoMessage(player, "[TEAM] " .. baseMessage)
+		end
+	elseif type == 2 then
+		DOOM_DoMessage(player, "[PRIVATE] " .. baseMessage)
+	end
+	return true
 end)

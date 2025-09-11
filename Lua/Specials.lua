@@ -148,7 +148,7 @@ doom.lineActions = {
 	},
 	[112] = {
 		type = "door", kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch"
+		fastdoor = true, repeatable = false, activationType = "walk"
 	},
 	[115] = {
 		type = "door", kind = "open", stay = true,
@@ -550,7 +550,7 @@ doom.lineActions = {
 	},
 	[82] = {
 		type = "floor", action = "lower", target = "lowest",
-		repeatable = true, activationType = "switch"
+		repeatable = true, activationType = "walk"
 	},
 	[37] = {
 		type = "floor", action = "lower", target = "lowest",
@@ -559,6 +559,12 @@ doom.lineActions = {
 	[84] = {
 		type = "floor", action = "lower", target = "lowest",
 		changes = true, repeatable = true, activationType = "walk"
+	},
+
+	-- SRB2 March 2000-specific
+	[197] = {
+		type = "floor", action = "lower", target = "lowest",
+		repeatable = true, activationType = "walk"
 	},
 
 	[102] = {

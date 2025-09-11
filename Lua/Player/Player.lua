@@ -110,7 +110,7 @@ local function ST_updateFaceWidget(plyr)
 			else
 				local badguyangle = R_PointToAngle2(
 					plyr.mo.x, plyr.mo.y,
-					pd.attacker.x, pd.attacker.y
+					pd.attacker and pd.attacker.x or 0, pd.attacker and pd.attacker.y or 0
 				)
 
 				local diffang, turnedRight
@@ -187,7 +187,7 @@ local function ST_updateFaceWidget(plyr)
 
 	-- when facecount times out, pick a straight/neutral face (left/mid/right)
 	if (not pd.facecount) or pd.facecount == 0 then
-		local rnd = P_RandomByte()
+		local rnd = DOOM_Random()
 		pd.faceindex = ST_calcPainOffset(plyr) + (rnd % 3)
 		pd.facecount = ST_STRAIGHTFACECOUNT
 		pd.priority = 0
@@ -207,14 +207,42 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if (player.cmd.buttons & BT_JUMP) then
+		if doom.issrb2 then
+			if P_IsObjectOnGround(player.mo) then
+				S_StartSound(player.mo, sfx_jump)
+				player.mo.momz = 6*FRACUNIT
+			end
+		elseif not (player.doom.lastbuttons & BT_JUMP)
+			DOOM_TryUse(player)
+		end
+	end
+
+	if (player.cmd.buttons & BT_SPIN) and not (player.doom.lastbuttons & BT_SPIN) and doom.issrb2 then
+		DOOM_TryUse(player)
+	end
+	
+	player.doom.lastbuttons = player.cmd.buttons
+end)
+
+addHook("PlayerThink", function(player)
+	if (player.mo.eflags & MFE_JUSTHITFLOOR) then
+		if (player.doom.lastmomz or 0) <= doom.defaultgravity*-8 then
+			S_StartSound(player.mo, sfx_oof)
+			--player.deltaviewheight = player.doom.lastmomz>>3
+		end
+	else
+		player.doom.lastmomz = player.mo.momz
+	end
+
+	if player.doom.powers[pw_strength] then
+		player.doom.powers[pw_strength] = $ + 1
+	end
+
 	player.hl1wepbob = FixedMul(player.mo.momx, player.mo.momx) + FixedMul(player.mo.momy, player.mo.momy)
 	player.hl1wepbob = player.hl1wepbob >> 2
 	if player.hl1wepbob > FRACUNIT*16 then
 		player.hl1wepbob = FRACUNIT*16
-	end
-
-	if (player.cmd.buttons & BT_JUMP) then
-		DOOM_TryUse(player)
 	end
 
 	player.doom.weptics = ($ or 1) - 1
@@ -227,6 +255,18 @@ addHook("PlayerThink", function(player)
 		else
 			DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
 		end
+	end
+end)
+
+addHook("PlayerThink", function(player)
+	local support = P_GetSupportsForSkin(player)
+
+	if support.noWeapons then return end
+
+	if player.doom.curwep == nil then
+		player.doom.curwep = "pistol"
+		player.doom.curwepslot = 1
+		player.doom.curwepcat = 1
 	end
 
 	local function firstAvailableInSlot(player, slot)
@@ -289,6 +329,18 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if doom.issrb2 then
+		player.mo.doom.armor = leveltime/TICRATE
+	end
+
+	if player.mo.tele then
+		local tel = player.mo.tele
+		P_SetOrigin(player.mo, tel.x, tel.y, tel.z)
+		player.mo.tele = nil
+	end
+
+	if player.mo.z != player.mo.subsector.sector.floorheight then return end
+
 	-- print(doom.sectorspecials[player.mo.subsector.sector])
 	local funcs = P_GetMethodsForSkin(player)
 
@@ -349,7 +401,7 @@ addHook("PlayerThink", function(player)
         paletteType = RADIATIONPAL
     end
 
-    if paletteType ~= nil then
+    if paletteType ~= nil and DOOM_IsPaletteRenderer() then
         P_FlashPal(player, paletteType, 1)
     end
 end)
@@ -412,8 +464,9 @@ addHook("PlayerSpawn",function(player)
 	end
 
 	local preset = {
+		useinvbackups = true,
 		ammo = {
-			none = -1,
+			none = INT32_MIN,
 			bullets = 50,
 			shells = 0,
 			rockets = 0,
@@ -433,6 +486,9 @@ addHook("PlayerSpawn",function(player)
 		curwepslot = 1,
 		curwepcat = 2,
 	}
+	if doom.issrb2 then
+		preset.health = 1
+	end
 	local saved  = player.doom.laststate
 
 	local function choose(field)
@@ -456,17 +512,48 @@ addHook("PlayerSpawn",function(player)
 	player.mo.doom.health = choose("health")
 	player.mo.doom.armor = choose("armor")
 	player.doom.oldweapons = choose("oldweapons")
+	player.doom.notrigger = false
+	player.doom.keys = 0
 	DOOM_SetState(player)
-	
+
+	player.mo.flags2 = $ & ~MF2_OBJECTFLIP
+	player.mo.eflags = $ & ~MFE_VERTICALFLIP
+	if player.mo and (player.mo.info.flags & MF_SPAWNCEILING) then
+		player.mo.z = player.mo.height - P_CeilingzAtPos(player.mo.x, player.mo.y, 0, 0)
+	else
+		player.mo.z = P_FloorzAtPos(player.mo.x, player.mo.y, 0, 0)
+	end
 	
 	saveStatus(player) -- for some fuckass reason I have to save this again RIGHT after the player spawns because srb2 CAN'T comprehend not having variables not be a live reference to eachother
 end)
+
+local function ActorCrossedLine(mo, line)
+    local cx, cy = mo.x, mo.y
+    local r = mo.radius + FRACUNIT
+    local sides = {
+        P_PointOnLineSide(cx, cy, line),
+        P_PointOnLineSide(cx + r, cy, line),
+        P_PointOnLineSide(cx - r, cy, line),
+        P_PointOnLineSide(cx, cy + r, line),
+        P_PointOnLineSide(cx, cy - r, line),
+    }
+    local first = sides[1]
+    for i = 2, #sides do
+        if sides[i] ~= first then
+            return true
+        end
+    end
+    return false
+end
+
 
 local typeHandlers = {
 	teleport = function(usedLine, whatIs, plyrmo)
 		if (plyrmo.flags & MF_MISSILE) then return end
 		if plyrmo.reactiontime and plyrmo.reactiontime > 0 then return end
 		if P_PointOnLineSide(plyrmo.x, plyrmo.y, usedLine) == 1 then return end
+		-- Praying to the gods that this works
+		if ActorCrossedLine(plyrmo, usedLine) then return end
 
 		local teletarg
 		for sector in sectors.tagged(usedLine.tag) do
@@ -483,9 +570,9 @@ local typeHandlers = {
 
 		local oldx, oldy, oldz = plyrmo.x, plyrmo.y, plyrmo.z
 		local newx, newy, newz = teletarg.x, teletarg.y, teletarg.z
-		local result = P_SetOrigin(plyrmo, newx, newy, newz)
+		plyrmo.tele = {x = newx, y = newy, z = newz}
 
-		plyrmo.z = plyrmo.floorz
+		--plyrmo.z = plyrmo.floorz
 		if plyrmo.player then
 			plyrmo.player.viewz = plyrmo.z + plyrmo.player.viewheight
 			plyrmo.reactiontime = 18
@@ -499,8 +586,8 @@ local typeHandlers = {
 		S_StartSound(fog, sfx_telept)
 
 		-- fog at destination (20 units in front of exit angle)
-		fog = P_SpawnMobj(teletarg.x + 20*cos(teletarg.angle), teletarg.y + 20*sin(teletarg.angle), plyrmo.z, MT_TFOG)
-		S_StartSound(fog, sfx_telept)
+		local destfog = P_SpawnMobj(teletarg.x + 20*cos(teletarg.angle), teletarg.y + 20*sin(teletarg.angle), plyrmo.z, MT_TFOG)
+		S_StartSound(destfog, sfx_telept)
 	end,
 	exit = function()
 		DOOM_ExitLevel()
@@ -508,22 +595,15 @@ local typeHandlers = {
 }
 
 addHook("MobjLineCollide", function(mobj, hit)
-	local curTicSide = P_PointOnLineSide(mobj.x, mobj.y, hit)
-	local lastTicSide = P_PointOnLineSide(mobj.linecollide and mobj.linecollide.oldx or mobj.x, mobj.linecollide and mobj.linecollide.oldy or mobj.y, hit)
-	if curTicSide == lastTicSide then
-		mobj.linecollide = {oldx = mobj.x, oldy = mobj.y}
-		-- return
-	end
+	if mobj.player.doom.notrigger then return end
     if not mobj.player then return end -- only care about players
     local usedLine = hit
     local lineSpecial = doom.linespecials[usedLine]
     if not lineSpecial then
-		mobj.linecollide = {oldx = mobj.x, oldy = mobj.y}
 		return
 	end
     local whatIs = doom.lineActions[lineSpecial]
     if not whatIs or whatIs.activationType ~= "walk" then
-		mobj.linecollide = {oldx = mobj.x, oldy = mobj.y}
 		return
 	end
 
@@ -534,5 +614,8 @@ addHook("MobjLineCollide", function(mobj, hit)
 			DOOM_AddThinker(sector, whatIs)
 		end
 	end
-	mobj.linecollide = {oldx = mobj.x, oldy = mobj.y}
 end, MT_PLAYER)
+
+addHook("ShouldDamage", function(mobj, inf, src, dmg, dt)
+	if dt == DMG_CRUSHED and not (inf or src) then return false end
+end)
