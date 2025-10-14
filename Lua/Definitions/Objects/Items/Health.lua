@@ -21,7 +21,7 @@ local object = {
 	doomednum = 2014,
 	deathsound = sfx_itemup,
 	sprite = SPR_BON1,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -38,7 +38,7 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
-	player.doom.bonuscount = 32
+	
 	funcs.setHealth(player, min(health + 1, 200))
 	DOOM_DoMessage(player, "GOTHTHBONUS")
 end
@@ -54,7 +54,7 @@ local object = {
 	doomednum = 2012,
 	deathsound = sfx_itemup,
 	sprite = SPR_MEDI,
-	doomflags = DF_ALWAYSPICKUP
+	doomflags = DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -67,7 +67,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	if health >= 100 then return true end
-	player.doom.bonuscount = 32
+	
 	funcs.setHealth(player, min(health + 25, 100))
 	if health < 25 then
 		DOOM_DoMessage(player, "GOTMEDINEED")
@@ -87,7 +87,7 @@ local object = {
 	doomednum = 2011,
 	deathsound = sfx_itemup,
 	sprite = SPR_STIM,
-	doomflags = DF_ALWAYSPICKUP
+	doomflags = DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -100,7 +100,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	if health >= 100 then return true end
-	player.doom.bonuscount = 32
+	
 	funcs.setHealth(player, min(health + 10, 100))
 	DOOM_DoMessage(player, "GOTSTIM")
 end

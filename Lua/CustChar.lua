@@ -142,29 +142,27 @@ local baseMethods = {
 
 	giveAmmoFor = function(player, source, dflags)
 		local tables = {
-			clip           = {"bullets", 10},
+			clip           = {"bullets", 10, true},
 			clipbox        = {"bullets", 50},
-			shells         = {"shells", 4},
+			shells         = {"shells", 4, true},
 			shellbox       = {"shells", 20},
-			rocket         = {"rockets", 1},
+			rocket         = {"rockets", 1, true},
 			rocketbox      = {"rockets", 5},
-			cell           = {"cells", 20},
+			cell           = {"cells", 20, true},
 			cellpack       = {"cells", 100},
-			pistol         = {"bullets", 20},
-			chaingun       = {"bullets", 20},
-			shotgun        = {"shells", 8},
-			supershotgun   = {"shells", 8},
-			rocketlauncher = {"rockets", 2},
-			plasmarifle    = {"cells", 40},
-			bfg9000        = {"cells", 40},
+			pistol         = {"bullets", 20, true},
+			chaingun       = {"bullets", 20, true},
+			shotgun        = {"shells", 8, true},
+			supershotgun   = {"shells", 8, true},
+			rocketlauncher = {"rockets", 2, true},
+			plasmarifle    = {"cells", 40, true},
+			bfg9000        = {"cells", 40, true},
 		}
 
 		if not player or not player.doom then return false end
 
 		local entry = tables[source]
 		if not entry then return false end
-
-		local aType, addAmount = entry[1], entry[2]
 
 		if doom.skill == 1 or doom.skill == 5 then
 			entry[2] = $ * 2
@@ -173,8 +171,65 @@ local baseMethods = {
 			entry[2] = $ / 2
 		end
 
+		if gametype == GT_DOOMDM and entry[3] then
+			entry[2] = $ * 5
+		end
+
+		local aType, addAmount = entry[1], entry[2]
+
 		local curAmmo = player.doom.ammo[aType] or 0
 		local maxAmmo = P_GetMethodsForSkin(player).getMaxFor(player, aType)
+
+/*
+    // If non zero ammo, 
+    // don't change up weapons,
+    // player was lower on purpose.
+    if (oldammo)
+	return true;	
+
+    // We were down to zero,
+    // so select a new weapon.
+    // Preferences are not user selectable.
+    switch (ammo)
+    {
+      case am_clip:
+	if (player->readyweapon == wp_fist)
+	{
+	    if (player->weaponowned[wp_chaingun])
+		player->pendingweapon = wp_chaingun;
+	    else
+		player->pendingweapon = wp_pistol;
+	}
+	break;
+	
+      case am_shell:
+	if (player->readyweapon == wp_fist
+	    || player->readyweapon == wp_pistol)
+	{
+	    if (player->weaponowned[wp_shotgun])
+		player->pendingweapon = wp_shotgun;
+	}
+	break;
+	
+      case am_cell:
+	if (player->readyweapon == wp_fist
+	    || player->readyweapon == wp_pistol)
+	{
+	    if (player->weaponowned[wp_plasma])
+		player->pendingweapon = wp_plasma;
+	}
+	break;
+	
+      case am_misl:
+	if (player->readyweapon == wp_fist)
+	{
+	    if (player->weaponowned[wp_missile])
+		player->pendingweapon = wp_missile;
+	}
+      default:
+	break;
+    }
+*/
 
 		player.doom.ammo[aType] = min(curAmmo + addAmount, maxAmmo)
 		return curAmmo ~= player.doom.ammo[aType]
@@ -298,24 +353,122 @@ local function RandomizeFromSimpleDefs(defs, player, bonusFactor)
         local baseWeight = entry[#entry]
         local weight = baseWeight
 
-        if id:sub(1,7) == "weapon_" and not player.hlinv.weapons[id] then
+        if id:sub(1,7) == "weapon_" then
             local owned = player.hlinv.weapons[id]
+            local weapon = HLItems[id]
+            
             if not owned then
-                -- Boost unowned weapons significantly
+                -- Base boost for unowned weapons
                 weight = weight + (bonusFactor * 2)
 
-                -- Extra bump if there is already ammo for this weapon
-                local weapon = HLItems[id]
+                -- Check ammo situation for this weapon
                 if weapon then
-                    local hasAmmo = false
-                    if weapon.primary and weapon.primary.ammo and (player.hlinv.ammo[weapon.primary.ammo] or 0) > 0 then
-                        hasAmmo = true
-                    elseif weapon.secondary and weapon.secondary.ammo and (player.hlinv.ammo[weapon.secondary.ammo] or 0) > 0 then
-                        hasAmmo = true
+                    local totalAmmoScore = 0
+                    local ammoTypes = 0
+                    
+                    -- Check primary ammo
+                    if weapon.primary and weapon.primary.ammo then
+                        local ammoType = weapon.primary.ammo
+                        local currentAmmo = player.hlinv.ammo[ammoType] or 0
+                        local ammoMax = HLItems[ammoType] and HLItems[ammoType].max or 0
+                        
+                        if ammoMax > 0 then
+                            -- Use FixedDiv for fixed-point arithmetic
+                            local ammoRatio = FixedDiv(currentAmmo * FRACUNIT, ammoMax * FRACUNIT)
+                            
+                            -- Higher boost for more abundant ammo (fixed-point comparisons)
+                            if ammoRatio > FRACUNIT*3/4 then -- > 75%
+                                totalAmmoScore = totalAmmoScore + 4
+                            elseif ammoRatio > FRACUNIT/2 then -- > 50%
+                                totalAmmoScore = totalAmmoScore + 3
+                            elseif ammoRatio > FRACUNIT/4 then -- > 25%
+                                totalAmmoScore = totalAmmoScore + 2
+                            elseif currentAmmo > 0 then
+                                totalAmmoScore = totalAmmoScore + 1
+                            end
+                            ammoTypes = ammoTypes + 1
+                        end
                     end
-
-                    if hasAmmo then
-                        weight = weight + (bonusFactor >> 1)
+                    
+                    -- Check secondary ammo
+                    if weapon.secondary and weapon.secondary.ammo then
+                        local ammoType = weapon.secondary.ammo
+                        local currentAmmo = player.hlinv.ammo[ammoType] or 0
+                        local ammoMax = HLItems[ammoType] and HLItems[ammoType].max or 0
+                        
+                        if ammoMax > 0 then
+                            -- Use FixedDiv for fixed-point arithmetic
+                            local ammoRatio = FixedDiv(currentAmmo * FRACUNIT, ammoMax * FRACUNIT)
+                            
+                            -- Higher boost for more abundant ammo (fixed-point comparisons)
+                            if ammoRatio > FRACUNIT*3/4 then -- > 75%
+                                totalAmmoScore = totalAmmoScore + 4
+                            elseif ammoRatio > FRACUNIT/2 then -- > 50%
+                                totalAmmoScore = totalAmmoScore + 3
+                            elseif ammoRatio > FRACUNIT/4 then -- > 25%
+                                totalAmmoScore = totalAmmoScore + 2
+                            elseif currentAmmo > 0 then
+                                totalAmmoScore = totalAmmoScore + 1
+                            end
+                            ammoTypes = ammoTypes + 1
+                        end
+                    end
+                    
+                    -- Apply ammo-based bonus (average if multiple ammo types)
+                    if ammoTypes > 0 then
+                        local ammoBonus = (totalAmmoScore / ammoTypes) * bonusFactor
+                        weight = weight + ammoBonus
+                    end
+                    
+                    -- Extra boost if player has NO weapon that uses this ammo type
+                    local hasWeaponForAmmo = false
+                    if weapon.primary and weapon.primary.ammo then
+                        for wepName, isOwned in pairs(player.hlinv.weapons) do
+                            if isOwned and HLItems[wepName] then
+                                local otherWeapon = HLItems[wepName]
+                                if (otherWeapon.primary and otherWeapon.primary.ammo == weapon.primary.ammo) or
+                                   (otherWeapon.secondary and otherWeapon.secondary.ammo == weapon.primary.ammo) then
+                                    hasWeaponForAmmo = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    
+                    if not hasWeaponForAmmo then
+                        weight = weight + (bonusFactor * 2)  -- Big boost for orphaned ammo
+                    end
+                end
+            else
+                -- Player owns this weapon - check if they're low on ammo for it
+                if weapon then
+                    local totalAmmoDeficit = 0
+                    local ammoTypes = 0
+                    
+                    if weapon.primary and weapon.primary.ammo then
+                        local ammoType = weapon.primary.ammo
+                        local currentAmmo = player.hlinv.ammo[ammoType] or 0
+                        local ammoMax = HLItems[ammoType] and HLItems[ammoType].max or 0
+                        
+                        if ammoMax > 0 then
+                            -- Use FixedDiv for fixed-point arithmetic
+                            local ammoRatio = FixedDiv(currentAmmo * FRACUNIT, ammoMax * FRACUNIT)
+                            
+                            if ammoRatio < FRACUNIT/10 then  -- < 10%
+                                totalAmmoDeficit = totalAmmoDeficit + 3
+                            elseif ammoRatio < FRACUNIT/4 then  -- < 25%
+                                totalAmmoDeficit = totalAmmoDeficit + 2
+                            elseif ammoRatio < FRACUNIT/2 then  -- < 50%
+                                totalAmmoDeficit = totalAmmoDeficit + 1
+                            end
+                            ammoTypes = ammoTypes + 1
+                        end
+                    end
+                    
+                    -- Apply small boost for weapons the player owns but is low on ammo for
+                    if ammoTypes > 0 and totalAmmoDeficit > 0 then
+                        local deficitBonus = FixedMul(FixedDiv(totalAmmoDeficit * FRACUNIT, ammoTypes * FRACUNIT), bonusFactor * (FRACUNIT / 2))
+                        weight = weight + (deficitBonus) / FRACUNIT
                     end
                 end
             end
@@ -323,33 +476,36 @@ local function RandomizeFromSimpleDefs(defs, player, bonusFactor)
             if neededAmmo[id] then
                 local current = player.hlinv.ammo[id] or 0
                 local ammax = HLItems[id] and HLItems[id].max or 0
-				local heldWepBoost = 1
+                local heldWepBoost = 1
                 
-                -- Tiered boosting based on scarcity
+                -- Tiered boosting based on scarcity (using fixed-point for consistency)
                 if current <= 0 then
                     -- Desperately needed - massive boost
                     weight = weight + (bonusFactor * 3)
-					heldWepBoost = 4
-                elseif current < (ammax >> 2) then -- Less than 25%
-                    -- Very low - strong boost
-                    weight = weight + (bonusFactor * 2)
-					heldWepBoost = 3
-                elseif current < (ammax >> 1) then -- Less than 50%
-                    -- Low - moderate boost
-                    weight = weight + bonusFactor
-					heldWepBoost = 2
+                    heldWepBoost = 4
+                else
+                    local ammoRatio = FixedDiv(current * FRACUNIT, ammax * FRACUNIT)
+                    if ammoRatio < FRACUNIT/4 then -- Less than 25%
+                        -- Very low - strong boost
+                        weight = weight + (bonusFactor * 2)
+                        heldWepBoost = 3
+                    elseif ammoRatio < FRACUNIT/2 then -- Less than 50%
+                        -- Low - moderate boost
+                        weight = weight + bonusFactor
+                        heldWepBoost = 2
+                    end
                 end
 
-				-- Additional tiny boost if holding a weapon that uses this ammo
-				local curWeapon = player.hlinv.curwep
-				if curWeapon and HLItems[curWeapon] then
-					local wep = HLItems[curWeapon]
-					local usesAmmo = (wep.primary and wep.primary.ammo == id) or
-									 (wep.secondary and wep.secondary.ammo == id)
-					if usesAmmo then
-						weight = weight + heldWepBoost
-					end
-				end
+                -- Additional tiny boost if holding a weapon that uses this ammo
+                local curWeapon = player.hlinv.curwep
+                if curWeapon and HLItems[curWeapon] then
+                    local wep = HLItems[curWeapon]
+                    local usesAmmo = (wep.primary and wep.primary.ammo == id) or
+                                     (wep.secondary and wep.secondary.ammo == id)
+                    if usesAmmo then
+                        weight = weight + heldWepBoost
+                    end
+                end
             else
                 -- Ammo not needed by any owned weapon - reduce weight
                 weight = max(1, weight - bonusFactor)
@@ -480,29 +636,37 @@ doom.charSupport = {
 				if not player or not source then return false end
 				local tables = {
 					chainsaw = {
-						{"ammo_hornet", 8, 1}
+						{"ammo_hornet", 8, 1},
+						small = true,
 					},
 					shotgun = {
-						{"ammo_buckshot", 12, 1}
+						{"ammo_buckshot", 12, 1},
+						small = true,
 					},
 					supershotgun = {
-						{"ammo_357", 6, 3},
-						{"ammo_bolt", 5, 9},
+						{"ammo_357", 6, 6},
+						{"ammo_bolt", 5, 6},
+						small = true,
 					},
 					chaingun = {
-						{"ammo_9mm", 25, 1}
+						{"ammo_9mm", 25, 1},
+						small = true,
 					},
 					rocketlauncher = {
-						{"ammo_rocket", 1, 1}
+						{"ammo_rocket", 1, 1},
+						small = true,
 					},
 					plasmarifle = {
-						{"ammo_uranium", 20, 1}
+						{"ammo_uranium", 20, 1},
+						small = true,
 					},
 					bfg9000 = {
-						{"ammo_uranium", 20, 1}
+						{"ammo_uranium", 20, 1},
+						small = true,
 					},
 					clip = {
-						{"ammo_9mm", 17, 1}
+						{"ammo_9mm", 17, 1},
+						small = true,
 					},
 					clipbox = {
 						{"ammo_9mm", 50, 1}
@@ -511,11 +675,29 @@ doom.charSupport = {
 						{"ammo_357", 6, 9},
 						{"ammo_bolt", 5, 9},
 						{"ammo_buckshot", 4, 9},
+						small = true,
 					},
 					shellbox = {
 						{"ammo_357", 12, 9},
 						{"ammo_bolt", 10, 9},
 						{"ammo_buckshot", 20, 9},
+					},
+					rockets = {
+						{"ammo_argrenade", 2, 3},
+						{"ammo_rocket", 1, 2},
+						--{"ammo_snark", 5, 12},
+						{"weapon_satchel", 4},
+						{"weapon_handgrenade", 4},
+						{"weapon_tripmine", 4},
+						small = true,
+					},
+					rocketbox = {
+						{"ammo_argrenade", 4, 12},
+						{"ammo_rocket", 3, 9},
+						--{"ammo_snark", 10, 12},
+						{"ammo_satchel", 2, 8},
+						{"ammo_tripmine", 2, 8},
+						{"ammo_grenade", 10, 8},
 					},
 				}
 
@@ -527,8 +709,12 @@ doom.charSupport = {
 				end
 
 				for k, defs in pairs(tables) do
-					for k, v in pairs(defs) do
+					for _, v in pairs(defs) do
+						if type(v) != "table" then continue end
 						if doom.skill == 1 or doom.skill == 5 then
+							v[2] = $ * 2
+						end
+						if gametype == GT_DOOMDM and k.small then
 							v[2] = $ * 2
 						end
 						if (dflags & DF_DROPPED) then
@@ -536,6 +722,7 @@ doom.charSupport = {
 						end
 					end
 				end
+
 				local toGive = RandomizeFromSimpleDefs(tables[source], player, 1)
 				return HL_ApplyPickupStats(player, toGive)
 			end,

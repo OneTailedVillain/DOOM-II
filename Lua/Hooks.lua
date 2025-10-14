@@ -607,6 +607,17 @@ addHook("ThinkFrame", function()
 
 		fn(any, data)
 	end
+
+	for mobj, params in pairs(doom.torespawn) do
+		local time = params.time
+		local convar = "respawnitemtime"
+		local respawntime = (CV_FindVar(convar) and CV_FindVar(convar).value or 0) * TICRATE
+		if ((time + respawntime) - leveltime) <= 0 then
+			local newmobj = P_SpawnMobj(params.x, params.y, params.z, params.type)
+			doom.torespawn[mobj] = nil
+			S_StartSound(newmobj, sfx_itmbk)
+		end
+	end
 end)
 
 addHook("MobjSpawn", function(mobj)
@@ -644,6 +655,7 @@ addHook("PlayerMsg", function(source, type, target, msg)
 		S_StartSound(nil, sfx_radio)
 	end
 	local baseMessage = source.name .. ":\n" .. msg
+	baseMessage = $:upper()
 	if type == 0 then
 		for player in players.iterate do
 			DOOM_DoMessage(player, baseMessage)

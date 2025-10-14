@@ -108,10 +108,10 @@ local function ST_updateFaceWidget(plyr)
 				pd.facecount = ST_TURNCOUNT
 				pd.faceindex = ST_calcPainOffset(plyr) + ST_OUCHOFFSET
 			else
-				local badguyangle = R_PointToAngle2(
+				local badguyangle = pd.attacker and R_PointToAngle2(
 					plyr.mo.x, plyr.mo.y,
 					pd.attacker and pd.attacker.x or 0, pd.attacker and pd.attacker.y or 0
-				)
+				) or 0
 
 				local diffang, turnedRight
 				if badguyangle > plyr.mo.angle then
@@ -201,9 +201,6 @@ end
 addHook("PlayerThink", function(player)
 	player.doom = $ or {}
 	ST_updateFaceWidget(player)
-	player.doom.bonuscount = ($ or 1) - 1
-	player.doom.damagecount = ($ or 1) - 1
-	if not player.doom.damagecount then player.doom.attacker = nil end
 end)
 
 addHook("PlayerThink", function(player)
@@ -238,6 +235,14 @@ addHook("PlayerThink", function(player)
 	if player.doom.powers[pw_strength] then
 		player.doom.powers[pw_strength] = $ + 1
 	end
+
+	if player.doom.powers[pw_ironfeet] then
+		player.doom.powers[pw_ironfeet] = $ - 1
+	end
+
+	player.doom.bonuscount = ($ or 1) - 1
+	player.doom.damagecount = ($ or 1) - 1
+	if not player.doom.damagecount then player.doom.attacker = nil end
 
 	player.hl1wepbob = FixedMul(player.mo.momx, player.mo.momx) + FixedMul(player.mo.momy, player.mo.momy)
 	player.hl1wepbob = player.hl1wepbob >> 2
@@ -281,47 +286,139 @@ addHook("PlayerThink", function(player)
 		return nil -- nothing owned in this slot
 	end
 
-	-- Check for weapon button presses (even during switching)
-	if (player.cmd.buttons & BT_WEAPONMASK) and (player.doom.lastwepbutton != (player.cmd.buttons & BT_WEAPONMASK)) then
-		local slot = player.cmd.buttons & BT_WEAPONMASK
-		local wepsInSlot = doom.weaponnames[slot]
-
-		-- Abort if slot doesn't exist or has no owned weapons
-		local firstOwnedOrder = firstAvailableInSlot(player, slot)
-		if not firstOwnedOrder then
-			player.doom.lastwepbutton = player.cmd.buttons & BT_WEAPONMASK
-			return -- deny switch entirely
-		end
-
-		-- Determine the target weapon
-		local targetWeaponOrder
-		if slot ~= player.doom.curwepcat then
-			-- Switching to new slot: pick lowest order weapon
-			targetWeaponOrder = firstOwnedOrder
-		elseif #wepsInSlot > 1 then
-			-- Cycling within same slot
-			local nextOrder = (player.doom.curwepslot % #wepsInSlot) + 1
-			for i = 1, #wepsInSlot do
-				if player.doom.weapons[wepsInSlot[nextOrder]] then
-					targetWeaponOrder = nextOrder
-					break
+	local function findNextWeapon(player, direction)
+		-- direction: 1 for next, -1 for previous
+		local currentSlot = player.doom.curwepcat
+		local currentOrder = player.doom.curwepslot
+		local totalSlots = #doom.weaponnames
+		
+		-- First, try to find next weapon in current slot
+		if direction == 1 then
+			-- Look for higher order weapons in current slot
+			for order = currentOrder + 1, #doom.weaponnames[currentSlot] do
+				local weapon = doom.weaponnames[currentSlot][order]
+				if player.doom.weapons[weapon] then
+					return currentSlot, order
 				end
-				nextOrder = (nextOrder % #wepsInSlot) + 1
 			end
-		else
-			-- Only one weapon in slot, use it
-			targetWeaponOrder = firstOwnedOrder
+		else -- direction == -1
+			-- Look for lower order weapons in current slot
+			for order = currentOrder - 1, 1, -1 do
+				local weapon = doom.weaponnames[currentSlot][order]
+				if player.doom.weapons[weapon] then
+					return currentSlot, order
+				end
+			end
 		end
+		
+		-- If no weapon found in current slot, search other slots
+		local startSlot = currentSlot
+		local slot = (currentSlot + direction - 1) % totalSlots + 1
+		
+		while slot ~= startSlot do
+			-- Check if this slot has any weapons
+			local firstOrder = firstAvailableInSlot(player, slot)
+			if firstOrder then
+				-- Found a slot with weapons, use the highest priority one
+				if direction == 1 then
+					-- For next, use the lowest order (highest priority)
+					return slot, firstOrder
+				else
+					-- For previous, use the highest order (lowest priority) in this slot
+					local highestOrder = firstOrder
+					for order = firstOrder + 1, #doom.weaponnames[slot] do
+						if player.doom.weapons[doom.weaponnames[slot][order]] then
+							highestOrder = order
+						end
+					end
+					return slot, highestOrder
+				end
+			end
+			
+			-- Move to next slot in direction
+			slot = (slot + direction - 1) % totalSlots + 1
+		end
+		
+		-- No other weapons found, stay with current
+		return currentSlot, currentOrder
+	end
 
-		-- Set the wish weapon
-		player.doom.wishwep = wepsInSlot[targetWeaponOrder]
-		player.doom.curwepcat = slot
-		player.doom.curwepslot = targetWeaponOrder
+	-- Check for weapon button presses (even during switching)
+	local currentButtons = player.cmd.buttons & (BT_WEAPONMASK | BT_WEAPONNEXT | BT_WEAPONPREV)
+	if currentButtons and (player.doom.lastwepbutton != currentButtons) then
+		local slot = player.cmd.buttons & BT_WEAPONMASK
+		
+		if (player.cmd.buttons & BT_WEAPONNEXT) then
+			-- Next weapon button
+			local targetSlot, targetOrder = findNextWeapon(player, 1)
+			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
+			
+			player.doom.wishwep = targetWeapon
+			player.doom.curwepcat = targetSlot
+			player.doom.curwepslot = targetOrder
+			
+			-- Start switching animation if not already switching
+			if not player.doom.switchingweps then
+				player.doom.switchingweps = true
+				player.doom.switchtimer = 0
+			end
+			
+		elseif (player.cmd.buttons & BT_WEAPONPREV) then
+			-- Previous weapon button
+			local targetSlot, targetOrder = findNextWeapon(player, -1)
+			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
+			
+			player.doom.wishwep = targetWeapon
+			player.doom.curwepcat = targetSlot
+			player.doom.curwepslot = targetOrder
+			
+			-- Start switching animation if not already switching
+			if not player.doom.switchingweps then
+				player.doom.switchingweps = true
+				player.doom.switchtimer = 0
+			end
+			
+		elseif slot > 0 then
+			-- Regular weapon slot button
+			local wepsInSlot = doom.weaponnames[slot]
 
-		-- Start switching animation if not already switching
-		if not player.doom.switchingweps then
-			player.doom.switchingweps = true
-			player.doom.switchtimer = 0
+			-- Abort if slot doesn't exist or has no owned weapons
+			local firstOwnedOrder = firstAvailableInSlot(player, slot)
+			if not firstOwnedOrder then
+				player.doom.lastwepbutton = currentButtons
+				return -- deny switch entirely
+			end
+
+			-- Determine the target weapon
+			local targetWeaponOrder
+			if slot ~= player.doom.curwepcat then
+				-- Switching to new slot: pick lowest order weapon
+				targetWeaponOrder = firstOwnedOrder
+			elseif #wepsInSlot > 1 then
+				-- Cycling within same slot
+				local nextOrder = (player.doom.curwepslot % #wepsInSlot) + 1
+				for i = 1, #wepsInSlot do
+					if player.doom.weapons[wepsInSlot[nextOrder]] then
+						targetWeaponOrder = nextOrder
+						break
+					end
+					nextOrder = (nextOrder % #wepsInSlot) + 1
+				end
+			else
+				-- Only one weapon in slot, use it
+				targetWeaponOrder = firstOwnedOrder
+			end
+
+			-- Set the wish weapon
+			player.doom.wishwep = wepsInSlot[targetWeaponOrder]
+			player.doom.curwepcat = slot
+			player.doom.curwepslot = targetWeaponOrder
+
+			-- Start switching animation if not already switching
+			if not player.doom.switchingweps then
+				player.doom.switchingweps = true
+				player.doom.switchtimer = 0
+			end
 		end
 	end
 
@@ -343,7 +440,7 @@ addHook("PlayerThink", function(player)
 	end
 
 	player.doom.lastbuttons = player.cmd.buttons
-	player.doom.lastwepbutton = player.cmd.buttons & BT_WEAPONMASK
+	player.doom.lastwepbutton = currentButtons or 0
 end)
 
 addHook("PlayerThink", function(player)
@@ -451,7 +548,7 @@ local function saveStatus(player)
 	player.doom.laststate.curwep = deepcopy(player.doom.curwep)
 	player.doom.laststate.health = deepcopy(player.mo.doom.health)
 	player.doom.laststate.armor = deepcopy(player.mo.doom.armor)
-	player.doom.laststate.flashlight = deepcopy(player.doom.curwep)
+	player.doom.laststate.armorefficiency = deepcopy(player.mo.doom.armorefficiency)
 	player.doom.laststate.pos = {
 		x = deepcopy(player.mo.x),
 		y = deepcopy(player.mo.y),
@@ -504,6 +601,7 @@ addHook("PlayerSpawn",function(player)
 		curwep = "pistol",
 		curwepslot = 1,
 		curwepcat = 2,
+		armorefficiency = FRACUNIT/3,
 	}
 	if doom.issrb2 then
 		preset.health = 1
@@ -530,6 +628,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.twoxammo = choose("twoxammo")
 	player.mo.doom.health = choose("health")
 	player.mo.doom.armor = choose("armor")
+	player.mo.doom.armorefficiency = choose("armorefficiency")
 	player.doom.oldweapons = choose("oldweapons")
 	player.doom.notrigger = false
 	player.doom.keys = 0

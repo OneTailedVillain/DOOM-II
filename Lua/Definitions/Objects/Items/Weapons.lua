@@ -34,7 +34,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "chainsaw", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCHAINSAW")
 end
 
@@ -62,7 +62,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "shotgun", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTSHOTGUN")
 end
 
@@ -90,7 +90,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "supershotgun", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTSHOTGUN2")
 end
 
@@ -118,7 +118,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "rocketlauncher", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTLAUNCHER")
 end
 
@@ -146,7 +146,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "chaingun", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCHAINGUN")
 end
 
@@ -174,7 +174,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "plasmarifle", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTPLASMA")
 end
 
@@ -202,7 +202,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveWeapon(player, "bfg9000", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTBFG9000")
 end
 

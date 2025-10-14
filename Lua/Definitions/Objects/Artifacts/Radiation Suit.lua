@@ -21,7 +21,7 @@ local object = {
 	doomednum = 2025,
 	deathsound = sfx_getpow,
 	sprite = SPR_SUIT,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -34,7 +34,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	local armor = funcs.getArmor(player)
-	player.doom.bonuscount = 32
+	
 	player.doom.powers[pw_ironfeet] = 60*TICRATE
 	DOOM_DoMessage(player, "GOTSUIT")
 end

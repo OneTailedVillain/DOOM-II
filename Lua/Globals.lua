@@ -38,6 +38,7 @@ doom.KEY_SKULLBLUE = 16
 doom.KEY_SKULLYELLOW = 32
 doom.thinkers = {}
 doom.texturesByNum = {}
+doom.torespawn = {}
 doom.weaponnames = {
 	[1] = {},
 	[2] = {},

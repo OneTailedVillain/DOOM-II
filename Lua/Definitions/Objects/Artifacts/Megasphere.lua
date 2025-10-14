@@ -21,7 +21,7 @@ local object = {
 	doomednum = 83,
 	deathsound = sfx_getpow,
 	sprite = SPR_MEGA,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -38,7 +38,7 @@ local function onPickup(item, mobj)
 	local health = funcs.getHealth(player)
 	local armor = funcs.getArmor(player)
 	if health == 200 and armor == 200 then return true end
-	player.doom.bonuscount = 32
+	
 	funcs.setHealth(player, 200)
 	funcs.setArmor(player, 200)
 	DOOM_DoMessage(player, "GOTROCKBOX")

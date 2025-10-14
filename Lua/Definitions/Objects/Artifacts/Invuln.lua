@@ -21,7 +21,7 @@ local object = {
 	doomednum = 2022,
 	deathsound = sfx_getpow,
 	sprite = SPR_PINV,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {

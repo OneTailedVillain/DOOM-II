@@ -433,7 +433,7 @@ doom.lineActions = {
 	},
 	[130] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		speed = "fast", repeatable = true, activationType = "switch"
+		speed = "fast", repeatable = false, activationType = "walk"
 	},
 
 	-- Raise to next higher (Changes)
@@ -462,6 +462,10 @@ doom.lineActions = {
 	[101] = {
 		type = "floor", action = "raise", target = "lowestceiling",
 		repeatable = false, activationType = "switch"
+	},
+	[5] = {
+		type = "floor", action = "raise", target = "lowestceiling",
+		repeatable = false, activationType = "walk"
 	},
 	[91] = {
 		type = "floor", action = "raise", target = "lowestceiling",

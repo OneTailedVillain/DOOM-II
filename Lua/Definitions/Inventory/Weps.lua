@@ -10,6 +10,7 @@ DOOM_Freeslot(
 "sfx_sawidl", "sfx_sawful", "sfx_sawup", "sfx_sawhit",
 "sfx_pistol",
 "sfx_dshtgn", "sfx_dbopn", "sfx_dbload", "sfx_dbcls",
+"sfx_rlaunc",
 "sfx_bfg")
 
 doom.addWeapon("chainsaw", {
@@ -188,7 +189,8 @@ doom.addWeapon("rocketlauncher", {
 	damage = {5, 15},
 	noinitfirespread = true,
 	pellets = 1,
-	firesound = sfx_pistol,
+	firesound = sfx_rlaunc,
+	shootmobj = MT_DOOM_ROCKETPROJ,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
@@ -198,8 +200,8 @@ doom.addWeapon("rocketlauncher", {
 			{frame = A, tics = 1},
 		},
 		attack = {
-			{frame = A, tics = 4, action = A_DoomFire},
-			{frame = B, tics = 4, action = A_DoomFire},
+			{frame = B, tics = 4},--, action = A_DoomFire},
+			{frame = B, tics = 12, action = A_DoomFire},
 			{frame = B, tics = 0, action = A_DoomReFire},
 		}
 	},

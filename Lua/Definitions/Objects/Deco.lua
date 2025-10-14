@@ -200,7 +200,7 @@ local states = {
 DefineDoomDeco(name, object, states, onPickup)
 
 SafeFreeSlot("SPR_HDB2")
-local name = "HangTLookingUp"
+local name = "HangTLookingUpA"
 
 local object = {
 	radius = 16,
@@ -279,19 +279,22 @@ local object = {
 
 DefineDoomDeco(name, object, states, onPickup)
 
-SafeFreeSlot("SPR_POB1")
-local name = "ColonGibs"
+SafeFreeSlot("SPR_TLMP")
+local name = "TechLamp"
 
 local object = {
 	radius = 20,
 	height = 4,
 	doomednum = 85,
-	sprite = SPR_POB1,
+	sprite = SPR_TLMP,
 	flags = MF_NOBLOCKMAP,
 }
 
 local states = {
-	{frame = A, tics = -1},
+	{frame = A, tics = 4},
+	{frame = B, tics = 4},
+	{frame = C, tics = 4},
+	{frame = D, tics = 4},
 }
 
 DefineDoomDeco(name, object, states, onPickup)
@@ -421,14 +424,13 @@ local states = {
 DefineDoomDeco(name, object, states, onPickup)
 
 SafeFreeSlot("SPR_POB1")
-local name = "ColonGibs"
+local name = "PoolOfBlood"
 
 local object = {
 	radius = 16,
 	height = 40,
 	doomednum = 79,
 	sprite = SPR_POB1,
-	flags = MF_SOLID,
 }
 
 local states = {

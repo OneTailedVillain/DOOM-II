@@ -21,7 +21,7 @@ local object = {
 	doomednum = 2013,
 	deathsound = sfx_getpow,
 	sprite = SPR_SOUL,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP
+	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
@@ -38,7 +38,7 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
-	player.doom.bonuscount = 32
+	
 	funcs.setHealth(player, min(health + 100, 200))
 	DOOM_DoMessage(player, "GOTROCKBOX")
 end

@@ -47,6 +47,8 @@ local function IsAboveVersion(major, sub)
 end
 
 local function drawWeapon(v, player, offset)
+	if camera.chase then return end
+
 	-- bob calc (unchanged)
 	local bobAngle = ((128 * leveltime) & 8191) << 19
 	local bobx = FixedMul((player.hl1wepbob or 0), cos(bobAngle))
@@ -96,7 +98,7 @@ local function drawWeapon(v, player, offset)
 	local finalX = bobx + stateOffsetX
 	local finalY = boby + stateOffsetY + (offset or 0) * FRACUNIT
 
-	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag, colormap)
+	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
 end
 
 local function DrawStatusBarNumbers(v, player)
@@ -109,10 +111,10 @@ local function DrawStatusBarNumbers(v, player)
 	local percentsOffset = percentPatch.width
 
 	if myAmmo != false then
-		drawInFont(v, 44*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", tostring(myAmmo), V_PERPLAYER, "right")
+		drawInFont(v, 44*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", tostring(myAmmo), V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
-	drawInFont(v, (90 + percentsOffset)*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", myHealth .. "%", V_PERPLAYER, "right")
-	drawInFont(v, (221 + percentsOffset)*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", myArmor .. "%", V_PERPLAYER, "right")
+	drawInFont(v, (90 + percentsOffset)*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", myHealth .. "%", V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+	drawInFont(v, (221 + percentsOffset)*FRACUNIT, 171*FRACUNIT, FRACUNIT, "STT", myArmor .. "%", V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	local ammosToIndex = {
 		"bullets",
 		"shells",
@@ -121,11 +123,11 @@ local function DrawStatusBarNumbers(v, player)
 	}
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", player.doom.ammo[whatToIndex], V_PERPLAYER, "right")
+		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", player.doom.ammo[whatToIndex], V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", doom.ammos[whatToIndex].max, V_PERPLAYER, "right")
+		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", doom.ammos[whatToIndex].max, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	local whatToCheck = {
 		"brassknuckles",
@@ -140,7 +142,7 @@ local function DrawStatusBarNumbers(v, player)
 		local whatToIndex = whatToCheck[i + 2]
 		local doIHaveIt = player.doom.weapons[whatToIndex]
 		local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
-		drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER, "left")
+		drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM, "left")
 	end
 end
 
@@ -148,7 +150,7 @@ local function drawFace(v, player)
 	local index = player.doom.faceindex + 1
 	local patch = st_faces[index]
 	if patch != nil then
-		v.draw(143, 168, v.cachePatch(patch), V_PERPLAYER)
+		v.draw(143, 168, v.cachePatch(patch), V_PERPLAYER|V_SNAPTOBOTTOM)
 	else
 		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
 	end
@@ -197,7 +199,8 @@ local function DrawKeys(v, player)
 			v.draw(
 				keyX[i],
 				keyY[i],
-				keys[bitNums[doom[keyBit]]] -- ts so mid
+				keys[bitNums[doom[keyBit]]], -- ts so mid
+				V_PERPLAYER|V_SNAPTOBOTTOM
 			)
 		end
 	end
@@ -209,10 +212,10 @@ local function drawStatusBar(v, player)
 	if statusBarPatch.width == 426 then
 		xOffset = -53
 	end
-	v.draw(xOffset, 168, statusBarPatch, V_PERPLAYER)
-	v.draw(104, 168, v.cachePatch("STARMS"), V_PERPLAYER)
+	v.draw(xOffset, 168, statusBarPatch, V_PERPLAYER|V_SNAPTOBOTTOM)
+	v.draw(104, 168, v.cachePatch("STARMS"), V_PERPLAYER|V_SNAPTOBOTTOM)
 	if netgame then
-		v.draw(143, 169, v.cachePatch("STFB0"), V_PERPLAYER, v.getColormap("johndoom", player.mo.color))
+		v.draw(143, 169, v.cachePatch("STFB0"), V_PERPLAYER|V_SNAPTOBOTTOM, v.getColormap("johndoom", player.mo.color))
 	end
 
 	DrawStatusBarNumbers(v, player)
@@ -327,7 +330,7 @@ hud.add(function(v, player)
 	whatRenderer = v.renderer()
 	local support = P_GetSupportsForSkin(player)
 	if player.doom.message and player.doom.messageclock then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE)
+		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP)
 	end
 	if support.noHUD then DrawFlashes(v, player) return end
 
@@ -369,13 +372,19 @@ local mapcentery = 0
 hud.add(function(v, player)
     v.drawFill(nil, nil, nil, nil, 0)
 
+	local hudScaleInt, hudScaleFixed = v.dupx()
+
+	local screenWidth = v.width()
+	local screenHeight = v.height()
+	local statusBarScreenHeight = FixedMul(v.cachePatch("STBAR").height, hudScaleFixed)
+
     -- update map center only if locked
     if automaplocked and displayplayer and displayplayer.mo then
         mapcenterx = displayplayer.mo.x
         mapcentery = displayplayer.mo.y
     end
 
-    local scale = automapzoom or FRACUNIT --FRACUNIT * 12
+    local scale = FixedDiv(automapzoom or FRACUNIT, hudScaleFixed) --FRACUNIT * 12
     scale = max($, 1)
 
     -- whether to rotate the automap (rotate map under a fixed arrow)
@@ -384,7 +393,7 @@ hud.add(function(v, player)
 
     -- screen extents in pixels (integers)
     local VIEW_XMIN, VIEW_YMIN = 0, 0
-    local VIEW_XMAX, VIEW_YMAX = 320, 168
+    local VIEW_XMAX, VIEW_YMAX = screenWidth, screenHeight - statusBarScreenHeight
     local VIEW_CX = (VIEW_XMIN + VIEW_XMAX) / 2
     local VIEW_CY = (VIEW_YMIN + VIEW_YMAX) / 2
 
@@ -529,7 +538,7 @@ hud.add(function(v, player)
             end
 
             -- now pass px coords and scale; minimapDrawLine divides px/scale to get pixel coords
-            minimapDrawLine(v, cx1, cy1, cx2, cy2, color, 0, scale)
+            minimapDrawLine(v, cx1, cy1, cx2, cy2, color, V_NOSCALEPATCH|V_NOSCALESTART, scale)
         end
 		i = $ + 1
     end
@@ -585,7 +594,7 @@ hud.add(function(v, player)
 
         local cx1, cy1, cx2, cy2 = clipLine(px1, py1, px2, py2)
         if cx1 != nil then
-            minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, 0, scale)
+            minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, V_NOSCALESTART|V_NOSCALEPATCH, scale)
         end
     end
 
@@ -640,7 +649,7 @@ addHook("ThinkFrame", function()
 	movingy = (keyState.up   and 1 or 0) - (keyState.down  and 1 or 0)
 	zooming = (keyState.zoomIn and 1 or 0) - (keyState.zoomOut and 1 or 0)
 
-	automapzoom = $ + ((FRACUNIT/16) * zooming)
+	automapzoom = $ + ((FRACUNIT/8) * zooming)
 	automapzoom = max($, (FRACUNIT*5)/16)
 	automapzoom = min($, (FRACUNIT*918)/8)
 

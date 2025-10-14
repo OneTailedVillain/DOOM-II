@@ -19,7 +19,7 @@ local object = {
 	doomednum = 2007,
 	deathsound = sfx_itemup,
 	sprite = SPR_CLIP,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -30,7 +30,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "clip", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCLIP")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -44,7 +44,7 @@ local object = {
 	doomednum = 2048,
 	deathsound = sfx_itemup,
 	sprite = SPR_AMMO,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -55,7 +55,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "clipbox", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCLIPBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -69,7 +69,7 @@ local object = {
 	doomednum = 2008,
 	deathsound = sfx_itemup,
 	sprite = SPR_SHEL,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -80,7 +80,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "shells", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTSHELLS")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -94,7 +94,7 @@ local object = {
 	doomednum = 2049,
 	deathsound = sfx_itemup,
 	sprite = SPR_SBOX,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -105,7 +105,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "shellbox", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTSHELLBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -119,7 +119,7 @@ local object = {
 	doomednum = 2010,
 	deathsound = sfx_itemup,
 	sprite = SPR_ROCK,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -130,7 +130,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "rockets", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTROCKET")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -144,7 +144,7 @@ local object = {
 	doomednum = 2046,
 	deathsound = sfx_itemup,
 	sprite = SPR_BROK,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -155,7 +155,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "rocketbox", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTROCKBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -169,7 +169,7 @@ local object = {
 	doomednum = 2047,
 	deathsound = sfx_itemup,
 	sprite = SPR_CELL,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -180,7 +180,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "cell", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCELL")
 end
 DefineDoomItem(name, object, states, onPickup)
@@ -194,7 +194,7 @@ local object = {
 	doomednum = 17,
 	deathsound = sfx_itemup,
 	sprite = SPR_CELP,
-	doomflags = DF_COUNTITEM
+	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
 	{frame = A, tics = 6},
@@ -205,7 +205,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local result = funcs.giveAmmoFor(player, "cellpack", item.doom.flags)
 	if not result then return true end
-	player.doom.bonuscount = 32
+	
 	DOOM_DoMessage(player, "GOTCELLBOX")
 end
 DefineDoomItem(name, object, states, onPickup)

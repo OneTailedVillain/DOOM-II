@@ -72,21 +72,33 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 				frame = $|FF_MODULATE
 			end
 
-            states[ slots[thisName] ] = {
-				sprite    = f.sprite != nil and f.sprite or objData.sprite,
+			local nextstate
+			if nextName == "S_NULL" then
+				nextstate = S_NULL
+			else
+				nextstate = slots[nextName] or S_NULL
+				if nextstate == S_NULL and not (nextName == "S_NULL") then
+					print("DefineDoomActor: missing slot for nextName:", nextName)
+				end
+			end
+
+			states[ slots[thisName] ] = {
+				sprite    = f.sprite ~= nil and f.sprite or objData.sprite,
 				frame     = frame,
 				tics      = f.tics,
 				action    = f.action,
 				var1      = f.var1,
 				var2      = f.var2,
-				nextstate = (nextName == "S_NULL")
-							and S_NULL 
-							or slots[nextName]
-            }
+				nextstate = nextstate
+			}
         end
     end
 
 	addHook("MobjThinker", function(mobj)
+		if mobj.z < mobj.subsector.sector.floorheight then
+			print(mobj.z/FRACUNIT)
+			P_MoveOrigin(mobj, mobj.x, mobj.y, mobj.subsector.sector.floorheight)
+		end
 		local mdoom = mobj.doom
 		if mobj.tics != -1 then return end
 		if not (mobj.doom.flags & DF_COUNTKILL) then return end
@@ -110,27 +122,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 	addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 		local attacker = inflictor or source
 /*
-		if not attacker or not attacker.valid then return end
-
-		target.target = attacker
-
-		target.doom.health = $ - (attacker.damage or damage)
-		target.health = INT32_MAX
-		local rtd = DOOM_Random()
-
-		if target.doom.health <= 0 then
-			P_KillMobj(target, inflictor, source, damagetype)
-			if target.doom.health < target.doom.maxhealth * -1 then
-				target.state = S_XDEATHSTATE
-			else
-				target.state = S_DEATHSTATE
-			end
-		elseif DOOM_Random() < target.info.painchance then
-			target.state = target.info.painstate -- you have ALL the other S_ constants that point to the mobjinfo's statedefs, but NOT one for painstate!?
-		end
-*/
-/*
-hitscanners, melee attacks, and lost souls skip this, btw!!
+hitscanners, melee attacks, and lost souls don't check for same-type, btw!!
 monsters cannot infight archviles
 			or ( (inflictor.target.type == MT_KNIGHT and target.type == MT_BARON)
 			  or (inflictor.target.type == MT_BARON and target.type == MT_KNIGHT) )
@@ -145,6 +137,19 @@ monsters cannot infight archviles
 		return true
 	end, MT)
 end)
+
+local function maybeAddToRespawnTable(mo)
+	if (mo.doom.flags & DF_DM2RESPAWN) then
+		table.insert(doom.torespawn, {
+			time = leveltime,
+			x = mo.x,
+			y = mo.y,
+			z = mo.z,
+			type = mo.type,
+		})
+	end
+
+end
 
 rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
     local up     = name:upper()
@@ -186,8 +191,10 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 			local res = onPickup(mo, toucher)
 
 			-- Check for DF_COUNTITEM
-			if (res == nil or res == false) and mo and mobjinfo[mo.type] and mobjinfo[mo.type].doomflags then
-				if mobjinfo[mo.type].doomflags & DF_COUNTITEM then
+			if (res == nil or res == false) and mo and mo.doom then
+				maybeAddToRespawnTable(mo)
+				toucher.player.doom.bonuscount = ($ or 0) + 6
+				if mo.doom.flags & DF_COUNTITEM then
 					if (mo.doom and mo.doom.flags and (mo.doom.flags & DF_DROPPED)) then return res end
 					doom.items = $ + 1
 				end

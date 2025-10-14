@@ -13,9 +13,10 @@ local function SafeFreeSlot(...)
 end
 
 SafeFreeSlot("sfx_swtchn", "sfx_swtchx", "sfx_slop", "sfx_noway", "sfx_oof",
-"sfx_pistol", "sfx_shotgn", "sfx_secret",
+"sfx_pistol", "sfx_shotgn", "sfx_secret", "sfx_itmbk",
 "MT_TROOPSHOT", "S_DOOM_IMPFIRE", "SPR_BAL1", "sfx_firsht", "sfx_bgact", "sfx_bgdth1", "sfx_bgdth2", "sfx_bgsit1", "sfx_bgsit2", "sfx_claw",
-"sfx_podth1", "sfx_podth2", "sfx_podth3", "sfx_popain", "sfx_posact", "sfx_posit1", "sfx_posit2", "sfx_posit3", "MT_DOOM_TELEFOG", "SPR_TFOG", "sfx_telept")
+"sfx_podth1", "sfx_podth2", "sfx_podth3", "sfx_popain", "sfx_posact", "sfx_posit1", "sfx_posit2", "sfx_posit3", "MT_DOOM_TELEFOG", "SPR_TFOG", "sfx_telept",
+"MT_DOOM_ROCKETPROJ", "sfx_firxpl", "S_DOOM_IMPEXPLODE1", "sfx_bossit")
 
 SafeFreeSlot(
 "S_TELEFOG1",

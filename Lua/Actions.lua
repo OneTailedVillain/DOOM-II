@@ -10,6 +10,8 @@ states[S_DOOM_IMPFIRE] = {
 mobjinfo[MT_TROOPSHOT] = {
 	spawnstate   = S_DOOM_IMPFIRE,
 	seesound     = sfx_firsht,
+	deathstate   = S_DOOM_IMPEXPLODE1,
+	deathsound   = sfx_firxpl,
 	speed        = 10 * FRACUNIT,
 	radius       = 6 * FRACUNIT,
 	height       = 8 * FRACUNIT,
@@ -853,6 +855,24 @@ function A_DoomSargAttack(actor)
 	end
 end
 
+local function DOOM_ChebyshevDistance(x1, y1, x2, y2)
+    local deltaX = abs(x2 - x1)
+    local deltaY = abs(y2 - y1)
+    
+    if deltaX > deltaY then
+        return deltaX
+    else
+        return deltaY
+    end
+end
+
+local function DOOM_GetDistance(obj1, obj2) -- same as below but closer to source (essentially a wrapper... a pawrappa the wrappa if you will)
+	if not obj1 or not obj2 then return 0 end -- Ensure both objects exist
+
+	return DOOM_ChebyshevDistance(obj1.x, obj1.y, obj2.x, obj2.y)
+	-- and yes, i'm making the radius infinitely high
+end
+
 local function HL_GetDistance(obj1, obj2) -- get distance between two objects; useful for things like explosion damage calculation
 	if not obj1 or not obj2 then return 0 end -- Ensure both objects exist
 
@@ -868,7 +888,7 @@ local function HLExplode(actor, range, source)
 
 	local function DamageAndBoostNearby(refmobj, foundmobj)
 		refmobj.ignoredamagedef = true
-		local dist = HL_GetDistance(refmobj, foundmobj)
+		local dist = DOOM_GetDistance(refmobj, foundmobj)
 		if dist > range then return end -- Only affect objects within range
 
 		if not foundmobj or foundmobj == refmobj then return end -- Skip if no object or self
@@ -878,9 +898,7 @@ local function HLExplode(actor, range, source)
 		-- Recheck in case it died from thrust or other edge case
 		if not foundmobj then return end
 
-		-- Calculate and apply damage
-		-- Max damage = range / FRACUNIT, scaled by proximity
-		local damage = (range / FRACUNIT) - dist
+		local damage = (range - dist) / FRACUNIT
 		DOOM_DamageMobj(foundmobj, source, source, damage)
 	end
 
@@ -898,4 +916,8 @@ end
 
 function A_MaybeRespawn(actor)
 
+end
+
+function A_DoomBrainAwake(actor)
+	S_StartSound(nil, sfx_bossit)
 end

@@ -295,11 +295,11 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
     flags = flags or 0
     scale = scale or FRACUNIT
 
-    -- Convert from fixed_t px-space to integer screen coords
-    local sx1 = x1 / scale
-    local sy1 = y1 / scale
-    local sx2 = x2 / scale
-    local sy2 = y2 / scale
+    -- Convert from fixed_t px-space to integer screen coords with proper rounding
+    local sx1 = (x1 / scale)
+    local sy1 = (y1 / scale)
+    local sx2 = (x2 / scale)
+    local sy2 = (y2 / scale)
 
     local dx = abs(sx2 - sx1)
     local dy = abs(sy2 - sy1)
@@ -307,22 +307,70 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
     local sy = (sy1 < sy2) and 1 or -1
     local err = dx - dy
 
-    local maxSteps = 378
+    -- For horizontal runs batching
+    local runStartX = sx1
+    local currentY = sy1
+    local drawingRun = false
+
+    local function flushRun(xEnd)
+        if drawingRun then
+            local runLength = xEnd - runStartX + 1
+            if runLength > 0 then
+                v.drawFill(runStartX, currentY, runLength, 1, color|flags)
+            end
+            drawingRun = false
+        end
+    end
+
+    -- Special case: vertical line
+    if dx == 0 then
+        local yStart = min(sy1, sy2)
+        local yEnd = max(sy1, sy2)
+        v.drawFill(sx1, yStart, 1, yEnd - yStart + 1, color|flags)
+        return
+    end
+
+    -- Special case: horizontal line  
+    if dy == 0 then
+        local xStart = min(sx1, sx2)
+        local xEnd = max(sx1, sx2)
+        v.drawFill(xStart, sy1, xEnd - xStart + 1, 1, color|flags)
+        return
+    end
+
+    local maxSteps = INT32_MAX
     local steps = 0
 
-	while not (sx1 == sx2 and sy1 == sy2) and steps < maxSteps do
-		v.drawFill(sx1, sy1, 1, 1, color|flags)
+    while not (sx1 == sx2 and sy1 == sy2) and steps < maxSteps do
+        -- Start new run if Y changed
+        if sy1 ~= currentY then
+            flushRun(sx1 - sx)  -- End at previous X
+            currentY = sy1
+            runStartX = sx1
+            drawingRun = true
+        elseif not drawingRun then
+            runStartX = sx1
+            drawingRun = true
+        end
 
-		local e2 = err * 2
-		if e2 > -dy then
-			err = err - dy
-			sx1 = $ + sx
-		end
-		if e2 < dx then
-			err = err + dx
-			sy1 = $ + sy
-		end
+        local e2 = err * 2
+        if e2 > -dy then
+            err = err - dy
+            sx1 = $ + sx
+        end
+        if e2 < dx then
+            err = err + dx
+            sy1 = $ + sy
+        end
 
-		steps = $ + 1
-	end
+        --steps = $ + 1
+    end
+
+    -- Flush any remaining run and ensure final pixel
+    flushRun(sx2)
+    
+    -- Make sure the endpoint is drawn if we didn't reach it
+    if not (sx1 == sx2 and sy1 == sy2) then
+        v.drawFill(sx2, sy2, 1, 1, color|flags)
+    end
 end)
