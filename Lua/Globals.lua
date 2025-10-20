@@ -15,6 +15,7 @@ local toDeclare = {
 	DF_DROPOFF = 8192,
 	pw_strength = 1,
 	pw_ironfeet = 2,
+	pw_invisibility = 3,
 }
 
 for k, v in pairs(toDeclare) do

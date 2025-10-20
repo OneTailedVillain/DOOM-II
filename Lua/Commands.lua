@@ -53,6 +53,10 @@ COM_AddCommand("doom_skill", function(player, victim)
 
 end)
 
+COM_AddCommand("doom_doblursphere", function(player, victim)
+	player.doom.powers[pw_invisibility] = 60*TICRATE
+end)
+
 COM_AddCommand("doom_endoom", function(player, level)
 	doom.showendoom = true
 end, COM_ADMIN)

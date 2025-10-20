@@ -201,6 +201,12 @@ end
 addHook("PlayerThink", function(player)
 	player.doom = $ or {}
 	ST_updateFaceWidget(player)
+	
+	if player.doom.powers[pw_invisibility] then
+		player.mo.doom.flags = $ | DF_SHADOW
+	else
+		player.mo.doom.flags = $ & ~DF_SHADOW
+	end
 end)
 
 addHook("PlayerThink", function(player)

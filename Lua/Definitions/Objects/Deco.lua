@@ -279,6 +279,68 @@ local object = {
 
 DefineDoomDeco(name, object, states, onPickup)
 
+SafeFreeSlot("SPR_GOR3")
+local name = "Meat3"
+
+local object = {
+	radius = 16,
+	height = 84,
+	doomednum = 51,
+	sprite = SPR_GOR3,
+	bulletheight = 16,
+	flags = MF_SOLID|MF_NOGRAVITY|MF_FLOAT|MF_SPAWNCEILING,
+}
+
+local states = {
+	{frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+local name = "NonsolidMeat3"
+
+local object = {
+	radius = 20,
+	height = 68,
+	doomednum = 61,
+	sprite = SPR_GOR3,
+	bulletheight = 16,
+	flags = MF_NOGRAVITY|MF_SPAWNCEILING,
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_GOR2")
+local name = "Meat2"
+
+local object = {
+	radius = 16,
+	height = 84,
+	doomednum = 50,
+	sprite = SPR_GOR2,
+	bulletheight = 16,
+	flags = MF_SOLID|MF_NOGRAVITY|MF_FLOAT|MF_SPAWNCEILING,
+}
+
+local states = {
+	{frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+local name = "NonsolidMeat2"
+
+local object = {
+	radius = 20,
+	height = 68,
+	doomednum = 59,
+	sprite = SPR_GOR2,
+	bulletheight = 16,
+	flags = MF_NOGRAVITY|MF_SPAWNCEILING,
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
 SafeFreeSlot("SPR_TLMP")
 local name = "TechLamp"
 
@@ -467,6 +529,43 @@ local object = {
 
 local states = {
 		{frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_SMGT")
+local name = "ShortGreenTorch"
+
+local object = {
+	radius = 16,
+	height = 37,
+	doomednum = 56,
+	sprite = SPR_SMGT,
+}
+
+local states = {
+		{frame = A|FF_FULLBRIGHT, tics = 4},
+		{frame = B|FF_FULLBRIGHT, tics = 4},
+		{frame = C|FF_FULLBRIGHT, tics = 4},
+		{frame = D|FF_FULLBRIGHT, tics = 4},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_FSKU")
+local name = "FloatingSkull"
+
+local object = {
+	radius = 16,
+	height = 37,
+	doomednum = 56,
+	sprite = SPR_FSKU,
+}
+
+local states = {
+		{frame = A|FF_FULLBRIGHT, tics = 6},
+		{frame = B|FF_FULLBRIGHT, tics = 6},
+		{frame = C|FF_FULLBRIGHT, tics = 6},
 }
 
 DefineDoomDeco(name, object, states, onPickup)

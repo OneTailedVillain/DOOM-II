@@ -620,6 +620,14 @@ addHook("ThinkFrame", function()
 	end
 end)
 
+addHook("PostThinkFrame", function()
+	for player in players.iterate do
+		if player.mo.doom.flags & DF_SHADOW then
+			player.mo.frame = $ | FF_MODULATE
+		end
+	end
+end)
+
 addHook("MobjSpawn", function(mobj)
 	mobj.doom = {}
 	if mobj.type == MT_PLAYER then

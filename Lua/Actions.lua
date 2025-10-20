@@ -921,3 +921,14 @@ end
 function A_DoomBrainAwake(actor)
 	S_StartSound(nil, sfx_bossit)
 end
+
+function A_DoomHeadAttack(actor)
+	if P_CheckMeleeRange(actor) then
+		S_StartSound (actor, sfx_claw);
+		damage = (DOOM_Random()%6+1)*10;
+		DOOM_DamageMobj(actor.target, actor, actor, damage);
+		return
+	end
+
+	DOOM_SpawnMissile(actor, actor.target, MT_TROOPSHOT)
+end
