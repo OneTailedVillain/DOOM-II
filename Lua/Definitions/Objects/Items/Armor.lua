@@ -40,7 +40,7 @@ local function onPickup(item, mobj)
 	local health = funcs.getArmor(player)
 	
 	funcs.setArmor(player, min(health + 1, 200))
-	DOOM_DoMessage(player, "GOTARMBONUS")
+	DOOM_DoMessage(player, "$GOTARMBONUS")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -70,7 +70,7 @@ local function onPickup(item, mobj)
 	if health >= 200 then return true end
 	
 	funcs.setArmor(player, 200, FRACUNIT/2)
-	DOOM_DoMessage(player, "GOTMEGA")
+	DOOM_DoMessage(player, "$GOTMEGA")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -100,7 +100,7 @@ local function onPickup(item, mobj)
 	if health >= 100 then return true end
 	
 	funcs.setArmor(player, 100, FRACUNIT/3)
-	DOOM_DoMessage(player, "GOTARMOR")
+	DOOM_DoMessage(player, "$GOTARMOR")
 end
 
 DefineDoomItem(name, object, states, onPickup)

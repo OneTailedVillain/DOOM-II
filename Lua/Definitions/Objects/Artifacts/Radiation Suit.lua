@@ -36,7 +36,7 @@ local function onPickup(item, mobj)
 	local armor = funcs.getArmor(player)
 	
 	player.doom.powers[pw_ironfeet] = 60*TICRATE
-	DOOM_DoMessage(player, "GOTSUIT")
+	DOOM_DoMessage(player, "$GOTSUIT")
 end
 
 DefineDoomItem(name, object, states, onPickup)

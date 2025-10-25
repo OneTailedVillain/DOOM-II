@@ -35,7 +35,7 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
 	player.doom.powers[pw_invulnerability] = 30*TICRATE
-	DOOM_DoMessage(player, "GOTINVUL")
+	DOOM_DoMessage(player, "$GOTINVUL")
 end
 
 DefineDoomItem(name, object, states, onPickup)

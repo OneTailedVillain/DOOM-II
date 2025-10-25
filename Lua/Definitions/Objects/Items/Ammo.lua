@@ -31,7 +31,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "clip", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCLIP")
+	DOOM_DoMessage(player, "$GOTCLIP")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -56,7 +56,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "clipbox", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCLIPBOX")
+	DOOM_DoMessage(player, "$GOTCLIPBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -81,7 +81,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "shells", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTSHELLS")
+	DOOM_DoMessage(player, "$GOTSHELLS")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -106,7 +106,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "shellbox", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTSHELLBOX")
+	DOOM_DoMessage(player, "$GOTSHELLBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -128,10 +128,10 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveAmmoFor(player, "rockets", item.doom.flags)
+	local result = funcs.giveAmmoFor(player, "rocket", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTROCKET")
+	DOOM_DoMessage(player, "$GOTROCKET")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -156,7 +156,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "rocketbox", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTROCKBOX")
+	DOOM_DoMessage(player, "$GOTROCKBOX")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -181,7 +181,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "cell", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCELL")
+	DOOM_DoMessage(player, "$GOTCELL")
 end
 DefineDoomItem(name, object, states, onPickup)
 
@@ -206,6 +206,6 @@ local function onPickup(item, mobj)
 	local result = funcs.giveAmmoFor(player, "cellpack", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCELLBOX")
+	DOOM_DoMessage(player, "$GOTCELLBOX")
 end
 DefineDoomItem(name, object, states, onPickup)

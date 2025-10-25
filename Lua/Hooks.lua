@@ -111,6 +111,7 @@ addHook("MapLoad", function(mapid)
 	doom.itemcount = 0
 	doom.secrets = 0
 	doom.secretcount = 0
+	doom.textscreen.active = false
 	for mobj in mobjs.iterate() do
 		mobj.flags2 = $ & ~MF2_OBJECTFLIP
 		mobj.eflags = $ & ~MFE_VERTICALFLIP
@@ -118,22 +119,25 @@ addHook("MapLoad", function(mapid)
 			mobj.z = P_FloorzAtPos(mobj.x, mobj.y, mobj.z, 0) -- mobj.floorz
 		end
 	end
+
+	-- Call everything off! We won't need these in whatever map we're jumping to
 	doom.linespecials = {}
 	doom.linebackups = {}
 	doom.thinkers = {}
+	doom.torespawn = {}
+	doom.sectorspecials = {}
+	doom.sectorbackups = {}
 	
 	local prefGravity = tonumber(mapheaderinfo[gamemap].doomiigravity) or doom.defaultgravity
 
 	for line in lines.iterate do
-		if line.special == 940 then continue end
+		if line.special <= 940 then continue end
 		doom.linespecials[line] = line.special - 941
 		if doom.linespecials[line] == 48 then
 			DOOM_AddThinker(line, doom.lineActions[48])
 		end
 		-- line.special = 0
 	end
-	doom.sectorspecials = {}
-	doom.sectorbackups = {}
 
 	local lightThinkers = {
 		[1] = {P_SpawnLightFlash},
@@ -151,7 +155,7 @@ addHook("MapLoad", function(mapid)
 			light = deepcopy(sector.lightlevel),
 			floor = deepcopy(sector.floorheight),
 			ceil = deepcopy(sector.ceilingheight)
-			}
+		}
 		if sector.special == 9 then
 			doom.secretcount = ($ or 0) + 1
 		end
@@ -169,12 +173,14 @@ addHook("MapLoad", function(mapid)
 	gravity = -prefGravity
 
 	for player in players.iterate do
+		player.doom = $ or {}
 		player.doom.killcount = 0
 	end
 
 	local mthingReplacements = {
 		[5] = MT_DOOM_BLUEKEYCARD,
 		[6] = MT_DOOM_YELLOWKEYCARD,
+		[8] = MT_DOOM_BACKPACK,
 		[9] = MT_DOOM_SHOTGUNNER,
 		[10] = MT_DOOM_BLOODYMESS,
 		[13] = MT_DOOM_REDKEYCARD,
@@ -304,9 +310,11 @@ local thinkers = {
 	
 	lift = function(sector, data)
 		-- opening
+		print("thinking...")
 		if not data.reachedGoal then
 			local target = P_FindLowestFloorSurrounding(sector)
 			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
+			print("opening...", target, sector.floorheight, speed)
 
 			if not data.init then
 				S_StartSound(sector, sfx_pstart)
@@ -329,7 +337,7 @@ local thinkers = {
 		-- closing
 		else
 			local target = doom.sectorbackups[sector].floor or 0
-			local speed = data.fastdoor and 8*FRACUNIT or 4*FRACUNIT
+			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
 
 			if data.init then
 				S_StartSound(sector, sfx_pstart)
@@ -355,14 +363,15 @@ local thinkers = {
 	end,
 	
 	crusher = function(sector, data)
+		if not data.silent then
+			if not (leveltime & 7) then
+				S_StartSound(sector, sfx_stnmov)
+			end
+		end
+
 		if not data.goingUp then
 			local target = (doom.sectorbackups[sector].floor or 0) + 8*FRACUNIT
 			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
-
-			if not data.init then
-				S_StartSound(sector, sfx_pstart)
-				data.init = true
-			end
 
 			if not (sector and sector.valid) then return end
 
@@ -376,11 +385,6 @@ local thinkers = {
 		else
 			local target = doom.sectorbackups[sector].ceil or 0
 			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
-
-			if data.init then
-				S_StartSound(sector, sfx_pstart)
-				data.init = false
-			end
 
 			sector.ceilingheight = $ + speed
 
@@ -582,12 +586,13 @@ local thinkers = {
 	
 	light = function(sector, data)
 		sector.lightlevel = data.target or 35
+		doom.thinkers[sector] = nil
 	end,
 }
 
 addHook("ThinkFrame", function()
 	for any, data in pairs(doom.thinkers) do
-		if any == nil then doom.thinkers[any] = nil continue end
+		if not (any and any.valid) then doom.thinkers[any] = nil continue end
 		if data == nil then continue end
 		local expected = expectedUserdatas[data.type]
 		local actual = userdataType(any)

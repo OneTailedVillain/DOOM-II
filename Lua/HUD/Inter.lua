@@ -123,12 +123,14 @@ local youAreHere = {
 
 }
 
+local epsAnims = {}
+
 -- Call once when starting the intermission for the current internalEpisode:
-local function init_eps_anims(v, epsAnims)
+local function init_eps_anims(v)
     for _, a in ipairs(epsAnims) do
-        a.ctr = -1
+        a.ctr = 0
         if a.type == "ALWAYS" then
-            a.nexttic = timer + 1 + (v.RandomByte() * a.period) -- approximate Doom's random phase
+            a.nexttic = timer + 1 + (v.RandomByte() % a.period) -- approximate Doom's random phase
         elseif a.type == "RANDOM" then
             -- data1 = period deviation, data2 = base pause like Doom
             a.nexttic = timer + 1 + (a.data2 or 0) + (v.RandomRange(0, (a.data1 or 1)-1))
@@ -139,9 +141,9 @@ local function init_eps_anims(v, epsAnims)
 end
 
 -- Call each tick before drawing
-local function update_eps_anims(v, epsAnims, internalEpisode)
+local function update_eps_anims(v, internalEpisode, player)
     for i, a in ipairs(epsAnims) do
-        if timer == a.nexttic then
+        if timer >= a.nexttic then
             if a.type == "ALWAYS" then
                 a.ctr = (a.ctr + 1) % a.nanims
                 a.nexttic = timer + a.period
@@ -155,14 +157,15 @@ local function update_eps_anims(v, epsAnims, internalEpisode)
                 end
             elseif a.type == "LEVEL" then
                 -- Doom's hack: only animate if next-level matches AND not the special blocking condition
-                local currentLevelIndex = ((gamemap - 1) % 9) + 1
+                local currentLevelIndex = ((gamemap - 1) % 8) + 1
                 local animIndex = i - 1 -- if you need the 0-based index
-                -- The original checks: if (!(state == StatCount && i == 7) && wbs->next == a->data1)
-                if ( (not (doom.state == "StatCount" and (i-1) == 7)) and (currentLevelIndex == a.data1) ) then
-                    if a.ctr < 0 then a.ctr = 0 end
-                    a.ctr = min(a.ctr + 1, a.nanims - 1)
-                    a.nexttic = timer + a.period
-                end
+				-- Only animate if this level matches AND we're not in the special blocking case
+				local isSpecialCase = (player.doom.intstate == 12 and (i-1) == 7)
+				if (not isSpecialCase) and (currentLevelIndex == a.data1) then
+					if a.ctr < 0 then a.ctr = 0 end
+					a.ctr = min(a.ctr + 1, a.nanims - 1)
+					a.nexttic = timer + a.period
+				end
             end
         end
     end
@@ -366,11 +369,11 @@ hud.add(function(v, player)
 		v.draw(0, 0, v.cachePatch("WIMAP" .. internalEpisode))
 
 		-- draw animations for the current internal episode
-		local epsAnims = anims_by_eps[internalEpisode] or {}
-		if not epsAnims[1].ctr then
-			init_eps_anims(v, epsAnims)
+		epsAnims = anims_by_eps[internalEpisode] or {}
+		if epsAnims[1].ctr == nil then
+			init_eps_anims(v)
 		end
-		update_eps_anims(v, epsAnims, internalEpisode)
+		update_eps_anims(v, internalEpisode, player)
 
 		for j=1, #epsAnims do
 			local a = epsAnims[j]

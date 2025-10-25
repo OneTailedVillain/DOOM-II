@@ -44,11 +44,51 @@ for i = 1, #skincolors - 1 do
     end
 end
 
+local function getPrefix(loopcount)
+	if loopcount == 0 then
+		return ""
+	elseif loopcount == 1 then
+		return "\x80"
+	elseif loopcount == 2 then
+		return "\x81"
+	elseif loopcount == 3 then
+		return "\x82"
+	elseif loopcount == 4 then
+		return "\x83"
+	elseif loopcount == 5 then
+		return "\x84"
+	elseif loopcount == 6 then
+		return "\x85"
+	elseif loopcount == 7 then
+		return "\x86"
+	elseif loopcount == 8 then
+		return "\x87"
+	elseif loopcount == 9 then
+		return "\x88"
+	elseif loopcount == 10 then
+		return "\x89"
+	elseif loopcount == 11 then
+		return "\x8A"
+	elseif loopcount == 12 then
+		return "\x8B"
+	elseif loopcount == 13 then
+		return "\x8C"
+	elseif loopcount == 14 then
+		return "\x8D"
+	elseif loopcount == 15 then
+		return "\x8E"
+	elseif loopcount == 16 then
+		return "\x8F"
+	end
+end
+
+local loopcount
 -- Apply colors cyclically to accessible colors
 for i, colorIndex in ipairs(accessibleColors) do
     local cdef = oolors[((i-1) % #oolors) + 1]
     local sc = skincolors[colorIndex]
-    sc.name = cdef.name
+	loopcount = i / #oolors
+	sc.name = getPrefix(loopcount) .. cdef.name
     sc.ramp = cdef.ramp
     sc.invcolor = SKINCOLOR_WHITE
     sc.invshade = 7
@@ -63,7 +103,7 @@ if numNeeded > 0 and numNeeded < #oolors then
         local slotname = "SKINCOLOR_DOOM_"..cdef.name
         local slot = SafeFreeSlot(slotname)
         local sc = skincolors[slot[slotname]]
-        sc.name = cdef.name
+		sc.name = getPrefix(loopcount + 1) .. cdef.name
         sc.ramp = cdef.ramp
         sc.invcolor = SKINCOLOR_WHITE
         sc.invshade = 7

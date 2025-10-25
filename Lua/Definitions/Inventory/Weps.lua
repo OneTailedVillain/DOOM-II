@@ -1,8 +1,8 @@
 DOOM_Freeslot(
 "SPR_SAWG",
 "SPR_PUNG",
-"SPR_PISG",
-"SPR_SHTG",
+"SPR_PISG", "SPR_PISF",
+"SPR_SHTG", "SPR_SHTF",
 "SPR_SHT2",
 "SPR_CHGG", "SPR_CHGF",
 "SPR_MISG",
@@ -17,18 +17,26 @@ doom.addWeapon("chainsaw", {
 	sprite = SPR_SAWG,
 	weaponslot = 1,
 	order = 1,
+	priority = 2200,
 	damage = {5, 15},
 	raycaster = true,
 	pellets = 1,
 	shotcost = 0,
+	upsound = sfx_sawup,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
 	},
 	states = {
 		idle = {
-			{frame = C, tics = 4, action = A_ChainSawSound, var1 = sfx_sawidl, var2 = 1},
-			{frame = D, tics = 4, action = A_ChainSawSound, var1 = sfx_sawidl, var2 = 1},
+			{frame = C, tics = 4, action = A_DoomWeaponReady, var1 = A_ChainSawSound, var2 = {var1 = sfx_sawidl}},
+			{frame = D, tics = 4, action = A_DoomWeaponReady, var1 = A_ChainSawSound, var2 = {var1 = sfx_sawidl}},
+		},
+		lower = {
+			{frame = C, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = C, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 4, action = A_SawHit},
@@ -43,8 +51,10 @@ doom.addWeapon("brassknuckles", {
 	sprite = SPR_PUNG,
 	weaponslot = 1,
 	order = 2,
+	priority = 3700,
 	damage = {5, 15},
 	raycaster = true,
+	wimpyweapon = true,
 	pellets = 1,
 	shotcost = 0,
 	spread = {
@@ -53,7 +63,13 @@ doom.addWeapon("brassknuckles", {
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = B, tics = 4},
@@ -68,10 +84,13 @@ doom.addWeapon("brassknuckles", {
 
 doom.addWeapon("pistol", {
 	sprite = SPR_PISG,
+	flashsprite = SPR_PISF,
 	weaponslot = 2,
 	order = 1,
+	priority = 1900,
 	damage = {5, 15},
 	noinitfirespread = true,
+	wimpyweapon = true,
 	pellets = 1,
 	firesound = sfx_pistol,
 	spread = {
@@ -80,13 +99,22 @@ doom.addWeapon("pistol", {
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 4},
 			{frame = B, tics = 6, action = A_DoomFire},
 			{frame = C, tics = 4},
 			{frame = B, tics = 5, action = A_DoomReFire},
+		},
+		flash = {
+			{frame = A|FF_FULLBRIGHT, tics = 6},
 		}
 	},
 	ammotype = "bullets",
@@ -96,6 +124,7 @@ doom.addWeapon("supershotgun", {
 	sprite = SPR_SHT2,
 	weaponslot = 3,
 	order = 1,
+	priority = 400,
 	damage = {5, 15},
 	pellets = 20,
 	firesound = sfx_dshtgn,
@@ -107,13 +136,19 @@ doom.addWeapon("supershotgun", {
 	raycaster = true,
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 3},
 			{frame = A, tics = 7, action = A_DoomFire},
 			{frame = B, tics = 7},
-			{frame = C, tics = 7},
+			{frame = C, tics = 7, action = A_DoomCheckReload},
 			{frame = D, tics = 7, action = A_PlaySound, var1 = sfx_dbopn, var2 = 1},
 			{frame = E, tics = 7},
 			{frame = F, tics = 7, action = A_PlaySound, var1 = sfx_dbload, var2 = 1},
@@ -127,8 +162,10 @@ doom.addWeapon("supershotgun", {
 
 doom.addWeapon("shotgun", {
 	sprite = SPR_SHTG,
+	flashsprite = SPR_SHTF,
 	weaponslot = 3,
 	order = 2,
+	priority = 1300,
 	damage = {5, 15},
 	pellets = 7,
 	firesound = sfx_shotgn,
@@ -139,7 +176,13 @@ doom.addWeapon("shotgun", {
 	raycaster = true,
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 3},
@@ -151,6 +194,10 @@ doom.addWeapon("shotgun", {
 			{frame = B, tics = 5},
 			{frame = A, tics = 3},
 			{frame = A, tics = 7, action = A_DoomReFire},
+		},
+		flash = {
+			{frame = A|FF_FULLBRIGHT, tics = 4},
+			{frame = B|FF_FULLBRIGHT, tics = 3},
 		}
 	},
 	ammotype = "shells",
@@ -158,8 +205,10 @@ doom.addWeapon("shotgun", {
 
 doom.addWeapon("chaingun", {
 	sprite = SPR_CHGG,
+	flashsprite = SPR_CHGF,
 	weaponslot = 4,
 	order = 1,
+	priority = 700,
 	damage = {5, 15},
 	noinitfirespread = true,
 	pellets = 1,
@@ -170,12 +219,22 @@ doom.addWeapon("chaingun", {
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 4, action = A_DoomFire},
-			{frame = B, tics = 4, action = A_DoomFire},
+			{frame = B, tics = 4, action = A_DoomFire, var1 = nil, var2 = {noFlash = true}},
 			{frame = B, tics = 0, action = A_DoomReFire},
+		},
+		flash = {
+			{frame = A|FF_FULLBRIGHT, tics = 4},
+			{frame = B|FF_FULLBRIGHT, tics = 4},
 		}
 	},
 	raycaster = true,
@@ -186,8 +245,10 @@ doom.addWeapon("rocketlauncher", {
 	sprite = SPR_MISG,
 	weaponslot = 5,
 	order = 1,
+	priority = 2500,
 	damage = {5, 15},
 	noinitfirespread = true,
+	noautoswitchfire = true,
 	pellets = 1,
 	firesound = sfx_rlaunc,
 	shootmobj = MT_DOOM_ROCKETPROJ,
@@ -197,7 +258,13 @@ doom.addWeapon("rocketlauncher", {
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = B, tics = 4},--, action = A_DoomFire},
@@ -213,16 +280,23 @@ doom.addWeapon("plasmarifle", {
 	sprite = SPR_PLSG,
 	weaponslot = 6,
 	order = 1,
+	priority = 100,
 	damage = {5, 15},
-	noinitfirespread = true,
 	pellets = 1,
+	shootmobj = MT_DOOM_ROCKETPROJ,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 3, action = A_DoomFire},
@@ -237,8 +311,10 @@ doom.addWeapon("bfg9000", {
 	sprite = SPR_PLSG,
 	weaponslot = 7,
 	order = 1,
+	priority = 2800,
 	damage = {5, 15},
 	noinitfirespread = true,
+	noautoswitchfire = true,
 	pellets = 1,
 	spread = {
 		horiz = FRACUNIT*59/10,
@@ -246,7 +322,13 @@ doom.addWeapon("bfg9000", {
 	},
 	states = {
 		idle = {
-			{frame = A, tics = 1},
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
 			{frame = A, tics = 20, action = A_PlaySound, var1 = sfx_bfg, var2 = 1},

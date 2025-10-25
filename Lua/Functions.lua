@@ -1,3 +1,7 @@
+local function warn(warning)
+	print("\x82WARNING:\x80 " .. tostring(warning))
+end
+
 local function SafeFreeSlot(...)
     local ret = {}
     for _, name in ipairs({...}) do
@@ -11,7 +15,6 @@ local function SafeFreeSlot(...)
     end
     return ret
 end
-
 
 rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     local up     = name:upper()
@@ -27,6 +30,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     end
 
     -- free and capture the slots
+---@diagnostic disable-next-line: deprecated
     local slots = SafeFreeSlot( unpack(needed) )
 
     -- 3) fill mobjinfo using slots[...] and the MT_'s object data
@@ -48,12 +52,18 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		radius       = (objData.radius or 0)  * FRACUNIT,
 		height       = (objData.height or 0)  * FRACUNIT,
 		mass         = objData.mass,
+        reactiontime = objData.reactiontime or 8,
+        dispoffset   = 0,
+        damage       = objData.damage or 0,
+        raisestate   = S_NULL,
 		painchance   = objData.painchance,
 		activesound  = objData.activesound,
 		doomednum    = objData.doomednum or -1,
 		flags        = objData.flags or MF_ENEMY|MF_SOLID|MF_SHOOTABLE,
     }
 
+    -- VSCode doesn't seem to realize that field injection is only IMpossible when you do it like the above!!
+---@diagnostic disable-next-line: inject-field
 	mobjinfo[MT].doomflags = objData.doomflags
 
     -- 4) fill states[] the same way
@@ -96,11 +106,10 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 
 	addHook("MobjThinker", function(mobj)
 		if mobj.z < mobj.subsector.sector.floorheight then
-			print(mobj.z/FRACUNIT)
 			P_MoveOrigin(mobj, mobj.x, mobj.y, mobj.subsector.sector.floorheight)
 		end
 		local mdoom = mobj.doom
-		if mobj.tics != -1 then return end
+		if mobj.tics ~= -1 then return end
 		if not (mobj.doom.flags & DF_COUNTKILL) then return end
 		if not doom.respawnmonsters then return end
 		mobj.movecount = ($ or 0) + 1
@@ -108,9 +117,11 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		if leveltime & 31 then return end
 		if DOOM_Random() > 4 then return end
 		local new = P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, mobj.type)
-		P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, MT_DOOM_TELEFOG)
-		mobj.state = S_TELEFOG1
-		mobj.type = MT_DOOM_TELEFOG
+        local spawnz = P_FloorzAtPos(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, 0)
+        local new = P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, spawnz, mobj.type)
+        P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, spawnz, MT_DOOM_TELEFOG)
+        mobj.state = S_TELEFOG1
+        mobj.type = MT_DOOM_TELEFOG
 		new.angle = FixedAngle(mobj.spawnpoint.angle*FRACUNIT)
 	end, MT)
 
@@ -121,16 +132,14 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 
 	addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 		local attacker = inflictor or source
-/*
-hitscanners, melee attacks, and lost souls don't check for same-type, btw!!
-monsters cannot infight archviles
-			or ( (inflictor.target.type == MT_KNIGHT and target.type == MT_BARON)
-			  or (inflictor.target.type == MT_BARON and target.type == MT_KNIGHT) )
-*/
-		if inflictor.target and (
-			inflictor.target.type == target.type
-		) then
-			return true
+
+		if inflictor != source or (source.type != MT_DOOM_BULLET) or (source.type != MT_DOOM_LOSTSOUL) then
+			if inflictor.target and (
+				inflictor.target.type == target.type
+			) or ( (inflictor.target.type == MT_DOOM_HELLKNIGHT and target.type == MT_DOOM_BARONOFHELL)
+				  or (inflictor.target.type == MT_DOOM_BARONOFHELL and target.type == MT_DOOM_HELLKNIGHT) ) then
+				return true
+			end
 		end
 		if damage == 0 then return end
 		DOOM_DamageMobj(target, inflictor, source, damage, damagetype)
@@ -148,7 +157,6 @@ local function maybeAddToRespawnTable(mo)
 			type = mo.type,
 		})
 	end
-
 end
 
 rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
@@ -167,20 +175,22 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
     -- first state name (for looping)
     local firstStateName = string.format("S_%s_1", prefix)
 
-    -- minimal mobjinfo for an item
     mobjinfo[MT] = {
         spawnstate  = slots[firstStateName],
-        spawnhealth = objData.health or 0,
-        radius      = (objData.radius or 16) * FRACUNIT,
-        height      = (objData.height or 16) * FRACUNIT,
-        mass        = objData.mass or 100,
-        doomednum   = objData.doomednum or -1,
-        speed       = 0,
-        flags       = objData.flags or MF_SPECIAL,
-        activesound = objData.activesound,
-        painsound   = objData.painsound,
-        deathsound  = objData.deathsound,
-        sprite      = objData.sprite,
+        spawnhealth  = objData.health or 0,
+        radius       = (objData.radius or 16) * FRACUNIT,
+        height       = (objData.height or 16) * FRACUNIT,
+        mass         = objData.mass or 100,
+        doomednum    = objData.doomednum or -1,
+        speed        = objData.speed or 0,
+        flags        = objData.flags or MF_SPECIAL,
+        activesound  = objData.activesound,
+        painsound    = objData.painsound,
+        deathsound   = objData.deathsound,
+        sprite       = objData.sprite,
+        seestate     = objData.seestate,
+        seesound     = objData.seesound,
+        reactiontime = objData.reactiontime,
     }
 
     mobjinfo[MT].doomflags = objData.doomflags
@@ -303,6 +313,36 @@ local function P_CheckMissileSpawn(th)
 */
 end
 
+rawset(_G, "DOOM_ResolveString", function(text)
+	if type(text) ~= "string" then
+        error("DOOM_ResolveString: Invalid type passed (string expected, got " .. type(text) .. ")")
+	end
+
+    -- Check if it looks like an index and resolve it
+    if text:sub(1, 1) == "$" and #text > 1 then
+        local index = text:sub(2)
+        if index:match("^[%w_]+$") then
+            -- Prefer dehacked strings if present, otherwise fall back to base doom.strings
+            if doom.dehacked and type(doom.dehacked.strings) == "table" and doom.dehacked.strings[index] then
+                return doom.dehacked.strings[index]
+            elseif doom.strings and doom.strings[index] then
+                return doom.strings[index]
+            else
+                warn("DOOM string index not found in doom.dehacked.strings or doom.strings: " .. index)
+                -- Keep original text as fallback (literal "$index")
+                return text
+            end
+        else
+            warn("DOOM string index invalid format: " .. tostring(index))
+            -- Keep original text as fallback
+            return text
+        end
+    end
+
+    -- Return original text if not an index format
+    return text
+end)
+
 rawset(_G, "DOOM_SpawnMissile", function(source, dest, type)
     if not (source and dest) then return nil end
 
@@ -356,6 +396,11 @@ rawset(_G, "DOOM_GetWeaponDef", function(player)
 	return doom.weapons[player.doom.curwep]
 end)
 
+rawset(_G, "DOOM_IsExiting", function()
+	return doom.intermission or doom.textscreen.active
+end)
+
+-- TODO: monsters CANNOT in-fight Archviles!
 rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, minhealth)
     if not target or not target.valid then return end
     damage = inflictor and inflictor.doom.damage or damage
@@ -365,6 +410,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
     
     if player then
         -- Player-specific handling
+		if DOOM_IsExiting() then return end
         local funcs = P_GetMethodsForSkin(player)
         funcs.damage(target, damage, source, inflictor, damagetype, minhealth)
         player.doom.damagecount = (player.doom.damagecount or 0) + damage
@@ -486,9 +532,17 @@ end)
 rawset(_G, "DOOM_SetState", function(player, state, frame)
 	state = state or "idle"
 	frame = frame or 1
+	if not player then return end
 	player.doom.wepstate = state
 	player.doom.wepframe = frame
-	local wepDef = DOOM_GetWeaponDef(player).states[state][frame]
+	local wepDef = DOOM_GetWeaponDef(player)
+	if not wepDef then error("Invalid weapon " .. tostring(player.doom.curwep) .. "!") end
+	wepDef = $.states
+	if not wepDef then error("No 'states' table for current weapon!") end
+	wepDef = $[state]
+	if not wepDef then error("Invalid state " .. tostring(state) .. "!") end
+	wepDef = $[frame]
+	if not wepDef then error("Invalid frame " .. tostring(state) .. " " .. tostring(frame) .. "!") end
 	player.doom.weptics = wepDef.tics
 	if wepDef.action then
 		wepDef.action(player.mo, wepDef.var1, wepDef.var2, DOOM_GetWeaponDef(player))
@@ -496,6 +550,14 @@ rawset(_G, "DOOM_SetState", function(player, state, frame)
 end)
 
 rawset(_G, "DOOM_FireWeapon", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	local curWep = DOOM_GetWeaponDef(player)
+	local curAmmo = funcs.getCurAmmo(player)
+
+	if type(curAmmo) != "boolean" then
+		if curAmmo - curWep.shotcost < 0 then return end
+	end
+
 	DOOM_SetState(player, "attack", 1)
 end)
 
@@ -520,11 +582,64 @@ rawset(_G, "DOOM_AddThinker", function(any, thinkingType)
     if thinkingType == nil then return end
 	-- clone the lineAction data so each sector gets its own independent state
     local data = deepcopy(thinkingType)
+	print("adding " .. tostring(data.type) .. " thinker!")
     doom.thinkers[any] = data
 end)
 
-rawset(_G, "DOOM_DoAutoSwitch", function(any, thinkingType)
-    return
+rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
+	if not (player and player.valid) then return end
+	if not player.doom then return end
+	if not player.doom.weapons[wepname] then return end -- player must own it
+
+	-- Find which slot + order this weapon belongs to
+	for slot, weplist in pairs(doom.weaponnames) do
+		for order, w in ipairs(weplist) do
+			if w == wepname then
+				if not force then
+					-- Emulate manual switch
+					player.doom.curwepcat = slot
+					player.doom.curwepslot = order
+					player.doom.wishwep = wepname
+					player.doom.switchingweps = true
+					player.doom.switchtimer = 0
+				else
+					player.doom.curwepcat = slot
+					player.doom.curwepslot = order
+					player.doom.curwep = wepname
+				end
+				return true
+			end
+		end
+	end
+
+	return false -- weapon exists but wasn’t found in any slot (bad config?)
+end)
+
+rawset(_G, "DOOM_DoAutoSwitch", function(player, force)
+	local candidates = {}
+	local funcs = P_GetMethodsForSkin(player)
+	local weapon = DOOM_GetWeaponDef(player)
+	local curAmmo = funcs.getCurAmmo(player)
+	if not force then
+		if type(curAmmo) == "boolean" then return end
+		if curAmmo - weapon.shotcost >= 0 then return end
+	end
+	for name, definition in pairs(doom.weapons) do
+        local funcs = P_GetMethodsForSkin(player)
+		curAmmo = funcs.getAmmoFor(player, definition.ammotype)
+
+		if not player.doom.weapons[name] then continue end
+		if curAmmo - definition.shotcost < 0 then continue end
+
+		table.insert(candidates, {
+		priority = definition.priority or 1000,
+		name = name
+		})
+	end
+	table.sort(candidates, function(a, b)
+		return a.priority < b.priority
+	end)
+	return DOOM_SwitchWeapon(player, candidates[1].name)
 end)
 
 local function DOOM_WhatInter()
@@ -535,7 +650,7 @@ local function DOOM_WhatInter()
 	end
 end
 
-local function saveStatus(player)
+rawset(_G, "saveStatus", function(player)
 	player.doom = $ or {}
 	player.mo.doom = $ or {}
 	player.doom.laststate = {}
@@ -544,6 +659,7 @@ local function saveStatus(player)
 	player.doom.laststate.oldweapons = deepcopy(player.doom.oldweapons)
 	player.doom.laststate.curwep = deepcopy(player.doom.curwep)
 	player.doom.laststate.curwepslot = deepcopy(player.doom.curwepslot)
+	player.doom.laststate.curwepcat = deepcopy(player.doom.curwepcat)
 	player.doom.laststate.health = deepcopy(player.mo.doom.health)
 	player.doom.laststate.armor = deepcopy(player.mo.doom.armor)
 	player.doom.laststate.pos = {
@@ -557,102 +673,111 @@ local function saveStatus(player)
 		z = deepcopy(player.mo.momz),
 	}
 	player.doom.laststate.map = deepcopy(gamemap)
+end)
+
+local function printTable(data, prefix)
+	prefix = prefix or ""
+	if type(data) == "table"
+		for k, v in pairs(data or {}) do
+			local key = prefix .. k
+			if type(v) == "table" then
+				CONS_Printf(server, "key " .. key .. " = a table:")
+				printTable(v, key .. ".")
+			else
+				CONS_Printf(server, "key " .. key .. " = " .. tostring(v))
+			end
+		end
+	else
+		CONS_Printf(server, data)
+	end
 end
+
+rawset(_G, "DOOM_StartTextScreen", function(text)
+    -- Input validation
+    if type(text) ~= "table" then
+        error("DOOM_StartTextScreen: Invalid type passed (table expected, got " .. type(text) .. ")")
+    end
+	if not text.text then
+		error("DOOM_StartTextScreen: No 'text' key in table argument")
+	end
+	if not text.bg then
+		error("DOOM_StartTextScreen: No 'bg' key in table argument")
+	end
+	if type(text.text) ~= "string" then
+		error("DOOM_StartTextScreen: Invalid type in key 'text' (string expected, got " .. type(text.text) .. ")")
+	end
+	if type(text.bg) ~= "string" then
+		error("DOOM_StartTextScreen: Invalid type in key 'bg' (string expected, got " .. type(text.text) .. ")")
+	end
+
+    local isIndex = false
+    local content = DOOM_ResolveString(text.text)
+
+    doom.textscreen.active = true
+    doom.textscreen.elapsed = 0
+    doom.textscreen.text = content
+	doom.textscreen.bg = text.bg
+    if doom.isdoom1 then
+        S_ChangeMusic("victor")
+    else
+        S_ChangeMusic("read_m")
+    end
+end)
 
 rawset(_G, "DOOM_ExitLevel", function()
 	if doom.intermission then return end
-	if doom.isdoom1 then
-		doom.animatorOffsets = {}
-		for i = 1, 10 do
-			doom.animatorOffsets[i] = DOOM_Random()
+	local targetTextScreen = doom.textscreenmaps[gamemap]
+	if doom.textscreenmaps[gamemap] and doom.isdoom1 then
+		for player in players.iterate do
+			player.doom.laststate = {}
 		end
+		DOOM_StartTextScreen(targetTextScreen)
+	else
+		if doom.isdoom1 then
+			doom.animatorOffsets = {}
+			for i = 1, 10 do
+				doom.animatorOffsets[i] = DOOM_Random()
+			end
+		end
+		for player in players.iterate() do
+			player.doom.intstate = 1
+			player.doom.intpause = TICRATE
+			player.doom.wintime = leveltime
+			saveStatus(player)
+		end
+		doom.intermission = true
+		S_ChangeMusic(DOOM_WhatInter())
 	end
-	for player in players.iterate() do
-		player.doom.intstate = 1
-		player.doom.intpause = TICRATE
-		player.doom.wintime = leveltime
-		saveStatus(player)
+
+	for mobj in mobjs.iterate() do
+		mobj.flags = $ | MF_NOTHINK
+		S_StopSound(mobj)
 	end
-	doom.intermission = true
-	S_ChangeMusic(DOOM_WhatInter())
+end)
+
+rawset(_G, "DOOM_NextLevel", function()
+	local nextLev
+	local targetTextScreen = doom.textscreenmaps[gamemap]
+	if targetTextScreen and not doom.isdoom1 and not doom.textscreen.active and targetTextScreen.secret == doom.didSecretExit then
+		DOOM_StartTextScreen(targetTextScreen)
+		return
+	end
+	if doom.didSecretExit then
+		nextLev = mapheaderinfo[gamemap].nextsecretlevel or doom.secretExits[gamemap]
+	else
+		nextLev = mapheaderinfo[gamemap].nextlevel or gamemap + 1
+	end
+	G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
+	G_ExitLevel()
 end)
 
 rawset(_G, "DOOM_DoMessage", function(player, string)
 	player.doom.messageclock = TICRATE*5
-	player.doom.message = doom.dehacked and doom.dehacked[string] or doom.strings[string] or string
+	player.doom.message = DOOM_ResolveString(string)
 	if player.doom.message != string then
 		player.doom.message = $:upper()
 	end
 end)
-
-/*
-//
-// P_LookForPlayers
-// If allaround is false, only look 180 degrees in front.
-// Returns true if a player is targeted.
-//
-boolean
-P_LookForPlayers
-( mobj_t*	actor,
-  boolean	allaround )
-{
-    int		c;
-    int		stop;
-    player_t*	player;
-    sector_t*	sector;
-    angle_t	an;
-    fixed_t	dist;
-		
-    sector = actor->subsector->sector;
-	
-    c = 0;
-    stop = (actor->lastlook-1)&3;
-	
-    for ( ; ; actor->lastlook = (actor->lastlook+1)&3 )
-    {
-	if (!playeringame[actor->lastlook])
-	    continue;
-			
-	if (c++ == 2
-	    || actor->lastlook == stop)
-	{
-	    // done looking
-	    return false;	
-	}
-	
-	player = &players[actor->lastlook];
-
-	if (player->health <= 0)
-	    continue;		// dead
-
-	if (!P_CheckSight (actor, player->mo))
-	    continue;		// out of sight
-			
-	if (!allaround)
-	{
-	    an = R_PointToAngle2 (actor->x,
-				  actor->y, 
-				  player->mo->x,
-				  player->mo->y)
-		- actor->angle;
-	    
-	    if (an > ANG90 && an < ANG270)
-	    {
-		dist = P_AproxDistance (player->mo->x - actor->x,
-					player->mo->y - actor->y);
-		// if real close, react anyway
-		if (dist > MELEERANGE)
-		    continue;	// behind back
-	    }
-	}
-		
-	actor->target = player->mo;
-	return true;
-    }
-
-    return false;
-}
-*/
 
 rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
     if not actor or not actor.subsector or not actor.subsector.sector then return false end
@@ -691,29 +816,6 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
     end
 
     return false
-end)
-
-rawset(_G, "DOOM_SwitchWeapon", function(player, wepname)
-	if not (player and player.valid) then return end
-	if not player.doom then return end
-	if not player.doom.weapons[wepname] then return end -- player must own it
-
-	-- Find which slot + order this weapon belongs to
-	for slot, weplist in pairs(doom.weaponnames) do
-		for order, w in ipairs(weplist) do
-			if w == wepname then
-				-- Emulate manual switch
-				player.doom.curwepcat = slot
-				player.doom.curwepslot = order
-				player.doom.wishwep = wepname
-				player.doom.switchingweps = true
-				player.doom.switchtimer = 0
-				return true
-			end
-		end
-	end
-
-	return false -- weapon exists but wasn’t found in any slot (bad config?)
 end)
 
 rawset(_G, "DOOM_Random", function()

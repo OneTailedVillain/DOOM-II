@@ -60,7 +60,7 @@ rawset(_G, "DOOM_GenericRaycast", function(mobj, opts)
 
     local shooter = mobj.target
     if shooter and shooter.valid then
-        shooter.flags = shooter.flags | MF_NOCLIP
+        --shooter.flags = shooter.flags | MF_NOCLIP
     end
 
     local speed_fp = opts.speed or (mobjinfo[mobj.type] and mobjinfo[mobj.type].speed) or (4*FRACUNIT)
@@ -118,7 +118,7 @@ rawset(_G, "DOOM_GenericRaycast", function(mobj, opts)
     end
 
     if shooter and shooter.valid then
-        shooter.flags = shooter.flags & ~MF_NOCLIP
+        --shooter.flags = shooter.flags & ~MF_NOCLIP
     end
 
     return hit
@@ -188,6 +188,7 @@ addHook("MobjLineCollide", function(ray, usedLine)
 	end
     if whatIs.activationType == "interact" then
         if whatIs.type == "exit" then
+			doom.didSecretExit = whatIs.secret
 			DOOM_ExitLevel()
             return true
         end

@@ -2,7 +2,12 @@
 local cacheShit = {
 	colormaps = {},
 	patches = {},
-	fonts = {}
+	fonts = {},
+	lastwarned = {
+		flag = {
+			typemismatch = {}
+		}
+	}
 }
 
 -- Either get or create a colormap
@@ -179,31 +184,42 @@ rawset(_G, "cacheFont", function(v, font)
 end)
 
 -- TODO: maybe extend this a bit?
-rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, cmap)
+rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
     str = tostring(str)
-    if not ((flags or 0) & V_ALLOWLOWERCASE) then str = str:upper() end
-	flags = flags & ~V_ALLOWLOWERCASE
+	if type(flags) != "number" then
+		if not cacheShit.lastwarned.flag.typemismatch[tostring(flags)] then
+			print("\82WARNING:\80 Flag type mismatch! (number expected, got " .. type(flags))
+			-- Rolls right off the tongue...
+			cacheShit.lastwarned.flag.typemismatch[tostring(flags)] = true
+		end
+		flags = 0
+	end
+    if not ((flags or 0) & V_ALLOWLOWERCASE) then
+		str = str:upper()
+	end
+    flags = flags & ~V_ALLOWLOWERCASE
 
     -- Grab the relevant info (or build if new)
     local ftable = cacheFont(v, font)
 
-    -- Find maximum character height for line stepping
-    local lineHeight = 0
-    for _, info in pairs(ftable) do
-        if info.patch then
-            lineHeight = max(lineHeight, info.patch.height * FRACUNIT)
-        end
-    end
+    -- Find maximum character height for line stepping, if line height was not already defined
+	if not lineHeight then
+		lineHeight = 0
+		for _, info in pairs(ftable) do
+			if info.patch then
+				lineHeight = max(lineHeight, info.patch.height * FRACUNIT)
+			end
+		end
+	else
+		lineHeight = $ * scale
+	end
 
-    -- Word-wrap target width (scaled)
-    local maxWidth = FixedMul(320*FRACUNIT, scale)
+    local maxWidth = FixedMul(320*FRACUNIT - x, scale)
 
     -- Split into lines on \n first
     local logicalLines = {}
     for line in str:gmatch("([^\n]*)\n?") do
-        if line ~= "" then
-            table.insert(logicalLines, line)
-        end
+        table.insert(logicalLines, line)
     end
 
     -- Expand into wrapped lines
@@ -232,8 +248,9 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
             local wordWidth = measureWord(word)
             local spaceWidth = measureWord(" ")
 
-            -- if word won't fit on this line, flush and start new
-            if currentWidth > 0 and (currentWidth + spaceWidth + wordWidth) > maxWidth then
+            -- DOOM-style: break at screen edge, not word wrap
+			-- Word wrapping rendered basically null for everything other than our main font
+            if (currentWidth + (currentWidth > 0 and spaceWidth or 0) + wordWidth) > maxWidth and font == "STCFN" then
                 table.insert(wrappedLines, currentLine)
                 currentLine = word
                 currentWidth = wordWidth
@@ -247,9 +264,40 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
                 end
             end
         end
-        if currentLine ~= "" then
-            table.insert(wrappedLines, currentLine)
+        table.insert(wrappedLines, currentLine)
+    end
+
+    -- enforce maxChars across the wrapped lines
+    if maxChars and maxChars > 0 then
+        local charCount = 0
+        local newWrapped = {}
+        local done = false
+
+        for _, line in ipairs(wrappedLines) do
+            if done then break end
+            local keep = ""
+            for i = 1, #line do
+                if charCount >= maxChars then
+                    done = true
+                    break
+                end
+                keep = keep .. line:sub(i, i)
+                charCount = charCount + 1
+            end
+
+            -- Insert whatever part of the line we kept (may be empty if limit was already reached)
+            if #keep > 0 then
+                table.insert(newWrapped, keep)
+            else
+                -- If we haven't added any characters for this line but the limit is not reached,
+                -- keep an empty line to preserve vertical spacing. If the limit was reached, stop.
+                if not done then
+                    table.insert(newWrapped, "")
+                end
+            end
         end
+
+        wrappedLines = newWrapped
     end
 
     -- Draw all wrapped lines
@@ -281,11 +329,16 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
                     v.drawScaled(xpos, y, scale, info.patch, flags, cmap)
                 end
                 xpos = xpos + FixedMul(info.width * FRACUNIT, scale)
+                
+                -- DOOM-style: stop if we hit screen edge
+                if xpos > x + maxWidth then
+                    break
+                end
             end
         end
 
         -- Move to next line
-        y = y + lineHeight
+        y = y + FixedMul(lineHeight, scale)
     end
 end)
 
@@ -307,21 +360,6 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
     local sy = (sy1 < sy2) and 1 or -1
     local err = dx - dy
 
-    -- For horizontal runs batching
-    local runStartX = sx1
-    local currentY = sy1
-    local drawingRun = false
-
-    local function flushRun(xEnd)
-        if drawingRun then
-            local runLength = xEnd - runStartX + 1
-            if runLength > 0 then
-                v.drawFill(runStartX, currentY, runLength, 1, color|flags)
-            end
-            drawingRun = false
-        end
-    end
-
     -- Special case: vertical line
     if dx == 0 then
         local yStart = min(sy1, sy2)
@@ -338,39 +376,33 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
         return
     end
 
-    local maxSteps = INT32_MAX
+    -- Simplified approach without run batching for diagonal lines
+    -- This ensures every pixel is drawn exactly once
+    local x, y = sx1, sy1
+    local maxSteps = dx + dy  -- Maximum possible steps
     local steps = 0
-
-    while not (sx1 == sx2 and sy1 == sy2) and steps < maxSteps do
-        -- Start new run if Y changed
-        if sy1 ~= currentY then
-            flushRun(sx1 - sx)  -- End at previous X
-            currentY = sy1
-            runStartX = sx1
-            drawingRun = true
-        elseif not drawingRun then
-            runStartX = sx1
-            drawingRun = true
+    
+    while steps <= maxSteps do
+        -- Always draw the current pixel
+        v.drawFill(x, y, 1, 1, color|flags)
+        
+        -- Break if we've reached the end point
+        if x == sx2 and y == sy2 then
+            break
         end
-
+        
         local e2 = err * 2
+        
         if e2 > -dy then
             err = err - dy
-            sx1 = $ + sx
+            x = $ + sx
         end
+        
         if e2 < dx then
             err = err + dx
-            sy1 = $ + sy
+            y = $ + sy
         end
-
-        --steps = $ + 1
-    end
-
-    -- Flush any remaining run and ensure final pixel
-    flushRun(sx2)
-    
-    -- Make sure the endpoint is drawn if we didn't reach it
-    if not (sx1 == sx2 and sy1 == sy2) then
-        v.drawFill(sx2, sy2, 1, 1, color|flags)
+        
+        steps = $ + 1
     end
 end)

@@ -71,6 +71,7 @@ customdeaths["johndoom"] = true
 
 -- Hook for handling player death
 addHook("MobjDeath", function(mobj, inflictor, source, damageType)
+	DOOM_SetState(mobj.player, "lower")
 	if mobj.skin ~= "johndoom" then return end
 
 	local player = mobj.player
@@ -110,6 +111,7 @@ addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 	mobj.child = killcam
 	mobj.player.killcam = killcam
 	mobj.player.doom.deadtimer = 0
+	mobj.player.attacker = source
 
 	if not GT_SAXAMM or gametype != GT_SAXAMM then
 		mobj.corpse = P_SpawnMobjFromMobj(mobj, 0, 0, 0, MT_FREEMCORPSE)
@@ -157,6 +159,7 @@ end, MT_FREEMCORPSE)
 -- ThinkFrame Hook
 addHook("ThinkFrame", function()
 	for player in players.iterate do
+		if (player.mo.flags & MF_NOTHINK) then player.deadtimer = 0 continue end
 		if not player.mo then continue end
 		if player.mo.skin != "johndoom" then continue end
 
@@ -211,32 +214,20 @@ addHook("ThinkFrame", function()
 			if attacker and attacker.valid and attacker ~= mo then
 				-- R_PointToAngle2 returns an engine angle in the same units as mo.angle
 				local badguyangle = R_PointToAngle2(mo.x, mo.y, attacker.x, attacker.y)
-				local delta = badguyangle - mo.angle
-
-				-- normalize delta to range (-ANGLE_180, ANGLE_180]
-				local ANGLE_360 = ANGLE_180 * 2
-				if delta <= -ANGLE_180 then
-					delta = delta + ANGLE_360
-				elseif delta > ANGLE_180 then
-					delta = delta - ANGLE_360
-				end
+				local delta = badguyangle - player.awayviewmobj.angle
+				local ANG5 = ANG2 + ANG2 + ANG1
 
 				-- if close enough, snap to attacker; otherwise step by ANG5 each tick
-				if math.abs(delta) < ANG5 then
-					mo.angle = badguyangle
+				if abs(delta) < ANG5 then
+					player.awayviewmobj.angle = badguyangle
 				elseif delta > 0 then
-					mo.angle = mo.angle + ANG5
+					player.awayviewmobj.angle = $ + ANG5
 				else
-					mo.angle = mo.angle - ANG5
+					player.awayviewmobj.angle = $ - ANG5
 				end
 			end
 
-			-- Ensure the awayview mobj (the camera proxy) mirrors the mo.angle so the player sees it
-			if player.awayviewmobj and player.awayviewmobj.valid then
-				player.awayviewmobj.angle = mo.angle
-			end
-
-			-- keep the away view alive briefly
+			-- keep the away view alive
 			player.awayviewtics = TICRATE * 2
 
 		elseif player.playerstate == PST_REBORN then
@@ -292,10 +283,11 @@ addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 	local support = P_GetSupportsForSkin(player)
 	if support.customDamage then return end
 
-	DOOM_DamageMobj(target, inflictor, source, inflictor.doom and inflictor.doom.damage or 1, damagetype)
+	DOOM_DamageMobj(target, inflictor, source, inflictor and inflictor.doom and inflictor.doom.damage or damage, damagetype)
 	return true
 end, MT_PLAYER)
 
 addHook("ShouldDamage", function(mobj, inf, src, dmg, dt)
+	if mobj.subsector.sector.special then return false end
     if dt == DMG_CRUSHED then return false end
 end)

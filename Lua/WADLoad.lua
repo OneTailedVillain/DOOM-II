@@ -67,12 +67,91 @@ local EndoomRegistry = {
 		"",
 		"",
 		"",
+	}),
+	ultdoom = hashEndoom({
+		"       " .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223),
+		"                    DOOM, a hellish 3-D game by id Software.",
+		"        " .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196),
+		"                       YOU ARE PLAYING THE ULTIMATE DOOM.",
+		"",
+		"         If you haven't paid for DOOM, you are playing illegally. That",
+		"        means you owe us money. Of course, a guy like you probably owes",
+		"         a lot of people money--your friends, maybe even your parents.",
+		"          Stop being a freeloader and register DOOM. Call us now at",
+		"                          1-800-IDGAMES. We can help!",
+		"",
+		"          We hope you enjoy playing DOOM. We enjoyed making it for you.",
+		"             If you have any problems playing DOOM, please call our",
+		"                    technical support line at (970) 522-1797.",
+		"",
+		"                               id SOFTWARE IS:",
+		"        Programming: John Carmack, Mike Abrash, John Romero, Dave Taylor",
+		"              Art: Adrian Carmack, Kevin Cloud    BIZ: Jay Wilbur",
+		"        Design: Sandy Petersen, John Romero, American McGee, Shawn Green",
+		"                 Technical Support: Shawn Green, American McGee",
+		"",
+		"                   Special Thanks: Tim Willits, John Anderson",
+		"",
+		"",
+		"",
+	}),
+	doom2 = hashEndoom({
+		"       " .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223),
+		"                           DOOM II(tm), Hell on Earth",
+		"        " .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196) .. string.char(196),
+		"            created by id Software and distributed by GT interactive",
+		"",
+		"                Thanks for purchasing DOOM II. We hope you have as",
+		"           much fun playing it as we had making it. If you don't, then",
+		"             something is really wrong with you and you're different",
+		"              and strange. All your friends think DOOM II is great.",
+		"",
+		"                Of course, DOOM II is a trademark of id Software,",
+		"          copyright 1994-95, so don't mess with it. Remember, if you",
+		"          are playing a pirated copy of DOOM II you are going to HELL.",
+		"          Buy it and avoid an eternity with all the other freeloaders.",
+		"           If you have any problems playing DOOM II, please call our",
+		"                  technical support line at (212) 686-9432.",
+		"",
+		"                       DOOM II WAS CREATED BY id SOFTWARE:",
+		"              Programming: John Carmack, John Romero, Dave Taylor",
+		"                         Art: Adrian Carmack, Kevin Cloud",
+		"                   Design: Sandy Petersen      BIZ: Jay Wilbur",
+		"                            BizAssist: Donna Jackson",
+		"                 Design and Support: Shawn Green, American McGee",
+		"",
+		"",
 	})
 }
 
 local function doLoadingShit()
+	print("Checking current add-ons...", doom.basewad)
 	doom.patchesLoaded = false -- We'll have to run this back anyhow...
-	if doom.basewad ~= false then return end
+
+	-- "This sink is so hard to clean, if only there was an easier way!"
+	if doom and doom.dehacked then
+		print("applying DEHACKED fields...")
+		local deh = doom.dehacked
+		if deh.ammo then
+			if deh.ammo[0] then
+				doom.ammos["bullets"].max = deh.ammo[0].maxammo or $
+			end
+			if deh.ammo[1] then
+				doom.ammos["shells"].max = deh.ammo[1].maxammo or $
+			end
+			if deh.ammo[2] then
+				doom.ammos["rockets"].max = deh.ammo[2].maxammo or $
+			end
+			if deh.ammo[3] then
+				doom.ammos["cells"].max = deh.ammo[3].maxammo or $
+			end
+		end
+		if deh.misc then
+			local misc = deh.misc[0]
+			doom.pistolstartstate.maxhealth = misc.maxhealth
+			doom.pistolstartstate.maxarmor = misc.maxarmor
+		end
+	end
 
 	local currentHash = hashEndoom(doom.endoom.text or {})
 
@@ -83,6 +162,24 @@ local function doLoadingShit()
 			matchedGame = id
 			break
 		end
+	end
+
+	if doom.isdoom1 then
+		doom.textscreenmaps = {
+			[8]  = {text = "$E1TEXT", secret = false, bg = "EP1CUTSC"},
+			[16] = {text = "$E2TEXT", secret = false, bg = "EP2CUTSC"},
+			[24] = {text = "$E3TEXT", secret = false, bg = "EP3CUTSC"},
+			[32] = {text = "$E4TEXT", secret = false, bg = "EP4CUTSC"},
+		}
+	else
+		doom.textscreenmaps = {
+			[6]  = {text = "$C1TEXT", secret = false, bg = "M06CUTSC"},
+			[11] = {text = "$C2TEXT", secret = false, bg = "M11CUTSC"},
+			[20] = {text = "$C3TEXT", secret = false, bg = "M20CUTSC"},
+			[30] = {text = "$C4TEXT", secret = false, bg = "M30CUTSC"},
+			[15] = {text = "$C5TEXT", secret = true,  bg = "M15CUTSC"},
+			[31] = {text = "$C6TEXT", secret = true,  bg = "M31CUTSC"},
+		}
 	end
 
 	if matchedGame == "srb2" then
@@ -101,6 +198,7 @@ local function doLoadingShit()
 		inf.flags = $|MF_NOGRAVITY
 	end
 
+	if matchedGame == "ultdoom" or matchedGame == "doom2" then
 	doom.strings = {
 		-- P_inter.C
 		GOTARMOR      = "Picked up the armor.",
@@ -362,8 +460,145 @@ local function doLoadingShit()
 		STSTR_BEHOLDX   = "Power-up Toggled",
 
 		STSTR_CHOPPERS  = "... doesn't suck - GM",
-		STSTR_CLEV      = "Changing Level..."
+		STSTR_CLEV      = "Changing Level...",
+
+		E1TEXT = [[Once you beat the big badasses and
+			clean out the moon base you're supposed
+			to win, aren't you? Aren't you? Where's
+			your fat reward and ticket home? What
+			the hell is this? It's not supposed to
+			end this way!
+
+			It stinks like rotten meat, but looks
+			like the lost Deimos base. Looks like
+			you're stuck on the shores of Hell.
+			The only way out is through.
+			 
+			To continue the DOOM experience, play
+			The Shores of Hell and its amazing
+			sequel, Inferno!]],
+
+		E2TEXT = [[You've done it! The hideous cyber-
+			demon lord that ruled the lost Deimos
+			moon base has been slain and you
+			are triumphant! But... where are
+			you? You clamber to the edge of the
+			moon and look down to see the awful
+			truth.
+
+			Deimos floats above Hell itself!
+			You've never heard of anyone escaping
+			from Hell, but you'll make the bastards
+			sorry they ever heard of you! Quickly
+			you rappel down to the surface of
+			Hell.
+
+			Now, it's on to the final chapter of
+			DOOM! -- Inferno.]],
+		
+		E3TEXT = [[The loathsome spiderdemon that
+			masterminded the invasion of the moon
+			bases and caused so much death has had
+			its ass kicked for all time.
+
+			A hidden doorway opens and you enter.
+			You've proven too tough for Hell to
+			contain, and now Hell at least plays
+			fair -- for you emerge from the door
+			to see the green fields of Earth!
+			Home at last.
+
+			You wonder what's been happening on
+			Earth while you were battling evil
+			unleashed. It's good that no Hell-
+			spawn could have come through that
+			door with you...]],
+		
+		E4TEXT = [[The spider mastermind must have sent forth
+			its legions of Hellspawn before your
+			final confrontation with that terrible
+			beast from Hell. But you stepped forward
+			and brought forth eternal damnation and
+			suffering upon the horde as a true hero
+			would in the face of something so evil.
+
+			Besides, someone was gonna pay for what
+			happened to Daisy, your pet rabbit.
+
+			But now, you see spread before you more
+			potential pain and gibbitude as a nation
+			of demons run amok in our cities.
+
+			Next stop, Hell on Earth!]],
+		
+		C1TEXT = [[You have entered deeply into the infested
+			starport. But something is wrong. The
+			monsters have brought their own reality
+			with them, and the starport's technology
+			is being subverted by their presence.
+
+			Ahead, you see an outpost of Hell, a
+			fortified zone. If you can get past it,
+			you can penetrate into the haunted heart
+			of the starbase and find the controlling
+			switch that holds the Earth's population
+			hostage.]],
+		
+		C2TEXT = [[You have won! Your victory has enabled
+			humankind to evacuate Earth and escape
+			the nightmare. Now you are the only
+			human left on the face of the planet.
+			Cannibal mutations, carnivorous aliens,
+			and evil spirits are your only neighbors.
+			You sit back and wait for death, content
+			that you have saved your species.
+
+			But then, Earth control beams down a
+			message from space: "Sensors have located
+			the source of the alien invasion. If you
+			go there, you may be able to block their
+			entry. The alien base is in the heart of
+			your own home city, not far from the
+			starport." Slowly and painfully, you get up
+			and return to the fray.]],
+		
+		C3TEXT = [[You are at the corrupt heart of the city,
+			surrounded by the corpses of your enemies.
+			You see no way to destroy the creatures'
+			entryway on this side, so you clench your
+			teeth and plunge through it.
+
+			There must be a way to close it on the
+			other side. What do you care if you've
+			got to go through Hell to get to it?]],
+		
+		C4TEXT = [[The horrendous visage of the biggest
+			demon you've ever seen crumbles before
+			you, after you pump your rockets into
+			his exposed brain. The monster shrivels
+			up and dies, its thrashing limbs
+			devastating untold miles of Hell's
+			surface.
+
+			You've done it. The invasion is over.
+			Earth is saved. Hell is a wreck. You
+			wonder where bad folks will go when they
+			die, now. Wiping the sweat from your
+			forehead you begin the long trek back
+			home. Rebuilding Earth ought to be a
+			lot more fun than ruining it was.]],
+		
+		C5TEXT = [[Congratulations, you've found the secret
+			level! Looks like it's been built by
+			humans, rather than demons. You wonder
+			who the inmates of this corner of Hell
+			will be.]],
+		
+		C6TEXT = [[Congratulations, you've found the
+			super secret level! You'd better
+			blaze through this one!]],
 	}
+	end
 
 	if matchedGame == "chex1" then
 		-- Autopatch Chex strings

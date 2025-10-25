@@ -86,7 +86,6 @@ doom.secretExits = $ or {
 	[31] = 32,
 }
 
--- print( .. "% KILLS")
 addHook("PlayerThink", function(player)
 	if not doom.intermission or player.doom.intstate < 0 then
 		player.doom.cnt_time = 0
@@ -191,16 +190,11 @@ addHook("PlayerThink", function(player)
 	elseif player.doom.intstate == 12 then
 		player.doom.intpause = TICRATE
 		player.doom.intstate = -1
-		doom.intermission = false
-		player.doom.notrigger = true
-		local nextLev
-		if doom.didSecretExit then
-			nextLev = doom.secretExits[gamemap]
-		else
-			nextLev = mapheaderinfo[gamemap].nextlevel or gamemap + 1
+		if doom.intermission then
+			doom.intermission = false
+			player.doom.notrigger = true
+			DOOM_NextLevel()
 		end
-		G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
-		G_ExitLevel()
 	elseif (player.doom.intstate & 1) then
 		player.doom.intpause = ($ or 1) - 1
 		if not player.doom.intpause

@@ -53,13 +53,13 @@ COM_AddCommand("doom_skill", function(player, victim)
 
 end)
 
-COM_AddCommand("doom_doblursphere", function(player, victim)
-	player.doom.powers[pw_invisibility] = 60*TICRATE
-end)
-
 COM_AddCommand("doom_endoom", function(player, level)
 	doom.showendoom = true
 end, COM_ADMIN)
+
+COM_AddCommand("doom_exitlevel", function()
+	DOOM_ExitLevel()
+end)
 
 doom.cvars = {}
 CV_RegisterVar({
@@ -78,6 +78,13 @@ CV_RegisterVar({
 
 CV_RegisterVar({
 	name = "doom_alwaysshowlines",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = CV_OnOff
+})
+
+CV_RegisterVar({
+	name = "doom_hiresautomap",
 	defaultvalue = "Off",
 	flags = CV_SAVE,
 	PossibleValue = CV_OnOff

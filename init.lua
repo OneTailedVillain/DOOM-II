@@ -12,7 +12,7 @@ dofile("Actions.lua")
 dofile("+Use.lua")
 dofile("Commands.lua")
 dofile("Hooks.lua")
-dofile("Title.lua")
+dofile("HUD/Title.lua")
 dofile("Definitions/Inventory/Ammo.lua")
 dofile("Definitions/Inventory/Weps.lua")
 dofile("Definitions/Objects/Deco.lua")
@@ -22,6 +22,7 @@ dofile("Definitions/Objects/Artifacts/Megasphere.lua")
 dofile("Definitions/Objects/Artifacts/Blursphere.lua")
 dofile("Definitions/Objects/Artifacts/Radiation Suit.lua")
 dofile("Definitions/Objects/Artifacts/Soulsphere.lua")
+dofile("Definitions/Objects/Artifacts/Backpack.lua")
 dofile("Definitions/Objects/Items/Ammo.lua")
 dofile("Definitions/Objects/Items/Armor.lua")
 dofile("Definitions/Objects/Items/Health.lua")
@@ -46,6 +47,7 @@ dofile("Definitions/Objects/Projectiles/Rocket.lua")
 dofile("HUD/HUDLib.lua")
 dofile("HUD/HUD.lua")
 dofile("HUD/Inter.lua")
+dofile("HUD/Text Screens.lua")
 dofile("HUD/ENDOOM.lua")
 dofile("Player/JohnDoom.lua")
 dofile("Player/Player.lua")
@@ -65,23 +67,6 @@ dofile("Player/KeyBoardCheats.lua")
 ---@field colors table A 2D table of color values used in ENDOOM screens. Is run-length encoded.
 ---@field text table A 2D table of strings used in ENDOOM screens.
 
----@class thinker_t
----@field type string The type of thinker. Used to make it think properly
----@field lock integer The key(s) the player must have to activate this thinker
----@field activationType string The type of activation for this thinker. Must be "interact", "switch", "walk", or "always"
----@field repeatable boolean Whether this thinker can be activated multiple times
----@field fastdoor boolean Whether this thinker is a fast door (segregated to door thinkers only)
----@field target string Where this thinker wants to go (segregated to ceiling and floor thinkers only), alternatively for light thinkers it's the target brightness
----@field speed string The speed at which this thinker moves (segregated to crusher thinkers only)
----@field mode string The mode of operation for this thinker (segregated to crusher and lift thinkers only)
----@field action string The action this thinker performs (segregated to ceiling and floor thinkers only; usually "raise" or "lower" but can be "oscillate" and "oscillate_stop")
----@field changes boolean Whether this thinker changes its special, floor flat, etc. when activated; usually to match a sector around it
----@field amount integer How vertically far apart the stair thinker's steps will be
----@field monsters boolean Whether the thinker affects monsters
----@field secret boolean Whether the exit is a secret exit (segregated to exit thinkers only)
----@field direction string The direction this thinker's midtexture moves in (segregated to "scroll" thinkers only; only a value of "left" makes it move left)
----@field blinktime integer The time between blinks (segregated to light thinkers only)
-
 ---@class doomglobal_t
 ---@field isdoom1 boolean Denotes if the IWAD loaded was based on the Doom 1 engine
 ---@field torespawn table<torespawn_t> The list of victims to respawn
@@ -93,7 +78,7 @@ dofile("Player/KeyBoardCheats.lua")
 ---@field addAmmo function A function to register an ammo definition
 ---@field weapons table<weapondef_t> The registered weapon definitions
 ---@field ammos table<ammodef_t> The registered ammo definitions
----@field thinkers table<any, thinker_t> The thinkers in the current map
+---@field thinkers table<any, table> The thinkers in the current map
 ---@field gameskill integer The current skill level of the game
 ---@field showendoom boolean Whether the ENDOOM screen is being shown
 ---@field KEY_RED integer The bitmask value for the red key
@@ -128,6 +113,9 @@ dofile("Player/KeyBoardCheats.lua")
 ---@class doomweaponstates_t
 ---@field idle table<doomstate_t> The idle state of the weapon
 ---@field attack table<doomstate_t> The attack state of the weapon
+---@field lower table<doomstate_t> The lower state of the weapon
+---@field raise table<doomstate_t> The raise state of the weapon
+---@field flash table<doomstate_t> The gunflash that shows whenever A_DoomFire gets called
 
 ---@class weapondef_t
 ---@field sprite spritenum_t The weapon sprite this weapon uses
@@ -152,6 +140,7 @@ dofile("Player/KeyBoardCheats.lua")
 ---@class doompowers_t
 ---@field pw_strength integer Timer for the Berserk power-up. Counts up if non-zero.
 ---@field pw_ironfeet integer Timer for the Radiation Suit power-up. Counts down until it turns back to zero.
+---@field pw_invisibility integer Timer for the Blursphere power-up. Counts down until it turns back to zero.
 
 ---@class laststate_t
 ---@field ammo table<number, integer> The ammo counts since last archive.
@@ -256,223 +245,223 @@ dofile("Player/KeyBoardCheats.lua")
 ---@class mobjinfo_t
 ---@field doomflags doomflags_t Bitmask of doommobj_t flags (DF_*). Auto-copied to mobj_t.doom.flags on spawn.
 
-	---@class doomstrings
-	---@field GOTARMOR string Message for picking up the CombatArmor.
-	---@field GOTMEGA string Message for picking up the MegaArmor.
-	---@field GOTHTHBONUS string Message for picking up a health bonus.
-	---@field GOTARMBONUS string Message for picking up an armor bonus.
-	---@field GOTSTIM string Message for picking up a stimpack.
-	---@field GOTMEDINEED string Message for picking up a medikit when low on health.
-	---@field GOTMEDIKIT string Message for picking up a medikit.
-	---@field GOTSUPER string Message for picking up a supercharge.
-	---@field GOTBLUECARD string Message for picking up a blue keycard.
-	---@field GOTYELWCARD string Message for picking up a yellow keycard.
-	---@field GOTREDCARD string Message for picking up a red keycard.
-	---@field GOTBLUESKUL string Message for picking up a blue skull key.
-	---@field GOTYELWSKUL string Message for picking up a yellow skull key.
-	---@field GOTREDSKULL string Message for picking up a red skull key.
-	---@field GOTINVUL string Message for picking up invulnerability.
-	---@field GOTBERSERK string Message for picking up berserk.
-	---@field GOTINVIS string Message for picking up invisibility.
-	---@field GOTSUIT string Message for picking up a radiation suit.
-	---@field GOTMAP string Message for picking up a map.
-	---@field GOTVISOR string Message for picking up a light amplification visor.
-	---@field GOTMSPHERE string Message for picking up a megasphere.
-	---@field GOTCLIP string Message for picking up a clip.
-	---@field GOTCLIPBOX string Message for picking up a box of bullets.
-	---@field GOTROCKET string Message for picking up a rocket.
-	---@field GOTROCKBOX string Message for picking up a box of rockets.
-	---@field GOTCELL string Message for picking up an energy cell.
-	---@field GOTCELLBOX string Message for picking up an energy cell pack.
-	---@field GOTSHELLS string Message for picking up shotgun shells.
-	---@field GOTSHELLBOX string Message for picking up a box of shotgun shells.
-	---@field GOTBACKPACK string Message for picking up a backpack.
-	---@field GOTBFG9000 string Message for picking up the BFG9000.
-	---@field GOTCHAINGUN string Message for picking up the chaingun.
-	---@field GOTCHAINSAW string Message for picking up the chainsaw.
-	---@field GOTLAUNCHER string Message for picking up the rocket launcher.
-	---@field GOTPLASMA string Message for picking up the plasma gun.
-	---@field GOTSHOTGUN string Message for picking up the shotgun.
-	---@field GOTSHOTGUN2 string Message for picking up the super shotgun.
-	---@field PD_BLUEO string Message for needing a blue key to activate an object.
-	---@field PD_REDO string Message for needing a red key to activate an object.
-	---@field PD_YELLOWO string Message for needing a yellow key to activate an object.
-	---@field PD_BLUEK string Message for needing a blue key to open a door.
-	---@field PD_REDK string Message for needing a red key to open a door.
-	---@field PD_YELLOWK string Message for needing a yellow key to open a door.
-	---@field GGSAVED string Message for saving the game.
-	---@field HUSTR_MSGU string Message for unsent message.
-	---@field HUSTR_E1M1 string Level name for E1M1.
-	---@field HUSTR_E1M2 string Level name for E1M2.
-	---@field HUSTR_E1M3 string Level name for E1M3.
-	---@field HUSTR_E1M4 string Level name for E1M4.
-	---@field HUSTR_E1M5 string Level name for E1M5.
-	---@field HUSTR_E1M6 string Level name for E1M6.
-	---@field HUSTR_E1M7 string Level name for E1M7.
-	---@field HUSTR_E1M8 string Level name for E1M8.
-	---@field HUSTR_E1M9 string Level name for E1M9.
-	---@field HUSTR_E2M1 string Level name for E2M1.
-	---@field HUSTR_E2M2 string Level name for E2M2.
-	---@field HUSTR_E2M3 string Level name for E2M3.
-	---@field HUSTR_E2M4 string Level name for E2M4.
-	---@field HUSTR_E2M5 string Level name for E2M5.
-	---@field HUSTR_E2M6 string Level name for E2M6.
-	---@field HUSTR_E2M7 string Level name for E2M7.
-	---@field HUSTR_E2M8 string Level name for E2M8.
-	---@field HUSTR_E2M9 string Level name for E2M9.
-	---@field HUSTR_E3M1 string Level name for E3M1.
-	---@field HUSTR_E3M2 string Level name for E3M2.
-	---@field HUSTR_E3M3 string Level name for E3M3.
-	---@field HUSTR_E3M4 string Level name for E3M4.
-	---@field HUSTR_E3M5 string Level name for E3M5.
-	---@field HUSTR_E3M6 string Level name for E3M6.
-	---@field HUSTR_E3M7 string Level name for E3M7.
-	---@field HUSTR_E3M8 string Level name for E3M8.
-	---@field HUSTR_E3M9 string Level name for E3M9.
-	---@field HUSTR_E4M1 string Level name for E4M1.
-	---@field HUSTR_E4M2 string Level name for E4M2.
-	---@field HUSTR_E4M3 string Level name for E4M3.
-	---@field HUSTR_E4M4 string Level name for E4M4.
-	---@field HUSTR_E4M5 string Level name for E4M5.
-	---@field HUSTR_E4M6 string Level name for E4M6.
-	---@field HUSTR_E4M7 string Level name for E4M7.
-	---@field HUSTR_E4M8 string Level name for E4M8.
-	---@field HUSTR_E4M9 string Level name for E4M9.
-	---@field HUSTR_1 string Level name for MAP01.
-	---@field HUSTR_2 string Level name for MAP02.
-	---@field HUSTR_3 string Level name for MAP03.
-	---@field HUSTR_4 string Level name for MAP04.
-	---@field HUSTR_5 string Level name for MAP05.
-	---@field HUSTR_6 string Level name for MAP06.
-	---@field HUSTR_7 string Level name for MAP07.
-	---@field HUSTR_8 string Level name for MAP08.
-	---@field HUSTR_9 string Level name for MAP09.
-	---@field HUSTR_10 string Level name for MAP10.
-	---@field HUSTR_11 string Level name for MAP11.
-	---@field HUSTR_12 string Level name for MAP12.
-	---@field HUSTR_13 string Level name for MAP13.
-	---@field HUSTR_14 string Level name for MAP14.
-	---@field HUSTR_15 string Level name for MAP15.
-	---@field HUSTR_16 string Level name for MAP16.
-	---@field HUSTR_17 string Level name for MAP17.
-	---@field HUSTR_18 string Level name for MAP18.
-	---@field HUSTR_19 string Level name for MAP19.
-	---@field HUSTR_20 string Level name for MAP20.
-	---@field HUSTR_21 string Level name for MAP21.
-	---@field HUSTR_22 string Level name for MAP22.
-	---@field HUSTR_23 string Level name for MAP23.
-	---@field HUSTR_24 string Level name for MAP24.
-	---@field HUSTR_25 string Level name for MAP25.
-	---@field HUSTR_26 string Level name for MAP26.
-	---@field HUSTR_27 string Level name for MAP27.
-	---@field HUSTR_28 string Level name for MAP28.
-	---@field HUSTR_29 string Level name for MAP29.
-	---@field HUSTR_30 string Level name for MAP30.
-	---@field HUSTR_31 string Level name for MAP31.
-	---@field HUSTR_32 string Level name for MAP32.
-	---@field PHUSTR_1 string Level name for MAP01 (Plutonia Experiment).
-	---@field PHUSTR_2 string Level name for MAP02 (Plutonia Experiment).
-	---@field PHUSTR_3 string Level name for MAP03 (Plutonia Experiment).
-	---@field PHUSTR_4 string Level name for MAP04 (Plutonia Experiment).
-	---@field PHUSTR_5 string Level name for MAP05 (Plutonia Experiment).
-	---@field PHUSTR_6 string Level name for MAP06 (Plutonia Experiment).
-	---@field PHUSTR_7 string Level name for MAP07 (Plutonia Experiment).
-	---@field PHUSTR_8 string Level name for MAP08 (Plutonia Experiment).
-	---@field PHUSTR_9 string Level name for MAP09 (Plutonia Experiment).
-	---@field PHUSTR_10 string Level name for MAP10 (Plutonia Experiment).
-	---@field PHUSTR_11 string Level name for MAP11 (Plutonia Experiment).
-	---@field PHUSTR_12 string Level name for MAP12 (Plutonia Experiment).
-	---@field PHUSTR_13 string Level name for MAP13 (Plutonia Experiment).
-	---@field PHUSTR_14 string Level name for MAP14 (Plutonia Experiment).
-	---@field PHUSTR_15 string Level name for MAP15 (Plutonia Experiment).
-	---@field PHUSTR_16 string Level name for MAP16 (Plutonia Experiment).
-	---@field PHUSTR_17 string Level name for MAP17 (Plutonia Experiment).
-	---@field PHUSTR_18 string Level name for MAP18 (Plutonia Experiment).
-	---@field PHUSTR_19 string Level name for MAP19 (Plutonia Experiment).
-	---@field PHUSTR_20 string Level name for MAP20 (Plutonia Experiment).
-	---@field PHUSTR_21 string Level name for MAP21 (Plutonia Experiment).
-	---@field PHUSTR_22 string Level name for MAP22 (Plutonia Experiment).
-	---@field PHUSTR_23 string Level name for MAP23 (Plutonia Experiment).
-	---@field PHUSTR_24 string Level name for MAP24 (Plutonia Experiment).
-	---@field PHUSTR_25 string Level name for MAP25 (Plutonia Experiment).
-	---@field PHUSTR_26 string Level name for MAP26 (Plutonia Experiment).
-	---@field PHUSTR_27 string Level name for MAP27 (Plutonia Experiment).
-	---@field PHUSTR_28 string Level name for MAP28 (Plutonia Experiment).
-	---@field PHUSTR_29 string Level name for MAP29 (Plutonia Experiment).
-	---@field PHUSTR_30 string Level name for MAP30 (Plutonia Experiment).
-	---@field PHUSTR_31 string Level name for MAP31 (Plutonia Experiment).
-	---@field PHUSTR_32 string Level name for MAP32 (Plutonia Experiment).
-	---@field THUSTR_1 string Level name for MAP01 (TNT Evilution).
-	---@field THUSTR_2 string Level name for MAP02 (TNT Evilution).
-	---@field THUSTR_3 string Level name for MAP03 (TNT Evilution).
-	---@field THUSTR_4 string Level name for MAP04 (TNT Evilution).
-	---@field THUSTR_5 string Level name for MAP05 (TNT Evilution).
-	---@field THUSTR_6 string Level name for MAP06 (TNT Evilution).
-	---@field THUSTR_7 string Level name for MAP07 (TNT Evilution).
-	---@field THUSTR_8 string Level name for MAP08 (TNT Evilution).
-	---@field THUSTR_9 string Level name for MAP09 (TNT Evilution).
-	---@field THUSTR_10 string Level name for MAP10 (TNT Evilution).
-	---@field THUSTR_11 string Level name for MAP11 (TNT Evilution).
-	---@field THUSTR_12 string Level name for MAP12 (TNT Evilution).
-	---@field THUSTR_13 string Level name for MAP13 (TNT Evilution).
-	---@field THUSTR_14 string Level name for MAP14 (TNT Evilution).
-	---@field THUSTR_15 string Level name for MAP15 (TNT Evilution).
-	---@field THUSTR_16 string Level name for MAP16 (TNT Evilution).
-	---@field THUSTR_17 string Level name for MAP17 (TNT Evilution).
-	---@field THUSTR_18 string Level name for MAP18 (TNT Evilution).
-	---@field THUSTR_19 string Level name for MAP19 (TNT Evilution).
-	---@field THUSTR_20 string Level name for MAP20 (TNT Evilution).
-	---@field THUSTR_21 string Level name for MAP21 (TNT Evilution).
-	---@field THUSTR_22 string Level name for MAP22 (TNT Evilution).
-	---@field THUSTR_23 string Level name for MAP23 (TNT Evilution).
-	---@field THUSTR_24 string Level name for MAP24 (TNT Evilution).
-	---@field THUSTR_25 string Level name for MAP25 (TNT Evilution).
-	---@field THUSTR_26 string Level name for MAP26 (TNT Evilution).
-	---@field THUSTR_27 string Level name for MAP27 (TNT Evilution).
-	---@field THUSTR_28 string Level name for MAP28 (TNT Evilution).
-	---@field THUSTR_29 string Level name for MAP29 (TNT Evilution).
-	---@field THUSTR_30 string Level name for MAP30 (TNT Evilution).
-	---@field THUSTR_31 string Level name for MAP31 (TNT Evilution).
-	---@field THUSTR_32 string Level name for MAP32 (TNT Evilution).
-	---@field HUSTR_CHATMACRO1 string Message for chat macro 1.
-	---@field HUSTR_CHATMACRO2 string Message for chat macro 2.
-	---@field HUSTR_CHATMACRO3 string Message for chat macro 3.
-	---@field HUSTR_CHATMACRO4 string Message for chat macro 4.
-	---@field HUSTR_CHATMACRO5 string Message for chat macro 5.
-	---@field HUSTR_CHATMACRO6 string Message for chat macro 6.
-	---@field HUSTR_CHATMACRO7 string Message for chat macro 7.
-	---@field HUSTR_CHATMACRO8 string Message for chat macro 8.
-	---@field HUSTR_CHATMACRO9 string Message for chat macro 9.
-	---@field HUSTR_CHATMACRO0 string Message for chat macro 0.
-	---@field HUSTR_TALKTOSELF1 string Message for talking to yourself one time.
-	---@field HUSTR_TALKTOSELF2 string Message for talking to yourself two times.
-	---@field HUSTR_TALKTOSELF3 string Message for talking to yourself three times.
-	---@field HUSTR_TALKTOSELF4 string Message for talking to yourself four times.
-	---@field HUSTR_TALKTOSELF5 string Message for talking to yourself five times.
-	---@field HUSTR_MESSAGESENT string Message for sending a message.
-	---@field HUSTR_PLRGREEN string Message for player one (green)'s message.
-	---@field HUSTR_PLRINDIGO string Message for player two (indigo)'s message.
-	---@field HUSTR_PLRBROWN string Message for player three (brown)'s message.
-	---@field HUSTR_PLRRED string Message for player four (red)'s message.
-	---@field HUSTR_KEYGREEN string Key for talking to player one (green).
-	---@field HUSTR_KEYINDIGO string Key for talking to player two (indigo).
-	---@field HUSTR_KEYBROWN string Key for talking to player three (brown).
-	---@field HUSTR_KEYRED string Key for talking to player four (red).
-	---@field AMSTR_FOLLOWON string Message for turning on follow mode in the automap.
-	---@field AMSTR_FOLLOWOFF string Message for turning off follow mode in the automap.
-	---@field AMSTR_GRIDON string Message for turning on the grid in the automap.
-	---@field AMSTR_GRIDOFF string Message for turning off the grid in the automap.
-	---@field AMSTR_MARKEDSPOT string Message for marking a spot in the automap.
-	---@field AMSTR_CLEARMARKS string Message for clearing marks in the automap
-	---@field STSTR_MUS string Message for when music gets switched.
-	---@field STSTR_NOMUS string Message for when the target selection is nonexistent.
-	---@field STSTR_DQDON string Message for when IDDQD is activated.
-	---@field STSTR_DQDOFF string Message for when IDDQD is deactivated.
-	---@field STSTR_KFAADDED stringtype Message for when IDKFA is activated.
-	---@field STSTR_FAADDED stringtype Message for when IDFA is activated.
-	---@field STSTR_NCON string Message for when noclip is activated.
-	---@field STSTR_NCOFF string Message for when noclip is deactivated.
-	---@field STSTR_BEHOLD string Message for when IDBEHOLD is typed.
-	---@field STSTR_BEHOLDX string Message for when IDBEHOLDx is typed.
-	---@field STSTR_CHOPPERS string Message for when IDCHOPPERS is typed.
-	---@field STSTR_CLEV string Message for when IDCLEVxx is typed.
+---@class doomstrings
+---@field GOTARMOR string Message for picking up the CombatArmor.
+---@field GOTMEGA string Message for picking up the MegaArmor.
+---@field GOTHTHBONUS string Message for picking up a health bonus.
+---@field GOTARMBONUS string Message for picking up an armor bonus.
+---@field GOTSTIM string Message for picking up a stimpack.
+---@field GOTMEDINEED string Message for picking up a medikit when low on health.
+---@field GOTMEDIKIT string Message for picking up a medikit.
+---@field GOTSUPER string Message for picking up a supercharge.
+---@field GOTBLUECARD string Message for picking up a blue keycard.
+---@field GOTYELWCARD string Message for picking up a yellow keycard.
+---@field GOTREDCARD string Message for picking up a red keycard.
+---@field GOTBLUESKUL string Message for picking up a blue skull key.
+---@field GOTYELWSKUL string Message for picking up a yellow skull key.
+---@field GOTREDSKULL string Message for picking up a red skull key.
+---@field GOTINVUL string Message for picking up invulnerability.
+---@field GOTBERSERK string Message for picking up berserk.
+---@field GOTINVIS string Message for picking up invisibility.
+---@field GOTSUIT string Message for picking up a radiation suit.
+---@field GOTMAP string Message for picking up a map.
+---@field GOTVISOR string Message for picking up a light amplification visor.
+---@field GOTMSPHERE string Message for picking up a megasphere.
+---@field GOTCLIP string Message for picking up a clip.
+---@field GOTCLIPBOX string Message for picking up a box of bullets.
+---@field GOTROCKET string Message for picking up a rocket.
+---@field GOTROCKBOX string Message for picking up a box of rockets.
+---@field GOTCELL string Message for picking up an energy cell.
+---@field GOTCELLBOX string Message for picking up an energy cell pack.
+---@field GOTSHELLS string Message for picking up shotgun shells.
+---@field GOTSHELLBOX string Message for picking up a box of shotgun shells.
+---@field GOTBACKPACK string Message for picking up a backpack.
+---@field GOTBFG9000 string Message for picking up the BFG9000.
+---@field GOTCHAINGUN string Message for picking up the chaingun.
+---@field GOTCHAINSAW string Message for picking up the chainsaw.
+---@field GOTLAUNCHER string Message for picking up the rocket launcher.
+---@field GOTPLASMA string Message for picking up the plasma gun.
+---@field GOTSHOTGUN string Message for picking up the shotgun.
+---@field GOTSHOTGUN2 string Message for picking up the super shotgun.
+---@field PD_BLUEO string Message for needing a blue key to activate an object.
+---@field PD_REDO string Message for needing a red key to activate an object.
+---@field PD_YELLOWO string Message for needing a yellow key to activate an object.
+---@field PD_BLUEK string Message for needing a blue key to open a door.
+---@field PD_REDK string Message for needing a red key to open a door.
+---@field PD_YELLOWK string Message for needing a yellow key to open a door.
+---@field GGSAVED string Message for saving the game.
+---@field HUSTR_MSGU string Message for unsent message.
+---@field HUSTR_E1M1 string Level name for E1M1.
+---@field HUSTR_E1M2 string Level name for E1M2.
+---@field HUSTR_E1M3 string Level name for E1M3.
+---@field HUSTR_E1M4 string Level name for E1M4.
+---@field HUSTR_E1M5 string Level name for E1M5.
+---@field HUSTR_E1M6 string Level name for E1M6.
+---@field HUSTR_E1M7 string Level name for E1M7.
+---@field HUSTR_E1M8 string Level name for E1M8.
+---@field HUSTR_E1M9 string Level name for E1M9.
+---@field HUSTR_E2M1 string Level name for E2M1.
+---@field HUSTR_E2M2 string Level name for E2M2.
+---@field HUSTR_E2M3 string Level name for E2M3.
+---@field HUSTR_E2M4 string Level name for E2M4.
+---@field HUSTR_E2M5 string Level name for E2M5.
+---@field HUSTR_E2M6 string Level name for E2M6.
+---@field HUSTR_E2M7 string Level name for E2M7.
+---@field HUSTR_E2M8 string Level name for E2M8.
+---@field HUSTR_E2M9 string Level name for E2M9.
+---@field HUSTR_E3M1 string Level name for E3M1.
+---@field HUSTR_E3M2 string Level name for E3M2.
+---@field HUSTR_E3M3 string Level name for E3M3.
+---@field HUSTR_E3M4 string Level name for E3M4.
+---@field HUSTR_E3M5 string Level name for E3M5.
+---@field HUSTR_E3M6 string Level name for E3M6.
+---@field HUSTR_E3M7 string Level name for E3M7.
+---@field HUSTR_E3M8 string Level name for E3M8.
+---@field HUSTR_E3M9 string Level name for E3M9.
+---@field HUSTR_E4M1 string Level name for E4M1.
+---@field HUSTR_E4M2 string Level name for E4M2.
+---@field HUSTR_E4M3 string Level name for E4M3.
+---@field HUSTR_E4M4 string Level name for E4M4.
+---@field HUSTR_E4M5 string Level name for E4M5.
+---@field HUSTR_E4M6 string Level name for E4M6.
+---@field HUSTR_E4M7 string Level name for E4M7.
+---@field HUSTR_E4M8 string Level name for E4M8.
+---@field HUSTR_E4M9 string Level name for E4M9.
+---@field HUSTR_1 string Level name for MAP01.
+---@field HUSTR_2 string Level name for MAP02.
+---@field HUSTR_3 string Level name for MAP03.
+---@field HUSTR_4 string Level name for MAP04.
+---@field HUSTR_5 string Level name for MAP05.
+---@field HUSTR_6 string Level name for MAP06.
+---@field HUSTR_7 string Level name for MAP07.
+---@field HUSTR_8 string Level name for MAP08.
+---@field HUSTR_9 string Level name for MAP09.
+---@field HUSTR_10 string Level name for MAP10.
+---@field HUSTR_11 string Level name for MAP11.
+---@field HUSTR_12 string Level name for MAP12.
+---@field HUSTR_13 string Level name for MAP13.
+---@field HUSTR_14 string Level name for MAP14.
+---@field HUSTR_15 string Level name for MAP15.
+---@field HUSTR_16 string Level name for MAP16.
+---@field HUSTR_17 string Level name for MAP17.
+---@field HUSTR_18 string Level name for MAP18.
+---@field HUSTR_19 string Level name for MAP19.
+---@field HUSTR_20 string Level name for MAP20.
+---@field HUSTR_21 string Level name for MAP21.
+---@field HUSTR_22 string Level name for MAP22.
+---@field HUSTR_23 string Level name for MAP23.
+---@field HUSTR_24 string Level name for MAP24.
+---@field HUSTR_25 string Level name for MAP25.
+---@field HUSTR_26 string Level name for MAP26.
+---@field HUSTR_27 string Level name for MAP27.
+---@field HUSTR_28 string Level name for MAP28.
+---@field HUSTR_29 string Level name for MAP29.
+---@field HUSTR_30 string Level name for MAP30.
+---@field HUSTR_31 string Level name for MAP31.
+---@field HUSTR_32 string Level name for MAP32.
+---@field PHUSTR_1 string Level name for MAP01 (Plutonia Experiment).
+---@field PHUSTR_2 string Level name for MAP02 (Plutonia Experiment).
+---@field PHUSTR_3 string Level name for MAP03 (Plutonia Experiment).
+---@field PHUSTR_4 string Level name for MAP04 (Plutonia Experiment).
+---@field PHUSTR_5 string Level name for MAP05 (Plutonia Experiment).
+---@field PHUSTR_6 string Level name for MAP06 (Plutonia Experiment).
+---@field PHUSTR_7 string Level name for MAP07 (Plutonia Experiment).
+---@field PHUSTR_8 string Level name for MAP08 (Plutonia Experiment).
+---@field PHUSTR_9 string Level name for MAP09 (Plutonia Experiment).
+---@field PHUSTR_10 string Level name for MAP10 (Plutonia Experiment).
+---@field PHUSTR_11 string Level name for MAP11 (Plutonia Experiment).
+---@field PHUSTR_12 string Level name for MAP12 (Plutonia Experiment).
+---@field PHUSTR_13 string Level name for MAP13 (Plutonia Experiment).
+---@field PHUSTR_14 string Level name for MAP14 (Plutonia Experiment).
+---@field PHUSTR_15 string Level name for MAP15 (Plutonia Experiment).
+---@field PHUSTR_16 string Level name for MAP16 (Plutonia Experiment).
+---@field PHUSTR_17 string Level name for MAP17 (Plutonia Experiment).
+---@field PHUSTR_18 string Level name for MAP18 (Plutonia Experiment).
+---@field PHUSTR_19 string Level name for MAP19 (Plutonia Experiment).
+---@field PHUSTR_20 string Level name for MAP20 (Plutonia Experiment).
+---@field PHUSTR_21 string Level name for MAP21 (Plutonia Experiment).
+---@field PHUSTR_22 string Level name for MAP22 (Plutonia Experiment).
+---@field PHUSTR_23 string Level name for MAP23 (Plutonia Experiment).
+---@field PHUSTR_24 string Level name for MAP24 (Plutonia Experiment).
+---@field PHUSTR_25 string Level name for MAP25 (Plutonia Experiment).
+---@field PHUSTR_26 string Level name for MAP26 (Plutonia Experiment).
+---@field PHUSTR_27 string Level name for MAP27 (Plutonia Experiment).
+---@field PHUSTR_28 string Level name for MAP28 (Plutonia Experiment).
+---@field PHUSTR_29 string Level name for MAP29 (Plutonia Experiment).
+---@field PHUSTR_30 string Level name for MAP30 (Plutonia Experiment).
+---@field PHUSTR_31 string Level name for MAP31 (Plutonia Experiment).
+---@field PHUSTR_32 string Level name for MAP32 (Plutonia Experiment).
+---@field THUSTR_1 string Level name for MAP01 (TNT Evilution).
+---@field THUSTR_2 string Level name for MAP02 (TNT Evilution).
+---@field THUSTR_3 string Level name for MAP03 (TNT Evilution).
+---@field THUSTR_4 string Level name for MAP04 (TNT Evilution).
+---@field THUSTR_5 string Level name for MAP05 (TNT Evilution).
+---@field THUSTR_6 string Level name for MAP06 (TNT Evilution).
+---@field THUSTR_7 string Level name for MAP07 (TNT Evilution).
+---@field THUSTR_8 string Level name for MAP08 (TNT Evilution).
+---@field THUSTR_9 string Level name for MAP09 (TNT Evilution).
+---@field THUSTR_10 string Level name for MAP10 (TNT Evilution).
+---@field THUSTR_11 string Level name for MAP11 (TNT Evilution).
+---@field THUSTR_12 string Level name for MAP12 (TNT Evilution).
+---@field THUSTR_13 string Level name for MAP13 (TNT Evilution).
+---@field THUSTR_14 string Level name for MAP14 (TNT Evilution).
+---@field THUSTR_15 string Level name for MAP15 (TNT Evilution).
+---@field THUSTR_16 string Level name for MAP16 (TNT Evilution).
+---@field THUSTR_17 string Level name for MAP17 (TNT Evilution).
+---@field THUSTR_18 string Level name for MAP18 (TNT Evilution).
+---@field THUSTR_19 string Level name for MAP19 (TNT Evilution).
+---@field THUSTR_20 string Level name for MAP20 (TNT Evilution).
+---@field THUSTR_21 string Level name for MAP21 (TNT Evilution).
+---@field THUSTR_22 string Level name for MAP22 (TNT Evilution).
+---@field THUSTR_23 string Level name for MAP23 (TNT Evilution).
+---@field THUSTR_24 string Level name for MAP24 (TNT Evilution).
+---@field THUSTR_25 string Level name for MAP25 (TNT Evilution).
+---@field THUSTR_26 string Level name for MAP26 (TNT Evilution).
+---@field THUSTR_27 string Level name for MAP27 (TNT Evilution).
+---@field THUSTR_28 string Level name for MAP28 (TNT Evilution).
+---@field THUSTR_29 string Level name for MAP29 (TNT Evilution).
+---@field THUSTR_30 string Level name for MAP30 (TNT Evilution).
+---@field THUSTR_31 string Level name for MAP31 (TNT Evilution).
+---@field THUSTR_32 string Level name for MAP32 (TNT Evilution).
+---@field HUSTR_CHATMACRO1 string Message for chat macro 1.
+---@field HUSTR_CHATMACRO2 string Message for chat macro 2.
+---@field HUSTR_CHATMACRO3 string Message for chat macro 3.
+---@field HUSTR_CHATMACRO4 string Message for chat macro 4.
+---@field HUSTR_CHATMACRO5 string Message for chat macro 5.
+---@field HUSTR_CHATMACRO6 string Message for chat macro 6.
+---@field HUSTR_CHATMACRO7 string Message for chat macro 7.
+---@field HUSTR_CHATMACRO8 string Message for chat macro 8.
+---@field HUSTR_CHATMACRO9 string Message for chat macro 9.
+---@field HUSTR_CHATMACRO0 string Message for chat macro 0.
+---@field HUSTR_TALKTOSELF1 string Message for talking to yourself one time.
+---@field HUSTR_TALKTOSELF2 string Message for talking to yourself two times.
+---@field HUSTR_TALKTOSELF3 string Message for talking to yourself three times.
+---@field HUSTR_TALKTOSELF4 string Message for talking to yourself four times.
+---@field HUSTR_TALKTOSELF5 string Message for talking to yourself five times.
+---@field HUSTR_MESSAGESENT string Message for sending a message.
+---@field HUSTR_PLRGREEN string Message for player one (green)'s message.
+---@field HUSTR_PLRINDIGO string Message for player two (indigo)'s message.
+---@field HUSTR_PLRBROWN string Message for player three (brown)'s message.
+---@field HUSTR_PLRRED string Message for player four (red)'s message.
+---@field HUSTR_KEYGREEN string Key for talking to player one (green).
+---@field HUSTR_KEYINDIGO string Key for talking to player two (indigo).
+---@field HUSTR_KEYBROWN string Key for talking to player three (brown).
+---@field HUSTR_KEYRED string Key for talking to player four (red).
+---@field AMSTR_FOLLOWON string Message for turning on follow mode in the automap.
+---@field AMSTR_FOLLOWOFF string Message for turning off follow mode in the automap.
+---@field AMSTR_GRIDON string Message for turning on the grid in the automap.
+---@field AMSTR_GRIDOFF string Message for turning off the grid in the automap.
+---@field AMSTR_MARKEDSPOT string Message for marking a spot in the automap.
+---@field AMSTR_CLEARMARKS string Message for clearing marks in the automap
+---@field STSTR_MUS string Message for when music gets switched.
+---@field STSTR_NOMUS string Message for when the target selection is nonexistent.
+---@field STSTR_DQDON string Message for when IDDQD is activated.
+---@field STSTR_DQDOFF string Message for when IDDQD is deactivated.
+---@field STSTR_KFAADDED stringtype Message for when IDKFA is activated.
+---@field STSTR_FAADDED stringtype Message for when IDFA is activated.
+---@field STSTR_NCON string Message for when noclip is activated.
+---@field STSTR_NCOFF string Message for when noclip is deactivated.
+---@field STSTR_BEHOLD string Message for when IDBEHOLD is typed.
+---@field STSTR_BEHOLDX string Message for when IDBEHOLDx is typed.
+---@field STSTR_CHOPPERS string Message for when IDCHOPPERS is typed.
+---@field STSTR_CLEV string Message for when IDCLEVxx is typed.

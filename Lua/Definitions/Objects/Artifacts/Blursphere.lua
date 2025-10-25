@@ -40,6 +40,7 @@ local function onPickup(item, mobj)
 	if health == 200 and armor == 200 then return true end
 	
 	player.doom.powers[pw_invisibility] = 60*TICRATE
+	DOOM_DoMessage(player, "$GOTINVIS")
 end
 
 DefineDoomItem(name, object, states, onPickup)

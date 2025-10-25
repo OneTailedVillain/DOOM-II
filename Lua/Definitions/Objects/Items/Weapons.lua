@@ -35,7 +35,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "chainsaw", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCHAINSAW")
+	DOOM_DoMessage(player, "$GOTCHAINSAW")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -63,7 +63,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "shotgun", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTSHOTGUN")
+	DOOM_DoMessage(player, "$GOTSHOTGUN")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -91,7 +91,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "supershotgun", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTSHOTGUN2")
+	DOOM_DoMessage(player, "$GOTSHOTGUN2")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -119,7 +119,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "rocketlauncher", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTLAUNCHER")
+	DOOM_DoMessage(player, "$GOTLAUNCHER")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -147,7 +147,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "chaingun", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTCHAINGUN")
+	DOOM_DoMessage(player, "$GOTCHAINGUN")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -175,7 +175,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "plasmarifle", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTPLASMA")
+	DOOM_DoMessage(player, "$GOTPLASMA")
 end
 
 DefineDoomItem(name, object, states, onPickup)
@@ -203,7 +203,7 @@ local function onPickup(item, mobj)
 	local result = funcs.giveWeapon(player, "bfg9000", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "GOTBFG9000")
+	DOOM_DoMessage(player, "$GOTBFG9000")
 end
 
 DefineDoomItem(name, object, states, onPickup)

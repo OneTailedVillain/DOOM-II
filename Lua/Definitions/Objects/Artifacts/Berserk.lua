@@ -34,9 +34,12 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	
-	funcs.setHealth(player, min(health + 100, 100))
+	if funcs.getHealth(player) < 100 then
+		funcs.setHealth(player, 100)
+	end
 	player.doom.powers[pw_strength] = 1
-	DOOM_DoMessage(player, "GOTBERSERK")
+	DOOM_DoMessage(player, "$GOTBERSERK")
+	DOOM_SwitchWeapon(player, "brassknuckles")
 end
 
 DefineDoomItem(name, object, states, onPickup)

@@ -15,6 +15,7 @@ mobjinfo[MT_TROOPSHOT] = {
 	speed        = 10 * FRACUNIT,
 	radius       = 6 * FRACUNIT,
 	height       = 8 * FRACUNIT,
+	damage       = 3,
 	flags        = MF_MISSILE|MF_NOGRAVITY,
 }
 
@@ -391,7 +392,13 @@ function A_DoomChase(actor)
 
 	// Chase toward player
 	actor.movecount = $ - 1
-	if actor.movecount < 0 or not P_Move(actor, actor.info.speed / FRACUNIT) then
+	local moved = true
+	if actor.movecount < 0 then
+		moved = false
+	else
+		moved = P_Move(actor, actor.info.speed / FRACUNIT)
+	end
+	if not moved then
 		P_NewChaseDir(actor)
 	end
 
@@ -747,10 +754,11 @@ doom.predefinedWeapons = {
 
 function A_DoomFire(actor, isPlayer, weaponDef, weapon)
     -- Determine if this is a player or enemy
-    local isPlayerActor = isPlayer or (actor.player ~= nil)
+    local isPlayerActor = actor.player ~= nil
     local player = actor.player
     
     if isPlayerActor then
+		local wepProperties = weaponDef or {}
         -- Player logic
 		--P_NoiseAlert(actor, actor)
         local funcs = P_GetMethodsForSkin(player)
@@ -763,6 +771,11 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 
 		if weapon.firesound then
 			S_StartSound(actor, weapon.firesound)
+		end
+
+		if not wepProperties.noFlash and weapon.states.flash then
+			player.doom.flashframe = 1
+			player.doom.flashtics = weapon.states.flash[1].tics
 		end
 
         local spread
@@ -922,13 +935,188 @@ function A_DoomBrainAwake(actor)
 	S_StartSound(nil, sfx_bossit)
 end
 
+local WEAPONBOTTOM = 128
+local WEAPONTOP = 0
+local LOWERSPEED = 6
+local RAISESPEED = 6
+
+function A_DoomLower(mobj)
+    -- configurable fallbacks (tweak to match your environment if needed)
+    local LOWERSPEED = LOWERSPEED or 6           -- analogous to C LOWERSPEED
+    local WEAPONBOTTOM = WEAPONBOTTOM or 128    -- psprite bottom offset
+    local S_NULL_STATE_NAME = "null"            -- fallback name for 'no weapon' psprite state
+
+    -- advance the psprite vertical offset
+    mobj.player.doom.switchtimer = ($ or 0) + LOWERSPEED
+
+    -- if still not fully down, just return (do nothing else)
+    if mobj.player.doom.switchtimer < WEAPONBOTTOM then
+        return
+    end
+
+    -- if mobj has no health, keep the weapon off-screen
+    if not mobj.doom.health or mobj.doom.health <= 0 then
+        return
+    end
+
+    -- At this point the old weapon has been lowered off-screen.
+    -- Transfer "pending" / "wish" weapon to ready/current and start the raise sequence.
+    -- In your codebase the pending weapon was called `pendingweapon` in C; here we use `mobj.doom.wishwep`.
+    if mobj.player.doom.wishwep then
+		local upsound = doom.weapons[mobj.player.doom.wishwep].upsound
+		if upsound then
+			S_StartSound(mobj, upsound)
+		end
+        DOOM_SwitchWeapon(mobj.player, mobj.player.doom.wishwep, true)
+    end
+
+    -- start bringing the weapon up
+    DOOM_SetState(mobj.player, "raise", 1)
+end
+
+
+-- Raise the current weapon; when fully raised, set it to the ready/idle state.
+function A_DoomRaise(mobj, psp)
+    local RAISESPEED = RAISESPEED or 6        -- analogous to C RAISESPEED
+    local WEAPONTOP = WEAPONTOP or 0          -- psprite top offset
+
+    -- move psprite up toward WEAPONTOP
+    mobj.player.doom.switchtimer = (mobj.player.doom.switchtimer or 0) - RAISESPEED
+
+    -- if still above top, exit and let raising continue next tick
+    if mobj.player.doom.switchtimer > WEAPONTOP then
+        return
+    end
+
+    -- clamp to exact top
+    mobj.player.doom.switchtimer = WEAPONTOP
+
+    -- raising finished: clear any switchtimer gating
+	mobj.player.doom.switchingweps = false
+    mobj.player.doom.switchtimer = nil
+
+    DOOM_SetState(mobj.player)
+end
+
 function A_DoomHeadAttack(actor)
 	if P_CheckMeleeRange(actor) then
 		S_StartSound (actor, sfx_claw);
-		damage = (DOOM_Random()%6+1)*10;
+		local damage = (DOOM_Random()%6+1)*10;
 		DOOM_DamageMobj(actor.target, actor, actor, damage);
 		return
 	end
 
 	DOOM_SpawnMissile(actor, actor.target, MT_TROOPSHOT)
+end
+
+/*
+void
+A_WeaponReady
+( player_t*	player,
+  pspdef_t*	psp )
+{	
+    statenum_t	newstate;
+    int		angle;
+    
+    // get out of attack state
+    if (player->mo->state == &states[S_PLAY_ATK1]
+	|| player->mo->state == &states[S_PLAY_ATK2] )
+    {
+	P_SetMobjState (player->mo, S_PLAY);
+    }
+    
+    if (player->readyweapon == wp_chainsaw
+	&& psp->state == &states[S_SAW])
+    {
+	S_StartSound (player->mo, sfx_sawidl);
+    }
+    
+    // check for change
+    //  if player is dead, put the weapon away
+    if (player->pendingweapon != wp_nochange || !player->health)
+    {
+	// change weapon
+	//  (pending weapon should allready be validated)
+	newstate = weaponinfo[player->readyweapon].downstate;
+	P_SetPsprite (player, ps_weapon, newstate);
+	return;	
+    }
+    
+    // check for fire
+    //  the missile launcher and bfg do not auto fire
+    if (player->cmd.buttons & BT_ATTACK)
+    {
+	if ( !player->attackdown
+	     || (player->readyweapon != wp_missile
+		 && player->readyweapon != wp_bfg) )
+	{
+	    player->attackdown = true;
+	    P_FireWeapon (player);		
+	    return;
+	}
+    }
+    else
+	player->attackdown = false;
+    
+    // bob the weapon based on movement speed
+    angle = (128*leveltime)&FINEMASK;
+    psp->sx = FRACUNIT + FixedMul (player->bob, finecosine[angle]);
+    angle &= FINEANGLES/2-1;
+    psp->sy = WEAPONTOP + FixedMul (player->bob, finesine[angle]);
+}
+*/
+
+function A_DoomWeaponReady(actor, action, actionvars, weapondef)
+	local player = actor.player
+	local funcs = P_GetMethodsForSkin(player)
+	local curHealth = funcs.getHealth(player)
+
+	if weapondef.idlesound then
+		S_StartSound(actor, weapondef.idlesound)
+	end
+
+	if action and type(action) == "function" then
+		local var1 = actionvars and actionvars.var1
+		local var2 = actionvars and actionvars.var2
+		action(actor, var1, var2)
+	end
+
+	if player.doom.switchingweps or curHealth <= 0 then
+		DOOM_SetState(player, "lower")
+	end
+
+	player.hl1wepbob = FixedMul(actor.momx, actor.momx) + FixedMul(actor.momy, actor.momy)
+	player.hl1wepbob = player.hl1wepbob >> 2
+	if player.hl1wepbob > FRACUNIT*16 then
+		player.hl1wepbob = FRACUNIT*16
+	end
+
+	if (player.cmd.buttons & BT_ATTACK) then
+		if not player.doom.attackdown or not weapondef.noautoswitchfire then
+			player.doom.attackdown = true
+			DOOM_FireWeapon(player)
+			return
+		end
+	else
+		player.doom.attackdown = false
+	end
+
+	local bobAngle = ((128 * leveltime) & 8191) << 19
+	player.doom.bobx = FixedMul((player.hl1wepbob or 0), cos(bobAngle))
+	bobAngle = ((128 * leveltime) & 4095) << 19
+	player.doom.boby = FixedMul((player.hl1wepbob or 0), sin(bobAngle))
+end
+
+function A_DoomCheckReload(actor, var1, var2, weapon)
+    -- Determine if this is a player or enemy
+    local isPlayerActor = isPlayer or (actor.player ~= nil)
+    local player = actor.player
+
+	local funcs = P_GetMethodsForSkin(player)
+	local curAmmo = funcs.getCurAmmo(player)
+	local curType = funcs.getCurAmmoType(player)
+
+	if type(curAmmo) != "boolean" then
+		if curAmmo - weapon.shotcost < 0 then DOOM_DoAutoSwitch(player) return end
+	end
 end

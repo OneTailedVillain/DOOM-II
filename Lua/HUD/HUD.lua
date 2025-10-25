@@ -47,20 +47,20 @@ local function IsAboveVersion(major, sub)
 end
 
 local function drawWeapon(v, player, offset)
-	if camera.chase then return end
+	if player.mo.doom.health > 0 then
+		if camera.chase then return end
+	end
 
-	-- bob calc (unchanged)
-	local bobAngle = ((128 * leveltime) & 8191) << 19
-	local bobx = FixedMul((player.hl1wepbob or 0), cos(bobAngle))
-	bobAngle = ((128 * leveltime) & 4095) << 19
-	local boby = FixedMul((player.hl1wepbob or 0), sin(bobAngle))
-
-	local preScaledOffset = (player.doom.deadtimer or player.deadtimer) + (player.doom and player.doom.switchtimer or 0)
-	boby = boby + 6*FRACUNIT * preScaledOffset
+	local weaponYOffset = player.doom and player.doom.switchtimer or 0
+	local bobx = player.doom.bobx
+	local boby = player.doom.boby
+	boby = boby + (weaponYOffset * FRACUNIT)
 
 	-- gather sprite/frame/patch
 	local sprite = doom.weapons[player.doom.curwep].sprite
 	local whatFrame = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe].frame
+	local spriteflags = whatFrame & ~FF_FRAMEMASK
+	whatFrame = $ & FF_FRAMEMASK
 	local patch = v.getSpritePatch(sprite, whatFrame)
 	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
 
@@ -90,14 +90,44 @@ local function drawWeapon(v, player, offset)
 	end
 
 	local extraflag = (player.mo.doom.flags & DF_SHADOW) and V_MODULATE or 0
+	local lightlevel = sector.lightlevel
+	if spriteflags & FF_FULLBRIGHT then
+		lightlevel = 255
+	elseif spriteflags & FF_FULLDARK then
+		lightlevel = 0
+	end
 	local colormap = IsAboveVersion(202, 14)
-		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, sector.lightlevel)
+		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
 		or nil
+
+	local invuln = player.doom.powers[pw_invulnerability] or 0
+
+	if invuln > 4 * 32 or invuln & 8 then
+		colormap = v.getColormap(nil, nil, "COLORMAPROW33")
+	end
 
 	-- combine bob + per-state offsets
 	local finalX = bobx + stateOffsetX
 	local finalY = boby + stateOffsetY + (offset or 0) * FRACUNIT
 
+	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
+
+	if player.doom.flashframe < 1 then return end
+	if not doom.weapons[player.doom.curwep].states.flash then return end
+	if not doom.weapons[player.doom.curwep].states.flash[player.doom.flashframe] then return end
+
+	local sprite = doom.weapons[player.doom.curwep].flashsprite
+	local whatFrame = doom.weapons[player.doom.curwep].states.flash[player.doom.flashframe].frame
+	spriteflags = whatFrame & ~FF_FRAMEMASK
+	whatFrame = $ & FF_FRAMEMASK
+	if whatFrame < 0 then return end
+	local patch = v.getSpritePatch(sprite, whatFrame)
+	lightlevel = sector.lightlevel
+	if spriteflags & FF_FULLBRIGHT then
+		lightlevel = 255
+	elseif spriteflags & FF_FULLDARK then
+		lightlevel = 0
+	end
 	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
 end
 
@@ -127,7 +157,7 @@ local function DrawStatusBarNumbers(v, player)
 	end
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", doom.ammos[whatToIndex].max, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", player.doom.backpack and doom.ammos[whatToIndex].backpackmax or doom.ammos[whatToIndex].max, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	local whatToCheck = {
 		"brassknuckles",
@@ -207,6 +237,26 @@ local function DrawKeys(v, player)
 end
 
 local function drawStatusBar(v, player)
+	local screenWidth = v.width()
+	local hudScaleInt, hudScaleFixed = v.dupx()
+	local maybeTrueWidth = screenWidth / hudScaleInt
+
+	local bottomBorderPatch = v.cachePatch("BRDR_B")
+	local bottomBorderWidth = bottomBorderPatch.width
+	local bottomBorderRepeats = (maybeTrueWidth / bottomBorderWidth)
+
+	local centerBorderPatch = v.cachePatch("BRDR_C")
+	local centerBorderWidth = centerBorderPatch.width
+	local centerBorderRepeats = (maybeTrueWidth / centerBorderWidth)
+
+	for i = 0, centerBorderRepeats do
+		v.draw(i * centerBorderWidth, 168, centerBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+	end
+
+	for i = 0, bottomBorderRepeats do
+		v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+	end
+
 	local statusBarPatch = v.cachePatch("STBAR")
 	local xOffset = 0
 	if statusBarPatch.width == 426 then
@@ -299,16 +349,14 @@ local srb2hud = {
 	end,
 	ammo = function(v, player, ammo, weapon)
 		if ammo != false then
-			/*
 			-- FIXME: SRB2 SIGSEGVs whenever we cache a patch like SBOAMMO1?? Reserving the patch doesn't fix it
 			-- Weirder is that the other SBO patches don't do this??
 			local myWep = doom.weapons[weapon]
 			local myAmmoType = myWep.ammotype
 			local myAmmoDef = doom.ammos[myAmmoType]
 			local myAmmoIcon = myAmmoDef.icon
-			local myIconPatch = v.cachePatch("BRDR_B")
-			v.draw(236, 198, myIconPatch)
-			*/
+			--local myIconPatch = v.cachePatch(myAmmoIcon)
+			--v.draw(236, 198, myIconPatch)
 			drawInFont(v, 234*FRACUNIT, 182*FRACUNIT, FRACUNIT, "STT", tostring(ammo), V_PERPLAYER, "right")
 		end
 	end,
@@ -330,7 +378,7 @@ hud.add(function(v, player)
 	whatRenderer = v.renderer()
 	local support = P_GetSupportsForSkin(player)
 	if player.doom.message and player.doom.messageclock then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP)
+		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE)
 	end
 	if support.noHUD then DrawFlashes(v, player) return end
 
@@ -348,7 +396,7 @@ hud.add(function(v, player)
 	if doom.issrb2 then
 		drawWeapon(v, player, 38)
 		srb2hud.keys(v, player, player.doom.keys)
-		srb2hud.ammo(v, player, myAmmo)
+		srb2hud.ammo(v, player, myAmmo, player.doom.curwep)
 		srb2hud.health(v, player, myHealth)
 		srb2hud.armor(v, player, myArmor)
 		srb2hud.frags(v, player, player.doom.frags)
@@ -357,8 +405,6 @@ hud.add(function(v, player)
 
 	drawWeapon(v, player, 16)
 	drawStatusBar(v, player)
--- 	print(player.doom.curwep, player.doom.curwepcat, player.doom.curwepslot)
-
 	DrawFlashes(v, player)
 end, "game")
 
@@ -376,16 +422,28 @@ hud.add(function(v, player)
 
 	local screenWidth = v.width()
 	local screenHeight = v.height()
-	local statusBarScreenHeight = FixedMul(v.cachePatch("STBAR").height, hudScaleFixed)
+	local statusBarScreenHeight = v.cachePatch("STBAR").height
+	local flags = V_SNAPTOLEFT|V_SNAPTOTOP
+	local scale = automapzoom or FRACUNIT
+	
+	local dohires = CV_FindVar("doom_hiresautomap")
+
+	if dohires.value then
+		statusBarScreenHeight = FixedMul($, hudScaleFixed)
+		flags = V_NOSCALEPATCH|V_NOSCALESTART
+		scale = FixedDiv($, hudScaleFixed)
+	else
+		screenWidth = $ / hudScaleInt
+		screenHeight = $ / hudScaleInt
+	end
+
+    scale = max($, 1)
 
     -- update map center only if locked
     if automaplocked and displayplayer and displayplayer.mo then
         mapcenterx = displayplayer.mo.x
         mapcentery = displayplayer.mo.y
     end
-
-    local scale = FixedDiv(automapzoom or FRACUNIT, hudScaleFixed) --FRACUNIT * 12
-    scale = max($, 1)
 
     -- whether to rotate the automap (rotate map under a fixed arrow)
     local cv = CV_FindVar("doom_rotateautomap")
@@ -538,7 +596,7 @@ hud.add(function(v, player)
             end
 
             -- now pass px coords and scale; minimapDrawLine divides px/scale to get pixel coords
-            minimapDrawLine(v, cx1, cy1, cx2, cy2, color, V_NOSCALEPATCH|V_NOSCALESTART, scale)
+            minimapDrawLine(v, cx1, cy1, cx2, cy2, color, flags, scale)
         end
 		i = $ + 1
     end
@@ -594,7 +652,7 @@ hud.add(function(v, player)
 
         local cx1, cy1, cx2, cy2 = clipLine(px1, py1, px2, py2)
         if cx1 != nil then
-            minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, V_NOSCALESTART|V_NOSCALEPATCH, scale)
+            minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, flags, scale)
         end
     end
 

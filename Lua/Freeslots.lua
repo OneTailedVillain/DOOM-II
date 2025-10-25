@@ -108,7 +108,7 @@ mobjinfo[MT_DOOM_BULLETPUFF] = {
 	radius = 1*FRACUNIT,
 	height = 1*FRACUNIT,
 	dispoffset = 5,
-	flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP,
+	flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP|MF_NOCLIP,
 }
 
 addHook("MobjThinker", function(mobj)
@@ -144,7 +144,7 @@ G_AddGametype({
     name = "Deathmatch (Original)",
     identifier = "doomdm",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD,
+    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
     intermissiontype = int_none,
     headercolor = 103,
     description = "Classic DOOM deathmatch: competitive free-for-all where pickups do NOT respawn and weapons are grabbable only once per life."
@@ -155,27 +155,19 @@ G_AddGametype({
     name = "Deathmatch 2.0",
     identifier = "doomdmtwo",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD,
+    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
     intermissiontype = int_none,
     headercolor = 103,
     description = "Alternate DOOM deathmatch: competitive free-for-all with delayed item and weapon respawns so pickups return after a short time."
 })
 
--- Idak how DOOM does this so this is the closest you'll get from me
-local hardcodedDamageVals = {
-	[MT_TROOPSHOT] = {3, 24}
-}
-
 local function BulletHitObject(tmthing, thing)
-	-- print("Collision!")
     if tmthing.hitenemy then return false end
-	-- print(tmthing.target, thing, tmthing.target == thing, thing.type != MT_METALSONIC_BATTLE)
     if tmthing.target == thing then return false end
-	-- print(thing.type, thing.type == MT_METALSONIC_BATTLE)
 	if not (thing.flags & MF_SHOOTABLE) then return false end
 
-	local damageVals = hardcodedDamageVals[tmthing.type]
-	local damage = (DOOM_Random() % (damageVals[2] / damageVals[1]) + 1) * damageVals[1]
+	local damageVal = mobjinfo[tmthing.type].damage
+	local damage = (DOOM_Random() % 8 + 1) * damageVal
 
 	tmthing.hitenemy = true
     DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
@@ -285,7 +277,7 @@ deathstate = S_TELEFOG1,
 radius = 20*FRACUNIT,
 height = 48*FRACUNIT,
 dispoffset = 5,
-flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP,
+flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP|MF_NOCLIP,
 }
 
 mobjinfo[MT_DOOM_TELETARGET] = {
@@ -296,5 +288,5 @@ deathstate = S_PLAY_STND,
 radius = 20*FRACUNIT,
 height = 48*FRACUNIT,
 dispoffset = 5,
-flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP,
+flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP|MF_NOCLIP,
 }

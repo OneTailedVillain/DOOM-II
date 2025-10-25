@@ -12,7 +12,9 @@ end
 local baseMethods = {
 	getHealth = function(player)
 		if not player or not player.mo then return nil end
-		return (player.mo.doom and player.mo.doom.health) or nil
+		local curHealth = player.mo.doom and player.mo.doom.health
+		if curHealth == nil then return nil end
+		return curHealth
 	end,
 
 	setHealth = function(player, health)
@@ -22,6 +24,13 @@ local baseMethods = {
 			return true
 		end
 		return false
+	end,
+
+	getMaxHealth = function(player)
+		if not player or not player.mo then return nil end
+		local curHealth = player.mo.doom and player.mo.doom.maxhealth
+		if curHealth == nil then return nil end
+		return curHealth
 	end,
 
 	getArmor = function(player)
@@ -50,6 +59,14 @@ local baseMethods = {
 		end
 
 		return true
+	end,
+
+	getMaxArmor = function(player)
+		if not player or not player.mo then return nil end
+		if player.mo.doom and player.mo.doom.maxarmor ~= nil then
+			return player.mo.doom.armor
+		end
+		return nil
 	end,
 
 	getCurAmmo = function(player)
@@ -180,58 +197,17 @@ local baseMethods = {
 		local curAmmo = player.doom.ammo[aType] or 0
 		local maxAmmo = P_GetMethodsForSkin(player).getMaxFor(player, aType)
 
-/*
-    // If non zero ammo, 
-    // don't change up weapons,
-    // player was lower on purpose.
-    if (oldammo)
-	return true;	
-
-    // We were down to zero,
-    // so select a new weapon.
-    // Preferences are not user selectable.
-    switch (ammo)
-    {
-      case am_clip:
-	if (player->readyweapon == wp_fist)
-	{
-	    if (player->weaponowned[wp_chaingun])
-		player->pendingweapon = wp_chaingun;
-	    else
-		player->pendingweapon = wp_pistol;
-	}
-	break;
-	
-      case am_shell:
-	if (player->readyweapon == wp_fist
-	    || player->readyweapon == wp_pistol)
-	{
-	    if (player->weaponowned[wp_shotgun])
-		player->pendingweapon = wp_shotgun;
-	}
-	break;
-	
-      case am_cell:
-	if (player->readyweapon == wp_fist
-	    || player->readyweapon == wp_pistol)
-	{
-	    if (player->weaponowned[wp_plasma])
-		player->pendingweapon = wp_plasma;
-	}
-	break;
-	
-      case am_misl:
-	if (player->readyweapon == wp_fist)
-	{
-	    if (player->weaponowned[wp_missile])
-		player->pendingweapon = wp_missile;
-	}
-      default:
-	break;
-    }
-*/
-
 		player.doom.ammo[aType] = min(curAmmo + addAmount, maxAmmo)
+
+		local weapon = DOOM_GetWeaponDef(player)
+		if weapon.wimpyweapon then
+			// If non zero ammo, 
+			// don't change up weapons,
+			// player was lower on purpose.
+			if curAmmo then return curAmmo ~= player.doom.ammo[aType] end
+			DOOM_DoAutoSwitch(player, true)
+		end
+
 		return curAmmo ~= player.doom.ammo[aType]
 	end,
 
@@ -244,12 +220,14 @@ local baseMethods = {
 		if player.mo.doom then
 			local efficiency = player.mo.doom.armorefficiency or 0
 			local damageToHealth = FixedMul(damage, efficiency)
-			local damageToArmor  = FixedMul(damage, FRACUNIT - efficiency)
+			local damageToArmor  = damage - damageToHealth
 
 			player.mo.doom.health = player.mo.doom.health - damageToHealth
 			player.mo.doom.armor  = player.mo.doom.armor  - damageToArmor
 
 			if player.mo.doom.armor < 0 then
+				-- doing this makes me look funny DD:
+				-- but it's correct in the sense of math... or whatever
 				player.mo.doom.health = player.mo.doom.health + player.mo.doom.armor
 				player.mo.doom.armor = 0
 			end
@@ -554,6 +532,7 @@ doom.charSupport = {
 	kombifreeman = {
 		noWeapons = true,
 		noHUD = true,
+		dontSetRings = true,
 		customDamage = true,
 		-- TODO: Re-make this! Slowpoke.
 		methods = {

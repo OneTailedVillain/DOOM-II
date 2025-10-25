@@ -558,7 +558,7 @@ local name = "FloatingSkull"
 local object = {
 	radius = 16,
 	height = 37,
-	doomednum = 56,
+	doomednum = 42,
 	sprite = SPR_FSKU,
 }
 
@@ -566,6 +566,80 @@ local states = {
 		{frame = A|FF_FULLBRIGHT, tics = 6},
 		{frame = B|FF_FULLBRIGHT, tics = 6},
 		{frame = C|FF_FULLBRIGHT, tics = 6},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_SMIT")
+local name = "Stalagtite"
+
+local object = {
+	radius = 16,
+	height = 40,
+	doomednum = 47,
+	sprite = SPR_SMIT,
+}
+
+local states = {
+		{frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_TRED")
+local name = "RedTorch"
+
+local object = {
+	radius = 16,
+	height = 40,
+	doomednum = 46,
+	sprite = SPR_TRED,
+}
+
+local states = {
+		{frame = A|FF_FULLBRIGHT, tics = 4},
+		{frame = B|FF_FULLBRIGHT, tics = 4},
+		{frame = C|FF_FULLBRIGHT, tics = 4},
+		{frame = D|FF_FULLBRIGHT, tics = 4},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_SMRT")
+local name = "ShortRedTorch"
+
+local object = {
+	radius = 16,
+	height = 37,
+	doomednum = 57,
+	sprite = SPR_SMRT,
+}
+
+local states = {
+		{frame = A|FF_FULLBRIGHT, tics = 4},
+		{frame = B|FF_FULLBRIGHT, tics = 4},
+		{frame = C|FF_FULLBRIGHT, tics = 4},
+		{frame = D|FF_FULLBRIGHT, tics = 4},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_NULL")
+local name = "BossTarget"
+
+local object = {
+	radius = 16,
+	height = 32,
+	doomednum = 87,
+	sprite = SPR_NULL,
+	flags = MF_NOBLOCKMAP|MF_NOSECTOR|MF_NOCLIPTHING
+}
+
+local states = {
+		{frame = A|FF_FULLBRIGHT, tics = 4},
+		{frame = B|FF_FULLBRIGHT, tics = 4},
+		{frame = C|FF_FULLBRIGHT, tics = 4},
+		{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
 DefineDoomDeco(name, object, states, onPickup)

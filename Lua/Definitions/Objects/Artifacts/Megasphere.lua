@@ -36,12 +36,14 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
+	local maxHealth = funcs.getMaxHealth(player)
 	local armor = funcs.getArmor(player)
+	local maxArmor = funcs.getMaxArmor(player)
 	if health == 200 and armor == 200 then return true end
 	
-	funcs.setHealth(player, 200)
+	funcs.setHealth(player, maxHealth)
 	funcs.setArmor(player, 200)
-	DOOM_DoMessage(player, "GOTROCKBOX")
+	DOOM_DoMessage(player, "$GOTMSPHERE")
 end
 
 DefineDoomItem(name, object, states, onPickup)

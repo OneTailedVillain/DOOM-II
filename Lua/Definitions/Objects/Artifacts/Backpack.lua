@@ -12,35 +12,33 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_SOUL", "sfx_getpow")
-local name = "SoulSphere"
+SafeFreeSlot("SPR_BPAK")
+local name = "Backpack"
 
 local object = {
 	radius = 20,
-	height = 16,
-	doomednum = 2013,
-	deathsound = sfx_getpow,
-	sprite = SPR_SOUL,
-	doomflags = DF_COUNTITEM|DF_ALWAYSPICKUP|DF_DM2RESPAWN
+	height = 26,
+	doomednum = 8,
+	deathsound = sfx_itemup,
+	sprite = SPR_BPAK,
+	doomflags = DF_ALWAYSPICKUP|DF_DM2RESPAWN
 }
 
 local states = {
-		{frame = A, tics = 6},
-		{frame = B, tics = 6},
-		{frame = C, tics = 6},
-		{frame = D, tics = 6},
-		{frame = C, tics = 6},
-		{frame = B, tics = 6},
+		{frame = A, tics = -1},
 }
 
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local health = funcs.getHealth(player)
 	
-	funcs.setHealth(player, min(health + doom.soulspheregrant, 200))
-	DOOM_DoMessage(player, "$GOTSUPER")
+	player.doom.twoxammo = true
+	player.doom.backpack = true
+	funcs.giveAmmoFor(player, "clip", item.doom.flags)
+	funcs.giveAmmoFor(player, "shells", item.doom.flags)
+	funcs.giveAmmoFor(player, "rocket", item.doom.flags)
+	funcs.giveAmmoFor(player, "cell", item.doom.flags)
+	DOOM_DoMessage(player, "$GOTBACKPACK")
 end
 
 DefineDoomItem(name, object, states, onPickup)

@@ -1,3 +1,7 @@
+Maincfg Category
+NumDemos = 0
+GameData = doom.dat
+
 Clear All
 
 Character
@@ -11,10 +15,6 @@ Weapon Nums = Switch Weapon
 
 ...What, you thought this'd be more descriptive? You're not even supposed to BE here!
 #
-
-Maincfg Category
-NumDemos = 0
-GameData = doom.dat
 
 Level 1
 levelname = MAP01
@@ -271,6 +271,7 @@ TypeOfLevel = Singleplayer,Doom
 Act = 0
 NoZone = 1
 Music = ULTIMA
+NextLevel = 16
 
 Level 33
 levelname = PLACEHOLD
@@ -329,36 +330,32 @@ NoZone = 1
 Music = ULTIMA
 
 Level 41
-levelname = E1M9
+levelname = PLACEHOLD
 NoTitleCard = true
-TypeOfLevel = Singleplayer,Doom
 Act = 0
 NoZone = 1
-Music = E1M9
+Music = ULTIMA
 
 Level 42
-levelname = E2M9
+levelname = PLACEHOLD
 NoTitleCard = true
-TypeOfLevel = Singleplayer,Doom
 Act = 0
 NoZone = 1
-Music = E2M9
+Music = ULTIMA
 
 Level 43
-levelname = E3M9
+levelname = PLACEHOLD
 NoTitleCard = true
-TypeOfLevel = Singleplayer,Doom
 Act = 0
 NoZone = 1
-Music = E3M9
+Music = ULTIMA
 
-Level 43
-levelname = E4M9
+Level 44
+levelname = PLACEHOLD
 NoTitleCard = true
-TypeOfLevel = Singleplayer,Doom
 Act = 0
 NoZone = 1
-Music = E4M9
+Music = ULTIMA
 
 Level 50
 levelname = PLACEHOLD

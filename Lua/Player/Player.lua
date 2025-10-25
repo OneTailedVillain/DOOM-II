@@ -104,6 +104,7 @@ local function ST_updateFaceWidget(plyr)
 
 			pd.priority = 7
 
+			-- ouchface bug except i'm evil and it's intentional
 			if myHealth - pd.oldhealth > ST_MUCHPAIN then
 				pd.facecount = ST_TURNCOUNT
 				pd.faceindex = ST_calcPainOffset(plyr) + ST_OUCHOFFSET
@@ -199,6 +200,7 @@ local function ST_updateFaceWidget(plyr)
 end
 
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
 	player.doom = $ or {}
 	ST_updateFaceWidget(player)
 	
@@ -209,7 +211,35 @@ addHook("PlayerThink", function(player)
 	end
 end)
 
+local function printTable(data, prefix)
+	prefix = prefix or ""
+	if type(data) == "table"
+		if not next(data) then
+			print("[Empty table]")
+		else
+			for k, v in pairs(data or {}) do
+				local key = prefix .. k
+				if type(v) == "table" then
+					print("key " .. key .. " = a table:")
+					printTable(v, key .. ".")
+				else
+					print("key " .. key .. " = " .. tostring(v))
+				end
+			end
+		end
+	else
+		print(data)
+	end
+end
+
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
+	if G_RingSlingerGametype() and not doom.charSupport[player.realmo.skin].dontSetRings then
+		local curAmmo = doom.charSupport[player.realmo.skin].methods.getCurAmmo(player)
+		printTable(curAmmo)
+		player.rings = curAmmo == false and 9999 or curAmmo
+	end
+
 	if (player.cmd.buttons & BT_JUMP) then
 		if doom.issrb2 then
 			if P_IsObjectOnGround(player.mo) then
@@ -229,6 +259,8 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
+
 	if (player.mo.eflags & MFE_JUSTHITFLOOR) then
 		if (player.doom.lastmomz or 0) <= doom.defaultgravity*-8 then
 			S_StartSound(player.mo, sfx_oof)
@@ -238,6 +270,8 @@ addHook("PlayerThink", function(player)
 		player.doom.lastmomz = player.mo.momz
 	end
 
+	player.doom.powers = $ or {}
+
 	if player.doom.powers[pw_strength] then
 		player.doom.powers[pw_strength] = $ + 1
 	end
@@ -246,30 +280,52 @@ addHook("PlayerThink", function(player)
 		player.doom.powers[pw_ironfeet] = $ - 1
 	end
 
+	if player.doom.powers[pw_invulnerability] then
+		player.doom.powers[pw_invulnerability] = $ - 1
+	end
+
 	player.doom.bonuscount = ($ or 1) - 1
 	player.doom.damagecount = ($ or 1) - 1
-	if not player.doom.damagecount then player.doom.attacker = nil end
 
-	player.hl1wepbob = FixedMul(player.mo.momx, player.mo.momx) + FixedMul(player.mo.momy, player.mo.momy)
-	player.hl1wepbob = player.hl1wepbob >> 2
-	if player.hl1wepbob > FRACUNIT*16 then
-		player.hl1wepbob = FRACUNIT*16
+	-- attacker ##MIGHT be important for killcam logic
+	if player.mo.doom.health > 0 then
+		if not player.doom.damagecount then player.doom.attacker = nil end
 	end
 
 	player.doom.weptics = ($ or 1) - 1
-	-- print("tics = " .. player.doom.weptics, "state = " .. player.doom.wepstate, "frame = " .. player.doom.wepframe)
+	if player.doom.flashframe >= 0 then
+		player.doom.flashtics = ($ or 1) - 1
+	end
 	if player.doom.weptics == 0 then
 		player.doom.wepframe = ($ or 1) + 1
-		local nextDef = DOOM_GetWeaponDef(player).states[player.doom.wepstate][player.doom.wepframe]
+		local curDef = DOOM_GetWeaponDef(player)
+		local stateTable = curDef and curDef.states and curDef.states[player.doom.wepstate]
+		local nextDef = stateTable and stateTable[player.doom.wepframe]
 		if nextDef == nil then
-			DOOM_SetState(player)
+			local shouldForceLower = player.doom.wepstate == "lower"
+			local shouldForceRaise = player.doom.wepstate == "raise"
+			local nextState = (shouldForceLower and "lower") or (shouldForceRaise and "raise") or "idle"
+			DOOM_SetState(player, nextState)
 		else
 			DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
+		end
+	end
+
+	if player.doom.flashtics == 0 and player.doom.flashframe >= 1 then
+		player.doom.flashframe = ($ or 1) + 1
+		local curDef = DOOM_GetWeaponDef(player)
+		local stateTable = curDef and curDef.states and curDef.states.flash
+		local nextDef = stateTable and stateTable[player.doom.flashframe]
+		if nextDef == nil then
+			player.doom.flashframe = 0
+		else
+			player.doom.flashtics = nextDef.tics
 		end
 	end
 end)
 
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
 	local support = P_GetSupportsForSkin(player)
 
 	if support.noWeapons then return end
@@ -366,7 +422,6 @@ addHook("PlayerThink", function(player)
 			-- Start switching animation if not already switching
 			if not player.doom.switchingweps then
 				player.doom.switchingweps = true
-				player.doom.switchtimer = 0
 			end
 			
 		elseif (player.cmd.buttons & BT_WEAPONPREV) then
@@ -381,7 +436,6 @@ addHook("PlayerThink", function(player)
 			-- Start switching animation if not already switching
 			if not player.doom.switchingweps then
 				player.doom.switchingweps = true
-				player.doom.switchtimer = 0
 			end
 			
 		elseif slot > 0 then
@@ -423,26 +477,8 @@ addHook("PlayerThink", function(player)
 			-- Start switching animation if not already switching
 			if not player.doom.switchingweps then
 				player.doom.switchingweps = true
-				player.doom.switchtimer = 0
 			end
 		end
-	end
-
-	-- Handle switching animation
-	if player.doom.switchingweps then
-		player.doom.switchtimer = ($ or 0) + 1
-		if player.doom.switchtimer >= 16 then
-			player.doom.curwep = player.doom.wishwep
-			player.doom.wishwep = nil
-			player.doom.switchingweps = false
-			DOOM_SetState(player)
-		end
-	elseif player.doom.switchtimer then
-		player.doom.switchtimer = $ - 1
-	end
-
-	if (player.cmd.buttons & BT_ATTACK) and not player.doom.switchtimer and player.doom.wepstate == "idle" then
-		DOOM_FireWeapon(player)
 	end
 
 	player.doom.lastbuttons = player.cmd.buttons
@@ -450,6 +486,8 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
+
 	if doom.issrb2 then
 		player.mo.doom.armor = leveltime/TICRATE
 	end
@@ -484,8 +522,12 @@ addHook("PlayerThink", function(player)
 		if not (leveltime & 31) then
 			DOOM_DamageMobj(player.mo, nil, nil, 20, 0, 1)
 		end
-		if funcs.getHealth(player) <= 10 then
+		local curHealth = funcs.getHealth(player) or 0
+		if curHealth <= 10 and not DOOM_IsExiting() then
 			DOOM_ExitLevel()
+		end
+		if curHealth <= 1 then
+			funcs.setHealth(player, 1)
 		end
 	elseif doom.sectorspecials[player.mo.subsector.sector] == 9 then
 		doom.sectorspecials[player.mo.subsector.sector] = 0
@@ -495,6 +537,7 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if (player.mo.flags & MF_NOTHINK) then return end
     local cnt = player.doom.damagecount or 0
     local bzc = 0
 
@@ -544,36 +587,19 @@ local function deepcopy(orig)
 	return copy
 end
 
-local function saveStatus(player)
-	player.doom = $ or {}
-	player.mo.doom = $ or {}
-	player.doom.laststate = {}
-	player.doom.laststate.ammo = deepcopy(player.doom.ammo)
-	player.doom.laststate.weapons = deepcopy(player.doom.weapons)
-	player.doom.laststate.oldweapons = deepcopy(player.doom.oldweapons)
-	player.doom.laststate.curwep = deepcopy(player.doom.curwep)
-	player.doom.laststate.health = deepcopy(player.mo.doom.health)
-	player.doom.laststate.armor = deepcopy(player.mo.doom.armor)
-	player.doom.laststate.armorefficiency = deepcopy(player.mo.doom.armorefficiency)
-	player.doom.laststate.pos = {
-		x = deepcopy(player.mo.x),
-		y = deepcopy(player.mo.y),
-		z = deepcopy(player.mo.z),
-	}
-	player.doom.laststate.momentum = {
-		x = deepcopy(player.mo.momx),
-		y = deepcopy(player.mo.momy),
-		z = deepcopy(player.mo.momz),
-	}
-	player.doom.laststate.map = deepcopy(gamemap)
-end
-
 addHook("PlayerSpawn",function(player)
 	if not player.mo return end
 	if consoleplayer == player then
 		camera.chase = false
 	end
 	player.doom = $ or {}
+	player.doom.damagecount = 0
+	player.doom.bonuscount = 0
+	player.doom.facecount = 0
+	player.doom.bobx = 0
+	player.doom.boby = 0
+	player.doom.flashtics = 0
+	player.doom.flashframe = -1
 	if player.doom.laststate and player.doom.laststate.map == gamemap then
 		P_SetOrigin(player.mo, player.doom.laststate.pos.x, player.doom.laststate.pos.y, player.doom.laststate.pos.z)
 		player.mo.momx = player.doom.laststate.momentum.x
@@ -585,34 +611,11 @@ addHook("PlayerSpawn",function(player)
 		return saved_val ~= nil and saved_val or default_val
 	end
 
-	local preset = {
-		useinvbackups = true,
-		ammo = {
-			none = INT32_MIN,
-			bullets = 50,
-			shells = 0,
-			rockets = 0,
-			cells = 0,
-		},
-		oldweapons = {
-			brassknuckles = true,
-			pistol = true,
-		},
-		weapons = {
-			brassknuckles = true,
-			pistol = true,
-		},
-		health = 100,
-		armor = 0,
-		curwep = "pistol",
-		curwepslot = 1,
-		curwepcat = 2,
-		armorefficiency = FRACUNIT/3,
-	}
+	local preset = deepcopy(doom.pistolstartstate)
+	local saved  = player.doom.laststate
 	if doom.issrb2 then
 		preset.health = 1
 	end
-	local saved  = player.doom.laststate
 
 	local function choose(field)
 		if preset.useinvbackups and saved and saved[field] ~= nil then
@@ -634,21 +637,26 @@ addHook("PlayerSpawn",function(player)
 	player.doom.twoxammo = choose("twoxammo")
 	player.mo.doom.health = choose("health")
 	player.mo.doom.armor = choose("armor")
+	player.mo.doom.maxhealth = choose("maxhealth")
+	player.mo.doom.maxarmor = choose("maxarmor")
 	player.mo.doom.armorefficiency = choose("armorefficiency")
 	player.doom.oldweapons = choose("oldweapons")
 	player.doom.notrigger = false
 	player.doom.keys = 0
-	DOOM_SetState(player)
+	player.doom.switchtimer = 128
+
+	DOOM_SetState(player, "raise")
 
 	player.mo.flags2 = $ & ~MF2_OBJECTFLIP
 	player.mo.eflags = $ & ~MFE_VERTICALFLIP
 	if player.mo and (player.mo.info.flags & MF_SPAWNCEILING) then
-		player.mo.z = player.mo.height - P_CeilingzAtPos(player.mo.x, player.mo.y, 0, 0)
+		-- place object's top at the ceiling: ceilingz - height
+		player.mo.z = P_CeilingzAtPos(player.mo.x, player.mo.y, 0, 0) - player.mo.height
 	else
 		player.mo.z = P_FloorzAtPos(player.mo.x, player.mo.y, 0, 0)
 	end
 	
-	saveStatus(player) -- for some fuckass reason I have to save this again RIGHT after the player spawns because srb2 CAN'T comprehend not having variables not be a live reference to eachother
+	saveStatus(player) -- for some fuckass reason I have to save this again RIGHT after the player spawns because srb2 CAN'T comprehend having variables not be a live reference to eachother
 end)
 
 local function ActorCrossedLine(mo, line)
@@ -713,7 +721,8 @@ local typeHandlers = {
 		local destfog = P_SpawnMobj(teletarg.x + 20*cos(teletarg.angle), teletarg.y + 20*sin(teletarg.angle), plyrmo.z, MT_TFOG)
 		S_StartSound(destfog, sfx_telept)
 	end,
-	exit = function()
+	exit = function(_, whatIs)
+		doom.didSecretExit = whatIs.secret
 		DOOM_ExitLevel()
 	end
 }
