@@ -1862,8 +1862,6 @@ def generate_lua_for_pk3(wad, udmf_namespace="srb2"):
     # Add Doom 1 marker if needed
     if is_doom1_wad(wad):
         lua_lines.append("doom.isdoom1 = true")
-    else:
-        lua_lines.append("doom.isdoom1 = false")
     
     return '\n'.join(lua_lines)
 
