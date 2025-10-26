@@ -64,7 +64,7 @@ local baseMethods = {
 	getMaxArmor = function(player)
 		if not player or not player.mo then return nil end
 		if player.mo.doom and player.mo.doom.maxarmor ~= nil then
-			return player.mo.doom.armor
+			return player.mo.doom.maxarmor
 		end
 		return nil
 	end,

@@ -57,6 +57,19 @@ COM_AddCommand("doom_endoom", function(player, level)
 	doom.showendoom = true
 end, COM_ADMIN)
 
+COM_AddCommand("doom_doblursphere", function(player, victim)
+	player.doom.powers[pw_invisibility] = 60*TICRATE
+end)
+
+COM_AddCommand("doom_doinvincibility", function(player, victim)
+	player.doom.powers[pw_invulnerability] = 30*TICRATE
+end)
+
+COM_AddCommand("doom_dotextscreen", function(player, text)
+	--DOOM_StartTextScreen("$E1TEXT")
+	DOOM_StartTextScreen({text = "$E1TEXT", bg = "EP1CUTSC"})
+end)
+
 COM_AddCommand("doom_exitlevel", function()
 	DOOM_ExitLevel()
 end)

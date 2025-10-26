@@ -41,9 +41,82 @@ SafeFreeSlot(
 "S_DOOM_BLOOD1",
 "S_DOOM_BLOOD2",
 "S_DOOM_BLOOD3",
-"S_DOOM_BLOOD4",
-"SPR_PUFF"
+"SPR_PUFF",
+"MT_DOOM_PLASMASHOT",
+"S_DOOM_PLASMASHOT1",
+"S_DOOM_PLASMASHOT2",
+"sfx_firxpl",
+"sfx_plasma",
+"S_DOOM_PLASMAEXPLODE1",
+"S_DOOM_PLASMAEXPLODE2",
+"S_DOOM_PLASMAEXPLODE3",
+"S_DOOM_PLASMAEXPLODE4",
+"S_DOOM_PLASMAEXPLODE5",
+"SPR_PLSS",
+"SPR_PLSE"
 )
+
+mobjinfo[MT_DOOM_PLASMASHOT] = {
+	spawnstate = S_DOOM_PLASMASHOT1,
+	seesound = sfx_plasma,
+	deathsound = sfx_firxpl,
+	spawnhealth = 1000,
+	deathstate = S_DOOM_PLASMAEXPLODE1,
+	radius = 13*FRACUNIT,
+	height = 8*FRACUNIT,
+	speed = 25*FRACUNIT,
+	dispoffset = 5,
+	flags = MF_NOGRAVITY|MF_MISSILE,
+}
+
+states[S_DOOM_PLASMASHOT1] = {
+    sprite = SPR_PLSS,
+    frame = A,
+    tics = 6,
+    nextstate = S_DOOM_PLASMASHOT2
+}
+
+states[S_DOOM_PLASMASHOT2] = {
+    sprite = SPR_PLSS,
+    frame = B,
+    tics = 6,
+    nextstate = S_DOOM_PLASMASHOT1
+}
+
+states[S_DOOM_PLASMAEXPLODE1] = {
+    sprite = SPR_PLSE,
+    frame = A,
+    tics = 4,
+    nextstate = S_DOOM_PLASMAEXPLODE2
+}
+
+states[S_DOOM_PLASMAEXPLODE2] = {
+    sprite = SPR_PLSE,
+    frame = B,
+    tics = 4,
+    nextstate = S_DOOM_PLASMAEXPLODE3
+}
+
+states[S_DOOM_PLASMAEXPLODE3] = {
+    sprite = SPR_PLSE,
+    frame = C,
+    tics = 4,
+    nextstate = S_DOOM_PLASMAEXPLODE4
+}
+
+states[S_DOOM_PLASMAEXPLODE4] = {
+    sprite = SPR_PLSE,
+    frame = D,
+    tics = 4,
+    nextstate = S_DOOM_PLASMAEXPLODE5
+}
+
+states[S_DOOM_PLASMAEXPLODE5] = {
+    sprite = SPR_PLSE,
+    frame = E,
+    tics = 4,
+    nextstate = S_NULL
+}
 
 states[S_DOOM_PUFF1] = {
     sprite = SPR_PUFF,
@@ -75,7 +148,7 @@ states[S_DOOM_PUFF4] = {
 
 states[S_DOOM_BLOOD1] = {
     sprite = SPR_BLUD,
-    frame = A,
+    frame = C,
     tics = 4,
     nextstate = S_DOOM_BLOOD2
 }
@@ -89,14 +162,7 @@ states[S_DOOM_BLOOD2] = {
 
 states[S_DOOM_BLOOD3] = {
     sprite = SPR_BLUD,
-    frame = C,
-    tics = 4,
-    nextstate = S_DOOM_BLOOD4
-}
-
-states[S_DOOM_BLOOD4] = {
-    sprite = SPR_BLUD,
-    frame = D,
+    frame = A,
     tics = 4,
     nextstate = S_NULL
 }

@@ -73,7 +73,7 @@ local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
     end
     
     -- Add to thinker system
-    DOOM_AddThinker(sector, flash)
+    doom.subthinkers[sector] = flash
 end
 
 local function P_SpawnGlowingLight(sector)
@@ -85,9 +85,7 @@ local function P_SpawnGlowingLight(sector)
         direction = -1
     }
 
-    DOOM_AddThinker(sector, glow)
-
-    sector.special = 0
+    doom.subthinkers[sector] = glow
 end
 
 local function P_SpawnLightFlash(sector)
@@ -101,7 +99,7 @@ local function P_SpawnLightFlash(sector)
         count   = (DOOM_Random() & 64) + 1,
     }
 
-    DOOM_AddThinker(sector, flash)
+    doom.subthinkers[sector] = flash
 end
 
 addHook("MapLoad", function(mapid)
@@ -310,11 +308,9 @@ local thinkers = {
 	
 	lift = function(sector, data)
 		-- opening
-		print("thinking...")
 		if not data.reachedGoal then
 			local target = P_FindLowestFloorSurrounding(sector)
 			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
-			print("opening...", target, sector.floorheight, speed)
 
 			if not data.init then
 				S_StartSound(sector, sfx_pstart)
@@ -590,10 +586,9 @@ local thinkers = {
 	end,
 }
 
-addHook("ThinkFrame", function()
-	for any, data in pairs(doom.thinkers) do
-		if not (any and any.valid) then doom.thinkers[any] = nil continue end
-		if data == nil then continue end
+local function thinkFrameIterator(any, data, thinkertable)
+		if not (any and any.valid) then doom[thinkertable][any] = nil return end
+		if data == nil then return end
 		local expected = expectedUserdatas[data.type]
 		local actual = userdataType(any)
 
@@ -611,6 +606,15 @@ addHook("ThinkFrame", function()
 		end
 
 		fn(any, data)
+end
+
+addHook("ThinkFrame", function()
+	for any, data in pairs(doom.thinkers) do
+		thinkFrameIterator(any, data, "thinkers")
+	end
+
+	for any, data in pairs(doom.subthinkers) do
+		thinkFrameIterator(any, data, "subthinkers")
 	end
 
 	for mobj, params in pairs(doom.torespawn) do

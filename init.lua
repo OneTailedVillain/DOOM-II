@@ -53,6 +53,7 @@ dofile("Player/JohnDoom.lua")
 dofile("Player/Player.lua")
 dofile("Player/IntermissionThinker.lua")
 dofile("Player/KeyBoardCheats.lua")
+dofile("DEH Pointers.lua")
 
 -- VSCode shit since with the advent of doomgfx it's now somewhat more viable as an option
 

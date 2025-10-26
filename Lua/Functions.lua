@@ -148,7 +148,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 end)
 
 local function maybeAddToRespawnTable(mo)
-	if (mo.doom.flags & DF_DM2RESPAWN) then
+	if netgame and gametype != GT_DOOMDM and (mo.doom.flags & DF_DM2RESPAWN) then
 		table.insert(doom.torespawn, {
 			time = leveltime,
 			x = mo.x,
@@ -582,7 +582,6 @@ rawset(_G, "DOOM_AddThinker", function(any, thinkingType)
     if thinkingType == nil then return end
 	-- clone the lineAction data so each sector gets its own independent state
     local data = deepcopy(thinkingType)
-	print("adding " .. tostring(data.type) .. " thinker!")
     doom.thinkers[any] = data
 end)
 

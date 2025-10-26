@@ -258,6 +258,73 @@ addHook("PlayerThink", function(player)
 	player.doom.lastbuttons = player.cmd.buttons
 end)
 
+local function updateWeaponState(player, isFlashState)
+	if isFlashState then
+		if player.doom.flashtics == 0 and player.doom.flashframe >= 1 then
+			local curDef = DOOM_GetWeaponDef(player)
+			local stateTable = curDef and curDef.states and curDef.states[player.doom.flashstate or "flash"]
+			local currentFrameDef = stateTable and stateTable[player.doom.flashframe]
+			
+			if currentFrameDef and currentFrameDef.nextstate then
+				-- Use weapon-defined next state/frame for flash
+				player.doom.flashstate = currentFrameDef.nextstate
+				player.doom.flashframe = currentFrameDef.nextframe or 1
+				local nextDef = stateTable and stateTable[player.doom.flashframe]
+				if nextDef then
+					player.doom.flashtics = nextDef.tics
+				else
+					player.doom.flashframe = 0
+				end
+			else
+				-- Linear progression (original behavior)
+				player.doom.flashframe = ($ or 1) + 1
+				local nextDef = stateTable and stateTable[player.doom.flashframe]
+				if nextDef == nil then
+					player.doom.flashframe = 0
+				else
+					player.doom.flashtics = nextDef.tics
+				end
+			end
+		end
+	else
+		if player.doom.weptics == 0 then
+			local curDef = DOOM_GetWeaponDef(player)
+			local stateTable = curDef and curDef.states and curDef.states[player.doom.wepstate]
+			local currentFrameDef = stateTable and stateTable[player.doom.wepframe]
+			
+			if currentFrameDef and currentFrameDef.nextstate then
+				-- Use weapon-defined next state/frame
+				DOOM_SetState(player, currentFrameDef.nextstate, currentFrameDef.nextframe or 1)
+			else
+				-- Linear progression (original behavior)
+				player.doom.wepframe = ($ or 1) + 1
+				local nextDef = stateTable and stateTable[player.doom.wepframe]
+				if nextDef == nil then
+					-- Get the next state from weapon definition or use default
+					local nextState = curDef and curDef.nextstate and curDef.nextstate[player.doom.wepstate]
+					
+					if nextState then
+						-- Weapon defines a specific next state for this state
+						DOOM_SetState(player, nextState)
+					else
+						-- Default behavior based on current state
+						if player.doom.wepstate == "lower" or player.doom.wepstate == "raise" then
+							-- Continue the current state if no next state defined
+							DOOM_SetState(player, player.doom.wepstate)
+						else
+							-- Return to idle for other states
+							DOOM_SetState(player, "idle")
+						end
+					end
+				else
+					-- Continue with current frame in current state
+					DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
+				end
+			end
+		end
+	end
+end
+
 addHook("PlayerThink", function(player)
 	if (player.mo.flags & MF_NOTHINK) then return end
 
@@ -296,32 +363,9 @@ addHook("PlayerThink", function(player)
 	if player.doom.flashframe >= 0 then
 		player.doom.flashtics = ($ or 1) - 1
 	end
-	if player.doom.weptics == 0 then
-		player.doom.wepframe = ($ or 1) + 1
-		local curDef = DOOM_GetWeaponDef(player)
-		local stateTable = curDef and curDef.states and curDef.states[player.doom.wepstate]
-		local nextDef = stateTable and stateTable[player.doom.wepframe]
-		if nextDef == nil then
-			local shouldForceLower = player.doom.wepstate == "lower"
-			local shouldForceRaise = player.doom.wepstate == "raise"
-			local nextState = (shouldForceLower and "lower") or (shouldForceRaise and "raise") or "idle"
-			DOOM_SetState(player, nextState)
-		else
-			DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
-		end
-	end
 
-	if player.doom.flashtics == 0 and player.doom.flashframe >= 1 then
-		player.doom.flashframe = ($ or 1) + 1
-		local curDef = DOOM_GetWeaponDef(player)
-		local stateTable = curDef and curDef.states and curDef.states.flash
-		local nextDef = stateTable and stateTable[player.doom.flashframe]
-		if nextDef == nil then
-			player.doom.flashframe = 0
-		else
-			player.doom.flashtics = nextDef.tics
-		end
-	end
+	updateWeaponState(player, false)  -- Main weapon state
+	updateWeaponState(player, true)   -- Flash state
 end)
 
 addHook("PlayerThink", function(player)
@@ -599,6 +643,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.bobx = 0
 	player.doom.boby = 0
 	player.doom.flashtics = 0
+	player.doom.flashstate = "flash"
 	player.doom.flashframe = -1
 	if player.doom.laststate and player.doom.laststate.map == gamemap then
 		P_SetOrigin(player.mo, player.doom.laststate.pos.x, player.doom.laststate.pos.y, player.doom.laststate.pos.z)

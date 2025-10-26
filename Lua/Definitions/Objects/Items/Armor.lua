@@ -1,3 +1,17 @@
+local function P_GiveArmor(player, class)
+	local funcs = P_GetMethodsForSkin(player)
+	local health = funcs.getArmor(player)
+	if health >= class*100 then return false end
+
+	local efficiency = FRACUNIT/3
+
+	if class > 1 then
+		efficiency = FRACUNIT/2
+	end
+
+	funcs.setArmor(player, class * 100, efficiency)
+end
+
 local function SafeFreeSlot(...)
     local ret = {}
     for _, name in ipairs({...}) do
@@ -38,8 +52,9 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getArmor(player)
+	local maxhealth = funcs.getMaxArmor(player)
 	
-	funcs.setArmor(player, min(health + 1, 200))
+	funcs.setArmor(player, min(health + 1, maxhealth * 2))
 	DOOM_DoMessage(player, "$GOTARMBONUS")
 end
 
@@ -69,7 +84,7 @@ local function onPickup(item, mobj)
 	local health = funcs.getArmor(player)
 	if health >= 200 then return true end
 	
-	funcs.setArmor(player, 200, FRACUNIT/2)
+	P_GiveArmor(player, doom.bluearmorclass)
 	DOOM_DoMessage(player, "$GOTMEGA")
 end
 
@@ -99,7 +114,7 @@ local function onPickup(item, mobj)
 	local health = funcs.getArmor(player)
 	if health >= 100 then return true end
 	
-	funcs.setArmor(player, 100, FRACUNIT/3)
+	P_GiveArmor(player, doom.greenarmorclass)
 	DOOM_DoMessage(player, "$GOTARMOR")
 end
 

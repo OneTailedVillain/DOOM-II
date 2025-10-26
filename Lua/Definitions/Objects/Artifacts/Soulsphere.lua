@@ -39,7 +39,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	
-	funcs.setHealth(player, min(health + doom.soulspheregrant, 200))
+	funcs.setHealth(player, min(health + doom.soulspheregrant, doom.maxsoulsphere))
 	DOOM_DoMessage(player, "$GOTSUPER")
 end
 

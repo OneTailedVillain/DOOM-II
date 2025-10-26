@@ -13,7 +13,7 @@ local function SafeFreeSlot(...)
 end
 
 SafeFreeSlot("SPR_HEAD", "sfx_cacsit", "sfx_cacdth")
-local name = "Imp"
+local name = "Cacodemon"
 
 local object = {
 	health = 400,

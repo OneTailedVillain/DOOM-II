@@ -31,6 +31,7 @@ local states = {
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
+	local funcs = P_GetMethodsForSkin(player)
 	
 	player.doom.twoxammo = true
 	player.doom.backpack = true

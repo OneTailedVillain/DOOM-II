@@ -57,14 +57,18 @@ local function drawWeapon(v, player, offset)
 	boby = boby + (weaponYOffset * FRACUNIT)
 
 	-- gather sprite/frame/patch
-	local sprite = doom.weapons[player.doom.curwep].sprite
-	local whatFrame = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe].frame
+	local stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
+	local sprite = stateDef.sprite or doom.weapons[player.doom.curwep].sprite
+	local whatFrame = stateDef.frame
+	if whatFrame == nil then
+		print("Weapon '" .. player.doom.curwep .. "' state '" .. player.doom.wepstate .. "' frame '" .. player.doom.wepframe .. "' missing a 'frame' field?")
+		whatFrame = 0
+	end
 	local spriteflags = whatFrame & ~FF_FRAMEMASK
 	whatFrame = $ & FF_FRAMEMASK
 	local patch = v.getSpritePatch(sprite, whatFrame)
 	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
 
-	local stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
 	local stateOffsetX = 0
 	local stateOffsetY = 0
 	-- definition chicanery because there's too many ways to do this
@@ -113,11 +117,12 @@ local function drawWeapon(v, player, offset)
 	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
 
 	if player.doom.flashframe < 1 then return end
-	if not doom.weapons[player.doom.curwep].states.flash then return end
-	if not doom.weapons[player.doom.curwep].states.flash[player.doom.flashframe] then return end
+	if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return end
+	if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or flash][player.doom.flashframe] then return end
 
-	local sprite = doom.weapons[player.doom.curwep].flashsprite
-	local whatFrame = doom.weapons[player.doom.curwep].states.flash[player.doom.flashframe].frame
+	local stateDef = doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe]
+	local whatFrame = stateDef.frame
+	local sprite = stateDef.sprite or doom.weapons[player.doom.curwep].flashsprite
 	spriteflags = whatFrame & ~FF_FRAMEMASK
 	whatFrame = $ & FF_FRAMEMASK
 	if whatFrame < 0 then return end
@@ -128,6 +133,15 @@ local function drawWeapon(v, player, offset)
 	elseif spriteflags & FF_FULLDARK then
 		lightlevel = 0
 	end
+
+	local colormap = IsAboveVersion(202, 14)
+		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
+		or nil
+
+	if invuln > 4 * 32 or invuln & 8 then
+		colormap = v.getColormap(nil, nil, "COLORMAPROW33")
+	end
+
 	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
 end
 

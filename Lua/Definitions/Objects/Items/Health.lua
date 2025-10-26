@@ -38,8 +38,9 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
+	local maxhealth = funcs.getMaxHealth(player)
 	
-	funcs.setHealth(player, min(health + 1, 200))
+	funcs.setHealth(player, min(health + 1, maxhealth * 2))
 	DOOM_DoMessage(player, "$GOTHTHBONUS")
 end
 
@@ -66,9 +67,10 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
-	if health >= 100 then return true end
+	local maxhealth = funcs.getMaxHealth(player)
+	if health >= maxhealth then return true end
 	
-	funcs.setHealth(player, min(health + 25, 100))
+	funcs.setHealth(player, min(health + 25, maxhealth))
 	if health < 25 then
 		DOOM_DoMessage(player, "$GOTMEDINEED")
 	else
@@ -99,9 +101,10 @@ local function onPickup(item, mobj)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
-	if health >= 100 then return true end
+	local maxhealth = funcs.getMaxHealth(player)
+	if health >= maxhealth then return true end
 	
-	funcs.setHealth(player, min(health + 10, 100))
+	funcs.setHealth(player, min(health + 10, maxhealth))
 	DOOM_DoMessage(player, "$GOTSTIM")
 end
 

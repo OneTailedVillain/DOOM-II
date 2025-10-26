@@ -132,6 +132,7 @@ local function doLoadingShit()
 	if doom and doom.dehacked then
 		print("applying DEHACKED fields...")
 		local deh = doom.dehacked
+		local pointers = doom.dehackedpointers
 		if deh.ammo then
 			if deh.ammo[0] then
 				doom.ammos["bullets"].max = deh.ammo[0].maxammo or $
@@ -140,16 +141,69 @@ local function doLoadingShit()
 				doom.ammos["shells"].max = deh.ammo[1].maxammo or $
 			end
 			if deh.ammo[2] then
-				doom.ammos["rockets"].max = deh.ammo[2].maxammo or $
+				doom.ammos["cells"].max = deh.ammo[2].maxammo or $
 			end
 			if deh.ammo[3] then
-				doom.ammos["cells"].max = deh.ammo[3].maxammo or $
+				doom.ammos["rockets"].max = deh.ammo[3].maxammo or $
 			end
 		end
 		if deh.misc then
 			local misc = deh.misc[0]
-			doom.pistolstartstate.maxhealth = misc.maxhealth
-			doom.pistolstartstate.maxarmor = misc.maxarmor
+			doom.pistolstartstate.maxhealth = misc.maxhealth or $
+			doom.pistolstartstate.maxarmor = misc.maxarmor or $
+			doom.soulspheregrant = misc.soulspherehealth or $
+			doom.maxsoulsphere = misc.maxsoulsphere or $
+			doom.megaspheregrant = misc.megaspherehealth or $
+		end
+		if deh.frames then
+			for number, data in pairs(deh.frames) do
+				if pointers.frametowepstate[number] then
+					local path = pointers.frametowepstate[number]
+					local state = doom.weapons[path[1]]
+					/*
+						path[1] = wepname
+						path[2] = wepstate
+						path[3] = wepframe
+						DEHACKED uses nextframe
+					*/
+					if not state then
+						print("WARNING: INVALID WEAPON NAME '" .. tostring(path[1]) .. "'!")
+						continue
+					end
+					state = state.states[path[2]]
+					if not state then
+						print("WARNING: INVALID STATE '" .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
+						continue
+					end
+					state = state[path[3]]
+					if not state then
+						print("WARNING: INVALID FRAME '" .. tostring(path[3]) .. "' FOR FRAME '"  .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
+						continue
+					end
+					
+					-- Set basic frame properties
+					state.tics = data.duration or $
+					state.sprite = data.spritenumber or $
+					state.frame = data.spritesubnumber or $
+					/*
+					-- Handle nextframe if present
+					if data.nextframe and data.nextframe ~= 0 then
+						local nextPath = pointers.frametowepstate[data.nextframe]
+						if nextPath then
+							-- Verify the nextframe points to the same weapon
+							if nextPath[1] == path[1] then
+								state.nextstate = nextPath[2]
+								state.nextframe = nextPath[3]
+							else
+								print("WARNING: DEHACKED nextframe " .. data.nextframe .. " for weapon '" .. path[1] .. "' state '" .. path[2] .. "' frame " .. path[3] .. " points to different weapon '" .. nextPath[1] .. "'!")
+							end
+						else
+							print("WARNING: DEHACKED nextframe " .. data.nextframe .. " for weapon '" .. path[1] .. "' state '" .. path[2] .. "' frame " .. path[3] .. " points to invalid frame!")
+						end
+					end
+					*/
+				end
+			end
 		end
 	end
 

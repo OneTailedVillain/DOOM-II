@@ -283,7 +283,7 @@ doom.addWeapon("plasmarifle", {
 	priority = 100,
 	damage = {5, 15},
 	pellets = 1,
-	shootmobj = MT_DOOM_ROCKETPROJ,
+	shootmobj = MT_DOOM_PLASMASHOT,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,

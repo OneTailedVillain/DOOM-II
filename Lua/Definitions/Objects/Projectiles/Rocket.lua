@@ -30,8 +30,7 @@ mobjinfo[MT_DOOM_ROCKETPROJ] = {
 states[S_ROCKET_SPAWN] = {
     sprite = SPR_MISL,
     frame = A|FF_FULLBRIGHT,
-    tics = -1,
-    nextstate = S_DOOM_BLOOD4
+    tics = -1
 }
 
 states[S_ROCKET_EXPLODE1] = {
