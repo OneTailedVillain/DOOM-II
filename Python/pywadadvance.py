@@ -1397,7 +1397,7 @@ def is_doom1_wad(wad):
     """Check if WAD appears to be Doom 1 based by looking for ExMx maps"""
     # Check for ExMx maps
     ex_pattern = re.compile(r"^E(\d)M(\d{1,2})$", re.IGNORECASE)
-    for mapname in wad_obj.maps:
+    for mapname in wad.maps:
         if ex_pattern.match(mapname.upper()):
             return True
 
