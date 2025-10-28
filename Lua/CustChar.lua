@@ -121,6 +121,7 @@ local baseMethods = {
 	end,
 
 	giveWeapon = function(player, weapon, doomflags)
+		if doomflags == nil then doomflags = 0 end
 		if not player or not player.doom or not weapon then
 			return false
 		end
@@ -158,6 +159,7 @@ local baseMethods = {
 	end,
 
 	giveAmmoFor = function(player, source, dflags)
+		if dflags == nil then dflags = 0 end
 		local tables = {
 			clip           = {"bullets", 10, true},
 			clipbox        = {"bullets", 50},
