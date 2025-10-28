@@ -391,10 +391,20 @@ local srb2hud = {
 }
 
 hud.add(function(v, player)
+	hud.disable("score")
+	hud.disable("time")
+	hud.disable("rings")
+	hud.disable("lives")
+	hud.disable("crosshair")
+
+	if not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
+		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YO! YOU DON'T HAVE A VALID IWAD LOADED YET!\nGRAB YOUR COPY OF DOOM, DOOM II, OR FREEDOOM\nAND LOAD THAT FIRST!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
+		return
+	end
 	whatRenderer = v.renderer()
 	local support = P_GetSupportsForSkin(player)
 	if player.doom.message and player.doom.messageclock then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE)
+		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	if support.noHUD then DrawFlashes(v, player) return end
 
@@ -402,12 +412,6 @@ hud.add(function(v, player)
 	local myHealth = funcs.getHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
 	local myAmmo = funcs.getCurAmmo(player)
-
-	hud.disable("score")
-	hud.disable("time")
-	hud.disable("rings")
-	hud.disable("lives")
-	hud.disable("crosshair")
 
 	if doom.issrb2 then
 		drawWeapon(v, player, 38)
