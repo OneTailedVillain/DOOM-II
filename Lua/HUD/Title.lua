@@ -4,8 +4,12 @@ local menustatus = {menu = "title", selection = 0}
 local LINEHEIGHT = 16
 local SKULLXOFF = -32
 
--- TODO: Make KeyDown learn what this is meant to mean
-local menus = {
+addHook("MapLoad", function(mapid)
+	-- refresh this
+	menustatus = {menu = "title", selection = 0}
+end)
+
+doom.titlemenus = {
 	menu = {
 		entries = {
 			{label = "newgame", patch = "M_NGAME", x = 97, y = 64, goto = "newgame"},
@@ -34,6 +38,20 @@ local menus = {
 			v.draw(54, 38, v.cachePatch("M_SKILL"))
 		end,
 	},
+	episelect = {
+		iscommandbased = true,
+		default = 1,
+		-- Episode selection for Doom 1
+		entries = {
+			{label = "episode1", patch = "M_EPI1", x = 48, y = 63, goto = "newgame", episode = 1},
+			{label = "episode2", patch = "M_EPI2", x = 48, y = 63+LINEHEIGHT, goto = "newgame", episode = 2},
+			{label = "episode3", patch = "M_EPI3", x = 48, y = 63+LINEHEIGHT*2, goto = "newgame", episode = 3},
+			{label = "episode4", patch = "M_EPI4", x = 48, y = 63+LINEHEIGHT*3, goto = "newgame", episode = 4},
+		},
+		customFunc = function(v, player)
+			v.draw(54, 38, v.cachePatch("M_EPISOD"))
+		end,
+	},
 	loadgame = {
 		entries = {
 			{label = "save1", command = "doom_loadsave 1"},
@@ -57,6 +75,9 @@ local menus = {
 	},
 }
 
+-- Store the selected episode globally
+doom.selectedEpisode = 1
+
 hud.add(function(v, player)
 	hudtime = $ + 1
 	if doom.isdoom1 then
@@ -73,7 +94,7 @@ hud.add(function(v, player)
 	end
 	v.draw(0, 0, titlePatch)
 	local currentMenuKey = menustatus.menu
-    local menuDef = menus[currentMenuKey]
+    local menuDef = doom.titlemenus[currentMenuKey]
     if not menuDef then return false end
 	for k, entry in pairs(menuDef.entries) do
 		if not entry.patch then continue end
@@ -123,7 +144,7 @@ local function OnKeyDown(keyevent)
     end
 
     local currentMenuKey = menustatus.menu
-    local menuDef = menus[currentMenuKey]
+    local menuDef = doom.titlemenus[currentMenuKey]
     if not menuDef then return false end
 
     local entryCount = #menuDef.entries
@@ -168,8 +189,29 @@ local function OnKeyDown(keyevent)
         menustatus.selection = (num - 1) % entryCount
     end
 
+    -- Handle episode selection - store the selected episode
+    if currentMenuKey == "episelect" and selectedEntry.episode then
+        doom.selectedEpisode = selectedEntry.episode
+    end
+
     -- Confirm/execute
     if isGameControl(keyevent, GC_JUMP) or keyevent.name == "enter" then
+        -- For episode selection, we need to update the newgame commands with the proper map
+        if currentMenuKey == "episelect" and selectedEntry.episode then
+            -- Calculate the starting map for the selected episode (maps are 8 apart)
+            local startMapNum = (doom.selectedEpisode - 1) * 8 + 1
+            local startMap = "map" .. (startMapNum < 10 and "0" .. startMapNum or startMapNum)
+            
+            -- Update all newgame entries to use the correct episode map
+            for i, skillEntry in ipairs(doom.titlemenus.newgame.entries) do
+                skillEntry.command = {
+                    "skin johndoom", 
+                    "doom_skill " .. i, 
+                    "map " .. startMap .. " -f"
+                }
+            end
+        end
+        
         if selectedEntry.command then
             local cmds = type(selectedEntry.command) == "table" and selectedEntry.command or {selectedEntry.command}
             for _, cmd in ipairs(cmds) do
@@ -178,7 +220,7 @@ local function OnKeyDown(keyevent)
         end
         if selectedEntry.goto then
             menustatus.menu = selectedEntry.goto
-            menustatus.selection = (menus[selectedEntry.goto].default or 1) - 1
+            menustatus.selection = (doom.titlemenus[selectedEntry.goto].default or 1) - 1
         end
         S_StartSound(nil, sfx_pistol)
         return true

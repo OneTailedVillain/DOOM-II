@@ -1,16 +1,42 @@
-states[S_DOOM_IMPFIRE] = {
+states[S_DOOM_IMPFIRE1] = {
     sprite    = SPR_BAL1,
-    frame     = A|FF_ANIMATE,
-	tics      = -1,
-	var1      = 1,
-	var2      = 4,
+    frame     = A,
+	tics      = 4,
+	nextstate = S_DOOM_IMPFIRE2
+}
+
+states[S_DOOM_IMPFIRE2] = {
+    sprite    = SPR_BAL1,
+    frame     = B,
+	tics      = 4,
+	nextstate = S_DOOM_IMPFIRE1
+}
+
+states[S_DOOM_IMPFIREEXPLODE1] = {
+    sprite    = SPR_BAL1,
+    frame     = C,
+	tics      = 6,
+	nextstate = S_DOOM_IMPFIREEXPLODE2
+}
+
+states[S_DOOM_IMPFIREEXPLODE2] = {
+    sprite    = SPR_BAL1,
+    frame     = D,
+	tics      = 6,
+	nextstate = S_DOOM_IMPFIREEXPLODE3
+}
+
+states[S_DOOM_IMPFIREEXPLODE3] = {
+    sprite    = SPR_BAL1,
+    frame     = E,
+	tics      = 6,
 	nextstate = S_NULL
 }
 
 mobjinfo[MT_TROOPSHOT] = {
-	spawnstate   = S_DOOM_IMPFIRE,
+	spawnstate   = S_DOOM_IMPFIRE1,
 	seesound     = sfx_firsht,
-	deathstate   = S_DOOM_IMPEXPLODE1,
+	deathstate   = S_DOOM_IMPFIREEXPLODE1,
 	deathsound   = sfx_firxpl,
 	speed        = 10 * FRACUNIT,
 	radius       = 6 * FRACUNIT,
@@ -795,6 +821,14 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
         S_StartSound(actor, weapon.firesound)
         DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc)
     end
+end
+
+function A_DoomGunFlash(actor, var1, var2, weapon)
+	local player = actor.player
+	if weapon.states.flash then
+		player.doom.flashframe = 1
+		player.doom.flashtics = weapon.states.flash[1].tics
+	end
 end
 
 function A_DoomReFire(actor)

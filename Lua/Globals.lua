@@ -56,38 +56,94 @@ doom.validcount = 0
 doom.sectordata = {}
 
 local wepBase = {
-	sprite = SPR_PISG,
-	weaponslot = 2,
-	order = 1,
-	damage = {5, 15},
-	raycaster = true,
-	shotcost = 1,
-	pellets = 1,
-	spread = {
-		horiz = 0,
-		vert = 0,
-	},
-	states = {
-		idle = {
-			{frame = A, tics = INT32_MAX},
-		},
-		attack = {
-			{frame = B, tics = 4},
-			{frame = C, tics = 4, action = A_DoomPunch},
-			{frame = D, tics = 5},
-			{frame = C, tics = 4},
-			{frame = B, tics = 5, action = A_DoomReFire},
-		}
-	},
-	ammotype = "bullets",
+    sprite = SPR_PISG,
+    weaponslot = 2,
+    order = 1,
+    damage = {5, 15},
+    raycaster = true,
+    shotcost = 1,
+    pellets = 1,
+    spread = {
+        horiz = 0,
+        vert = 0,
+    },
+    states = {
+        idle = {
+            {frame = A, tics = INT32_MAX},
+        },
+        attack = {
+            {frame = B, tics = 4},
+            {frame = C, tics = 4, action = A_DoomPunch},
+            {frame = D, tics = 5},
+            {frame = C, tics = 4},
+            {frame = B, tics = 5, action = A_DoomReFire},
+        }
+    },
+    ammotype = "bullets",
 }
 
+-- small helper to shallow-copy a state entry table
+local function copy_state_entry(entry)
+    if type(entry) ~= "table" then return nil end
+    local out = {}
+    for k, v in pairs(entry) do out[k] = v end
+    return out
+end
+
+-- Create a default lower/raise state using `idle[1]` as source and forcing action
+local function make_lower_or_raise_from_idle(states, action)
+    local idle = states and states.idle
+    local src = (idle and idle[1]) or (wepBase.states and wepBase.states.idle and wepBase.states.idle[1])
+    if not src then
+        -- ultimate fallback: create a minimal state
+        return { { frame = 0, tics = 1, action = action } }
+    end
+    local newEntry = copy_state_entry(src)
+    newEntry.action = action
+    return { newEntry }
+end
+
 function doom.addWeapon(wepname, properties)
-	setmetatable(properties, { __index = wepBase })
-	doom.weapons[wepname] = properties
-	local wepslot = properties.weaponslot
-	local weporder = properties.order
-	doom.weaponnames[wepslot][weporder] = wepname
+    -- attach metatable to provide defaults from wepBase
+    setmetatable(properties, {
+        __index = function(t, key)
+            if key == "flashsprite" then
+                return rawget(t, "sprite") or wepBase.sprite
+            else
+                return wepBase[key]
+            end
+        end
+    })
+
+    -- Ensure states table exists (so we can safely index it)
+    properties.states = properties.states or {}
+
+    -- If idle isn't present, try to inherit the base idle (so we have a usable source)
+    if not properties.states.idle or #properties.states.idle == 0 then
+        if wepBase.states and wepBase.states.idle and #wepBase.states.idle > 0 then
+            -- shallow-copy the base idle entries
+            properties.states.idle = {}
+            for i, entry in ipairs(wepBase.states.idle) do
+                properties.states.idle[i] = copy_state_entry(entry)
+            end
+        else
+            -- make a minimal idle so we always have something
+            properties.states.idle = { { frame = 0, tics = INT32_MAX } }
+        end
+    end
+
+    -- Provide default lower/raise states if missing
+    if not properties.states.lower then
+        properties.states.lower = make_lower_or_raise_from_idle(properties.states, A_DoomLower)
+    end
+    if not properties.states.raise then
+        properties.states.raise = make_lower_or_raise_from_idle(properties.states, A_DoomRaise)
+    end
+
+    doom.weapons[wepname] = properties
+    local wepslot = properties.weaponslot
+    local weporder = properties.order
+    doom.weaponnames[wepslot][weporder] = wepname
 end
 
 doom.ammos = {}

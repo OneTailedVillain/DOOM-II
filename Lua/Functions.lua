@@ -405,12 +405,12 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
     if not target or not target.valid then return end
     damage = inflictor and inflictor.doom.damage or damage
 	
-	
     local player = target.player
     
     if player then
         -- Player-specific handling
 		if DOOM_IsExiting() then return end
+		if (player.pflags & PF_GODMODE) then return end
         local funcs = P_GetMethodsForSkin(player)
         funcs.damage(target, damage, source, inflictor, damagetype, minhealth)
         player.doom.damagecount = (player.doom.damagecount or 0) + damage
@@ -431,7 +431,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
         if inflictor and not (target.flags & MF_NOCLIP) and
            (not source or not source.player or source.player.curwep ~= "chainsaw") then
             local ang = R_PointToAngle2(inflictor.x, inflictor.y, target.x, target.y)
-            local thrust = damage * (FRACUNIT >> 3) * 100 / target.info.mass
+            local thrust = damage * (FRACUNIT >> 3) * 100 / (target.info.mass or FRACUNIT)
 
             -- Make fall forwards sometimes
             if damage < 40 and damage > target.doom.health and 
@@ -473,18 +473,13 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
                 target.state = target.info.deathstate
             end
 
+			if not (target and target.valid) then return end
+
             target.tics = $ - (DOOM_Random() & 3)
             if target.tics < 1 then target.tics = 1 end
 
-			local itemDropList = {
-				[MT_DOOM_ZOMBIEMAN] = MT_DOOM_CLIP,
-				[MT_DOOM_SSGUARD] = MT_DOOM_CLIP,
-				[MT_DOOM_CHAINGUNNER] = MT_DOOM_CHAINGUN,
-				[MT_DOOM_SHOTGUNNER] = MT_DOOM_SHOTGUN,
-			}
-
             -- Handle item drops
-            local itemtype = itemDropList[target.type]
+            local itemtype = doom.dropTable[target.type]
 
             if itemtype then
                 local mo = P_SpawnMobj(target.x, target.y, ONFLOORZ, itemtype)
@@ -589,6 +584,7 @@ rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 	if not (player and player.valid) then return end
 	if not player.doom then return end
 	if not player.doom.weapons[wepname] then return end -- player must own it
+	if player.doom.curwep == wepname then return end -- Ignore if same
 
 	-- Find which slot + order this weapon belongs to
 	for slot, weplist in pairs(doom.weaponnames) do
@@ -611,10 +607,10 @@ rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 		end
 	end
 
-	return false -- weapon exists but wasn’t found in any slot (bad config?)
+	return false -- weapon exists but wasn't found in any slot (bad config?)
 end)
 
-rawset(_G, "DOOM_DoAutoSwitch", function(player, force)
+rawset(_G, "DOOM_DoAutoSwitch", function(player, force, ammotype)
 	local candidates = {}
 	local funcs = P_GetMethodsForSkin(player)
 	local weapon = DOOM_GetWeaponDef(player)
@@ -624,10 +620,11 @@ rawset(_G, "DOOM_DoAutoSwitch", function(player, force)
 		if curAmmo - weapon.shotcost >= 0 then return end
 	end
 	for name, definition in pairs(doom.weapons) do
+		if not player.doom.weapons[name] then continue end
+		if ammotype and definition.ammotype != ammotype then continue end
+
         local funcs = P_GetMethodsForSkin(player)
 		curAmmo = funcs.getAmmoFor(player, definition.ammotype)
-
-		if not player.doom.weapons[name] then continue end
 		if curAmmo - definition.shotcost < 0 then continue end
 
 		table.insert(candidates, {
@@ -765,6 +762,9 @@ rawset(_G, "DOOM_NextLevel", function()
 		nextLev = mapheaderinfo[gamemap].nextsecretlevel or doom.secretExits[gamemap]
 	else
 		nextLev = mapheaderinfo[gamemap].nextlevel or gamemap + 1
+	end
+	if doom.lastmap and gamemap == doom.lastmap then
+		nextLev = 1100 -- aka "nextLev = TITLE" (i don't trust SRB2's constants for this)
 	end
 	G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
 	G_ExitLevel()

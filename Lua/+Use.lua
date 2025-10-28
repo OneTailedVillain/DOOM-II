@@ -138,7 +138,10 @@ end
 local MAX_USE_DIST = USERANGE -- How far the check can go before it's too far
 rawset(_G, "DOOM_TryUse", function(player)
     if not (player and player.mo) then return end
+	local oldpitch = player.pitch
+	player.pitch = 0
     local ray = P_SpawnPlayerMissile(player.mo, MT_DOOM_USERAYCAST)
+	player.pitch = oldpitch
     if not (ray and ray.valid) then return end
 
     ray.scale = player.mo.scale

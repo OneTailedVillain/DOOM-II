@@ -16,10 +16,9 @@ local weaponMap = {
 	"bfg9000"
 }
 
-COM_AddCommand("idkfa", function(player, victim)
+local function giveWeaponsArmorAndAmmo(player)
 	local funcs = P_GetMethodsForSkin(player)
 	funcs.setArmor(player, 200, FRACUNIT/2)
-	player.doom.keys = doom.KEY_RED|doom.KEY_BLUE|doom.KEY_YELLOW|doom.KEY_SKULLRED|doom.KEY_SKULLBLUE|doom.KEY_SKULLYELLOW
 	for i = 1, 4 do
 		local aType = ammoMap[i]
 		local max = funcs.getMaxFor(player, aType)
@@ -31,22 +30,15 @@ COM_AddCommand("idkfa", function(player, victim)
 	if not doom.isdoom1 then
 		funcs.giveWeapon(player, "supershotgun")
 	end
+end
+
+COM_AddCommand("idkfa", function(player, victim)
+	player.doom.keys = doom.KEY_RED|doom.KEY_BLUE|doom.KEY_YELLOW|doom.KEY_SKULLRED|doom.KEY_SKULLBLUE|doom.KEY_SKULLYELLOW
+	giveWeaponsArmorAndAmmo(player)
 end)
 
 COM_AddCommand("idfa", function(player, victim)
-	local funcs = P_GetMethodsForSkin(player)
-	funcs.setArmor(player, 200, FRACUNIT/2)
-	for i = 1, 4 do
-		local aType = ammoMap[i]
-		local max = funcs.getMaxFor(player, aType)
-		funcs.setAmmoFor(player, aType, max)
-	end
-	for i = 1, #weaponMap do
-		funcs.giveWeapon(player, weaponMap[i])
-	end
-	if not doom.isdoom1 then
-		funcs.giveWeapon(player, "supershotgun")
-	end
+	giveWeaponsArmorAndAmmo(player)
 end)
 
 COM_AddCommand("doom_skill", function(player, victim)

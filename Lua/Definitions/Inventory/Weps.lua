@@ -5,8 +5,9 @@ DOOM_Freeslot(
 "SPR_SHTG", "SPR_SHTF",
 "SPR_SHT2",
 "SPR_CHGG", "SPR_CHGF",
-"SPR_MISG",
+"SPR_MISG", "SPR_MISF",
 "SPR_PLSG",
+"SPR_BFGG", "SPR_BFGF",
 "sfx_sawidl", "sfx_sawful", "sfx_sawup", "sfx_sawhit",
 "sfx_pistol",
 "sfx_dshtgn", "sfx_dbopn", "sfx_dbload", "sfx_dbcls",
@@ -154,7 +155,13 @@ doom.addWeapon("supershotgun", {
 			{frame = F, tics = 7, action = A_PlaySound, var1 = sfx_dbload, var2 = 1},
 			{frame = G, tics = 8},
 			{frame = H, tics = 8, action = A_PlaySound, var1 = sfx_dbcls, var2 = 1},
-			{frame = A, tics = 5, action = A_DoomReFire},
+			{frame = A, tics = 5, action = A_DoomReFire, nextstate = "idle"},
+			{frame = B, tics = 7},
+			{frame = A, tics = 3, nextstate = "lower"},
+		},
+		flash = {
+			{frame = I, tics = 4},
+			{frame = J, tics = 3},
 		}
 	},
 	ammotype = "shells",
@@ -243,6 +250,7 @@ doom.addWeapon("chaingun", {
 
 doom.addWeapon("rocketlauncher", {
 	sprite = SPR_MISG,
+	flashsprite = SPR_MISF,
 	weaponslot = 5,
 	order = 1,
 	priority = 2500,
@@ -267,9 +275,15 @@ doom.addWeapon("rocketlauncher", {
 			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
-			{frame = B, tics = 4},--, action = A_DoomFire},
-			{frame = B, tics = 12, action = A_DoomFire},
+			{frame = B, tics = 8, action = A_DoomGunFlash},
+			{frame = B, tics = 12, action = A_DoomFire, var2 = {noFlash = true}},
 			{frame = B, tics = 0, action = A_DoomReFire},
+		},
+		flash = {
+			{frame = A, tics = 3},
+			{frame = B, tics = 4},
+			{frame = C, tics = 4},
+			{frame = D, tics = 4},
 		}
 	},
 	raycaster = true,
@@ -281,7 +295,7 @@ doom.addWeapon("plasmarifle", {
 	weaponslot = 6,
 	order = 1,
 	priority = 100,
-	damage = {5, 15},
+	damage = {5, 40},
 	pellets = 1,
 	shootmobj = MT_DOOM_PLASMASHOT,
 	spread = {
@@ -308,14 +322,16 @@ doom.addWeapon("plasmarifle", {
 })
 
 doom.addWeapon("bfg9000", {
-	sprite = SPR_PLSG,
+	sprite = SPR_BFGG,
+	flashsprite = SPR_BFGF,
 	weaponslot = 7,
 	order = 1,
 	priority = 2800,
-	damage = {5, 15},
+	shotcost = 40,
+	damage = {9999, 9999},
 	noinitfirespread = true,
 	noautoswitchfire = true,
-	pellets = 1,
+	pellets = 60,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
@@ -332,9 +348,13 @@ doom.addWeapon("bfg9000", {
 		},
 		attack = {
 			{frame = A, tics = 20, action = A_PlaySound, var1 = sfx_bfg, var2 = 1},
-			{frame = B, tics = 10}, --action = A_PlaySound, var1 = sfx_bfg, var2 = 1},
-			{frame = B, tics = 10}, --action = A_PlaySound, var1 = sfx_bfg, var2 = 1},
+			{frame = B, tics = 10, action = A_GunFlash},
+			{frame = B, tics = 10, action = A_DoomFire, var2 = {noFlash = true}},
 			{frame = B, tics = 20, action = A_DoomReFire},
+		},
+		flash = {
+			{frame = A, tics = 11},
+			{frame = B, tics = 6},
 		}
 	},
 	raycaster = true,

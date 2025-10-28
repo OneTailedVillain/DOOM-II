@@ -114,7 +114,9 @@ local function drawWeapon(v, player, offset)
 	local finalX = bobx + stateOffsetX
 	local finalY = boby + stateOffsetY + (offset or 0) * FRACUNIT
 
-	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
+	if patch then
+		v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
+	end
 
 	if player.doom.flashframe < 1 then return end
 	if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return end
@@ -339,12 +341,12 @@ local srb2hud = {
 		local c = 1
 
 		local keyOrder = {
-			{doom.KEY_SKULLRED,    v.cachePatch("STKEYS3")},
-			{doom.KEY_SKULLBLUE,   v.cachePatch("STKEYS4")},
-			{doom.KEY_SKULLYELLOW, v.cachePatch("STKEYS5")},
-			{doom.KEY_RED,         v.cachePatch("STKEYS0")},
-			{doom.KEY_BLUE,        v.cachePatch("STKEYS1")},
-			{doom.KEY_YELLOW,      v.cachePatch("STKEYS2")},
+			{doom.KEY_SKULLRED,    v.cachePatch("STKEYS5")},
+			{doom.KEY_SKULLBLUE,   v.cachePatch("STKEYS3")},
+			{doom.KEY_SKULLYELLOW, v.cachePatch("STKEYS4")},
+			{doom.KEY_RED,         v.cachePatch("STKEYS2")},
+			{doom.KEY_BLUE,        v.cachePatch("STKEYS0")},
+			{doom.KEY_YELLOW,      v.cachePatch("STKEYS1")},
 		}
 
 		for _, k in ipairs(keyOrder) do

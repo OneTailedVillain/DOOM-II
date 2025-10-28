@@ -120,7 +120,7 @@ local baseMethods = {
 		return nil
 	end,
 
-	giveWeapon = function(player, weapon)
+	giveWeapon = function(player, weapon, doomflags)
 		if not player or not player.doom or not weapon then
 			return false
 		end
@@ -138,7 +138,7 @@ local baseMethods = {
 		-- Attempt to give starting ammo
 		local methods = P_GetMethodsForSkin(player)
 		if methods and methods.giveAmmoFor then
-			local ammoResult = methods.giveAmmoFor(player, weapon, 0)
+			local ammoResult = methods.giveAmmoFor(player, weapon, doomflags)
 			if ammoResult then
 				ammoGiven = true
 			end
@@ -205,7 +205,7 @@ local baseMethods = {
 			// don't change up weapons,
 			// player was lower on purpose.
 			if curAmmo then return curAmmo ~= player.doom.ammo[aType] end
-			DOOM_DoAutoSwitch(player, true)
+			DOOM_DoAutoSwitch(player, true, entry[1])
 		end
 
 		return curAmmo ~= player.doom.ammo[aType]

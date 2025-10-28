@@ -124,9 +124,98 @@ local EndoomRegistry = {
 	})
 }
 
+local function getMFFlagsForNumber(num)
+    local result = 0
+    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
+        if flag.type == "MF" and (num & bitmask) ~= 0 then
+            result = result | bitmask
+        end
+    end
+    return result
+end
+
+local function getMF2FlagsForNumber(num)
+    local result = 0
+    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
+        if flag.type == "MF2" and (num & bitmask) ~= 0 then
+            result = result | bitmask
+        end
+    end
+    return result
+end
+
+local function getDFFlagsForNumber(num)
+    local result = 0
+    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
+        if flag.type == "DF" and (num & bitmask) ~= 0 then
+            result = result | bitmask
+        end
+    end
+    return result
+end
+
+local function weaponStateHandler(pointers, number, data, path)
+	local path = pointers.frametowepstate[number]
+	local state = doom.weapons[path[1]]
+	/*
+		path[1] = wepname
+		path[2] = wepstate
+		path[3] = wepframe
+		DEHACKED uses nextframe
+	*/
+	if not state then
+		print("WARNING: INVALID WEAPON NAME '" .. tostring(path[1]) .. "'!")
+		return
+	end
+	state = state.states[path[2]]
+	if not state then
+		print("WARNING: INVALID STATE '" .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
+		return
+	end
+	state = state[path[3]]
+	if not state then
+		print("WARNING: INVALID FRAME '" .. tostring(path[3]) .. "' FOR FRAME '"  .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
+		return
+	end
+
+	-- Set basic frame properties
+	state.tics = data.duration or $
+	state.sprite = pointers.sprites[data.spritenumber] or $
+	state.frame = data.spritesubnumber or $
+/*
+	-- Handle nextframe if present
+	if data.nextframe and data.nextframe ~= 0 then
+		local nextPath = pointers.frametowepstate[data.nextframe]
+		if nextPath then
+			-- Allow cross-weapon transitions (e.g., chaingun -> supershotgun)
+			if nextPath[1] == path[1] then
+				-- Same weapon transition
+				state.nextstate = nextPath[2]
+				state.nextframe = nextPath[3]
+				state.nextwep = nil -- Same weapon
+			else
+				-- Cross-weapon transition
+				state.nextstate = nextPath[2]
+				state.nextframe = nextPath[3]
+				state.nextwep = nextPath[1] -- Different weapon
+				print("NOTE: Cross-weapon transition from '" .. path[1] .. "' to '" .. nextPath[1] .. "'")
+			end
+		else
+			-- Invalid frame - treat as state termination
+			print("NOTE: DEHACKED nextframe " .. data.nextframe .. " terminates state '" .. path[2] .. "' for weapon '" .. path[1] .. "'")
+			state.terminate = true -- Mark this frame as terminating the state
+		end
+	end
+*/
+end
+
 local function doLoadingShit()
 	print("Checking current add-ons...", doom.basewad)
 	doom.patchesLoaded = false -- We'll have to run this back anyhow...
+
+	if doom.isdoom1 then
+		doom.titlemenus.menu.entries[1].goto = "episelect"
+	end
 
 	-- "This sink is so hard to clean, if only there was an easier way!"
 	if doom and doom.dehacked then
@@ -155,53 +244,48 @@ local function doLoadingShit()
 			doom.maxsoulsphere = misc.maxsoulsphere or $
 			doom.megaspheregrant = misc.megaspherehealth or $
 		end
+		if deh.things then
+			for number, data in pairs(deh.things) do
+				local mobjtype = pointers.things[number]
+				if mobjtype != nil and mobjinfo[mobjtype] then
+					local info = mobjinfo[mobjtype]
+					if data.bits then
+						info.flags = getMFFlagsForNumber(data.bits)
+						info.doomflags = getDFFlagsForNumber(data.bits)
+						local mf2flags = getMF2FlagsForNumber(data.bits)
+						if mf2flags then
+							print("WARNING: DEHACKED THING # " .. tostring(number) .. " HAS BITS CORRESPONDING TO MF2 FLAGS!")
+						end
+					end
+					info.spawnstate = pointers.frames[data.initialframe] or $
+					info.deathstate = pointers.frames[data.deathframe] or $
+					info.seestate = pointers.frames[data.firstmovingframe] or $
+					info.health = data.hitpoints or $
+					info.health = (data.speed and data.speed * FRACUNIT) or $
+					info.radius = data.width or $
+					info.height = data.height or $
+					info.mass = data.mass or $
+					info.seesound = pointers.frames[data.alertsound] or $
+					info.activesound = pointers.frames[data.actionsound] or $
+				else
+					if mobjtype == nil then
+						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
+					else
+						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " HAS AN INVALID MOBJINFO!")
+					end
+				end
+			end
+		end
 		if deh.frames then
 			for number, data in pairs(deh.frames) do
 				if pointers.frametowepstate[number] then
-					local path = pointers.frametowepstate[number]
-					local state = doom.weapons[path[1]]
-					/*
-						path[1] = wepname
-						path[2] = wepstate
-						path[3] = wepframe
-						DEHACKED uses nextframe
-					*/
-					if not state then
-						print("WARNING: INVALID WEAPON NAME '" .. tostring(path[1]) .. "'!")
-						continue
-					end
-					state = state.states[path[2]]
-					if not state then
-						print("WARNING: INVALID STATE '" .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
-						continue
-					end
-					state = state[path[3]]
-					if not state then
-						print("WARNING: INVALID FRAME '" .. tostring(path[3]) .. "' FOR FRAME '"  .. tostring(path[2]) .. "' FOR WEAPON '"  .. tostring(path[1]) .. "'!")
-						continue
-					end
+					weaponStateHandler(pointers, number, data, path)
+				else
+					if pointers.frames[number] then
 					
-					-- Set basic frame properties
-					state.tics = data.duration or $
-					state.sprite = data.spritenumber or $
-					state.frame = data.spritesubnumber or $
-					/*
-					-- Handle nextframe if present
-					if data.nextframe and data.nextframe ~= 0 then
-						local nextPath = pointers.frametowepstate[data.nextframe]
-						if nextPath then
-							-- Verify the nextframe points to the same weapon
-							if nextPath[1] == path[1] then
-								state.nextstate = nextPath[2]
-								state.nextframe = nextPath[3]
-							else
-								print("WARNING: DEHACKED nextframe " .. data.nextframe .. " for weapon '" .. path[1] .. "' state '" .. path[2] .. "' frame " .. path[3] .. " points to different weapon '" .. nextPath[1] .. "'!")
-							end
-						else
-							print("WARNING: DEHACKED nextframe " .. data.nextframe .. " for weapon '" .. path[1] .. "' state '" .. path[2] .. "' frame " .. path[3] .. " points to invalid frame!")
-						end
+					else
+						print("NOTICE: DEHACKED FRAME # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
 					end
-					*/
 				end
 			end
 		end
@@ -809,8 +893,24 @@ local function doLoadingShit()
 		STSTR_BEHOLDX   = "Power-up Toggled",
 
 		STSTR_CHOPPERS  = "... Eat Chex(R)!",
-		STSTR_CLEV      = "Changing Level..."
+		STSTR_CLEV      = "Changing Level...",
+		
+		CHEXWIN         = [[Mission accomplished.
+
+						Are you prepared for the next mission?
+
+
+
+
+
+
+						Press the escape key to continue...]]
 	}
+	
+	doom.textscreenmaps = {[5] = {text = "$CHEXWIN", secret = false, bg = "EP1CUTSC"}}
+	doom.titlemenus.menu.entries[1].goto = "newgame"
+	doom.dropTable = {}
+	doom.lastmap = 5
 	end
 end
 

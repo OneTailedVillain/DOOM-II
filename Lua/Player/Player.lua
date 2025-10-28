@@ -265,25 +265,45 @@ local function updateWeaponState(player, isFlashState)
 			local stateTable = curDef and curDef.states and curDef.states[player.doom.flashstate or "flash"]
 			local currentFrameDef = stateTable and stateTable[player.doom.flashframe]
 			
-			if currentFrameDef and currentFrameDef.nextstate then
-				-- Use weapon-defined next state/frame for flash
-				player.doom.flashstate = currentFrameDef.nextstate
-				player.doom.flashframe = currentFrameDef.nextframe or 1
-				local nextDef = stateTable and stateTable[player.doom.flashframe]
-				if nextDef then
-					player.doom.flashtics = nextDef.tics
-				else
+			if currentFrameDef then
+				if currentFrameDef.terminate then
+					-- Terminate flash state early
 					player.doom.flashframe = 0
+					player.doom.flashstate = "flash"
+				elseif currentFrameDef.nextstate then
+					-- Use weapon-defined next state/frame for flash
+					player.doom.flashstate = currentFrameDef.nextstate
+					player.doom.flashframe = currentFrameDef.nextframe or 1
+					
+					-- Check if flash state transitions to a different weapon
+					if currentFrameDef.nextwep then
+						-- Cross-weapon flash transition (rare but possible)
+						player.doom.curwep = currentFrameDef.nextwep
+						curDef = DOOM_GetWeaponDef(player)
+					end
+					
+					local nextDef = curDef and curDef.states and curDef.states[player.doom.flashstate] and curDef.states[player.doom.flashstate][player.doom.flashframe]
+					if nextDef then
+						player.doom.flashtics = nextDef.tics
+					else
+						player.doom.flashframe = 0
+						player.doom.flashstate = "flash"
+					end
+				else
+					-- Linear progression (original behavior)
+					player.doom.flashframe = ($ or 1) + 1
+					local nextDef = stateTable and stateTable[player.doom.flashframe]
+					if nextDef == nil then
+						player.doom.flashframe = 0
+						player.doom.flashstate = "flash"
+					else
+						player.doom.flashtics = nextDef.tics
+					end
 				end
 			else
-				-- Linear progression (original behavior)
-				player.doom.flashframe = ($ or 1) + 1
-				local nextDef = stateTable and stateTable[player.doom.flashframe]
-				if nextDef == nil then
-					player.doom.flashframe = 0
-				else
-					player.doom.flashtics = nextDef.tics
-				end
+				-- Invalid frame definition
+				player.doom.flashframe = 0
+				player.doom.flashstate = "flash"
 			end
 		end
 	else
@@ -292,34 +312,52 @@ local function updateWeaponState(player, isFlashState)
 			local stateTable = curDef and curDef.states and curDef.states[player.doom.wepstate]
 			local currentFrameDef = stateTable and stateTable[player.doom.wepframe]
 			
-			if currentFrameDef and currentFrameDef.nextstate then
-				-- Use weapon-defined next state/frame
-				DOOM_SetState(player, currentFrameDef.nextstate, currentFrameDef.nextframe or 1)
-			else
-				-- Linear progression (original behavior)
-				player.doom.wepframe = ($ or 1) + 1
-				local nextDef = stateTable and stateTable[player.doom.wepframe]
-				if nextDef == nil then
-					-- Get the next state from weapon definition or use default
-					local nextState = curDef and curDef.nextstate and curDef.nextstate[player.doom.wepstate]
+			if currentFrameDef then
+				if currentFrameDef.terminate then
+					-- Terminate state early and go to idle
+					DOOM_SetState(player, "idle")
+				elseif currentFrameDef.nextstate then
+					-- Use weapon-defined next state/frame
+					local nextState = currentFrameDef.nextstate
+					local nextFrame = currentFrameDef.nextframe or 1
 					
-					if nextState then
-						-- Weapon defines a specific next state for this state
-						DOOM_SetState(player, nextState)
-					else
-						-- Default behavior based on current state
-						if player.doom.wepstate == "lower" or player.doom.wepstate == "raise" then
-							-- Continue the current state if no next state defined
-							DOOM_SetState(player, player.doom.wepstate)
-						else
-							-- Return to idle for other states
-							DOOM_SetState(player, "idle")
-						end
+					-- Check if we're transitioning to a different weapon
+					if currentFrameDef.nextwep then
+						-- Cross-weapon transition
+						player.doom.curwep = currentFrameDef.nextwep
+						curDef = DOOM_GetWeaponDef(player)
 					end
+					
+					DOOM_SetState(player, nextState, nextFrame)
 				else
-					-- Continue with current frame in current state
-					DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
+					-- Linear progression (original behavior)
+					player.doom.wepframe = ($ or 1) + 1
+					local nextDef = stateTable and stateTable[player.doom.wepframe]
+					if nextDef == nil then
+						-- Get the next state from weapon definition or use default
+						local nextState = curDef and curDef.nextstate and curDef.nextstate[player.doom.wepstate]
+						
+						if nextState then
+							-- Weapon defines a specific next state for this state
+							DOOM_SetState(player, nextState)
+						else
+							-- Default behavior based on current state
+							if player.doom.wepstate == "lower" or player.doom.wepstate == "raise" then
+								-- Continue the current state if no next state defined
+								DOOM_SetState(player, player.doom.wepstate)
+							else
+								-- Return to idle for other states
+								DOOM_SetState(player, "idle")
+							end
+						end
+					else
+						-- Continue with current frame in current state
+						DOOM_SetState(player, player.doom.wepstate, player.doom.wepframe)
+					end
 				end
+			else
+				-- Invalid frame definition - go to idle
+				DOOM_SetState(player, "idle")
 			end
 		end
 	end

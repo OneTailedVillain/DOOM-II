@@ -14,9 +14,13 @@ end
 
 SafeFreeSlot("sfx_swtchn", "sfx_swtchx", "sfx_slop", "sfx_noway", "sfx_oof",
 "sfx_pistol", "sfx_shotgn", "sfx_secret", "sfx_itmbk",
-"MT_TROOPSHOT", "S_DOOM_IMPFIRE", "SPR_BAL1", "sfx_firsht", "sfx_bgact", "sfx_bgdth1", "sfx_bgdth2", "sfx_bgsit1", "sfx_bgsit2", "sfx_claw",
+"MT_TROOPSHOT",
+"S_DOOM_IMPFIRE1", "S_DOOM_IMPFIRE2",
+"S_DOOM_IMPFIREEXPLODE1", "S_DOOM_IMPFIREEXPLODE2", "S_DOOM_IMPFIREEXPLODE3",
+"SPR_BAL1",
+"sfx_firsht", "sfx_bgact", "sfx_bgdth1", "sfx_bgdth2", "sfx_bgsit1", "sfx_bgsit2", "sfx_claw",
 "sfx_podth1", "sfx_podth2", "sfx_podth3", "sfx_popain", "sfx_posact", "sfx_posit1", "sfx_posit2", "sfx_posit3", "MT_DOOM_TELEFOG", "SPR_TFOG", "sfx_telept",
-"MT_DOOM_ROCKETPROJ", "sfx_firxpl", "S_DOOM_IMPEXPLODE1", "sfx_bossit")
+"MT_DOOM_ROCKETPROJ", "sfx_firxpl", "sfx_bossit")
 
 SafeFreeSlot(
 "S_TELEFOG1",
@@ -53,14 +57,74 @@ SafeFreeSlot(
 "S_DOOM_PLASMAEXPLODE4",
 "S_DOOM_PLASMAEXPLODE5",
 "SPR_PLSS",
-"SPR_PLSE"
+"SPR_PLSE",
+"SPR_APLS",
+"SPR_APBX",
+"MT_DOOM_ARCHNOTRONPLASMA",
+"S_DOOM_ARACHPLASMA1",
+"S_DOOM_ARACHPLASMA2",
+"S_DOOM_ARACHPLASMAX1",
+"S_DOOM_ARACHPLASMAX2",
+"S_DOOM_ARACHPLASMAX3",
+"S_DOOM_ARACHPLASMAX4",
+"S_DOOM_ARACHPLASMAX5"
 )
+
+states[S_DOOM_ARACHPLASMA1] = {
+    sprite = SPR_APLS,
+    frame = A,
+    tics = 6,
+    nextstate = S_DOOM_ARACHPLASMA2
+}
+
+states[S_DOOM_ARACHPLASMA2] = {
+    sprite = SPR_APLS,
+    frame = B,
+    tics = 6,
+    nextstate = S_DOOM_ARACHPLASMA1
+}
+
+states[S_DOOM_ARACHPLASMAX1] = {
+    sprite = SPR_APBX,
+    frame = A,
+    tics = 4,
+    nextstate = S_DOOM_ARACHPLASMAX2
+}
+
+states[S_DOOM_ARACHPLASMAX2] = {
+    sprite = SPR_APBX,
+    frame = B,
+    tics = 4,
+    nextstate = S_DOOM_ARACHPLASMAX3
+}
+
+states[S_DOOM_ARACHPLASMAX3] = {
+    sprite = SPR_APBX,
+    frame = C,
+    tics = 4,
+    nextstate = S_DOOM_ARACHPLASMAX4
+}
+
+states[S_DOOM_ARACHPLASMAX4] = {
+    sprite = SPR_APBX,
+    frame = D,
+    tics = 4,
+    nextstate = S_DOOM_ARACHPLASMAX5
+}
+
+states[S_DOOM_ARACHPLASMAX5] = {
+    sprite = SPR_APBX,
+    frame = E,
+    tics = 4,
+    nextstate = S_NULL
+}
 
 mobjinfo[MT_DOOM_PLASMASHOT] = {
 	spawnstate = S_DOOM_PLASMASHOT1,
 	seesound = sfx_plasma,
 	deathsound = sfx_firxpl,
 	spawnhealth = 1000,
+	damage = 5,
 	deathstate = S_DOOM_PLASMAEXPLODE1,
 	radius = 13*FRACUNIT,
 	height = 8*FRACUNIT,
