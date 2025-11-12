@@ -13,7 +13,7 @@ local function SafeFreeSlot(...)
 end
 
 SafeFreeSlot("sfx_swtchn", "sfx_swtchx", "sfx_slop", "sfx_noway", "sfx_oof",
-"sfx_pistol", "sfx_shotgn", "sfx_secret", "sfx_itmbk",
+"sfx_pistol", "sfx_shotgn", "sfx_rocket", "sfx_secret", "sfx_itmbk",
 "MT_TROOPSHOT",
 "S_DOOM_IMPFIRE1", "S_DOOM_IMPFIRE2",
 "S_DOOM_IMPFIREEXPLODE1", "S_DOOM_IMPFIREEXPLODE2", "S_DOOM_IMPFIREEXPLODE3",

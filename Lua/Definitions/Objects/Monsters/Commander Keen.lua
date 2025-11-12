@@ -25,7 +25,7 @@ local object = {
 	painsound = sfx_keenpn,
 	deathsound = sfx_keendt,
 	sprite = SPR_KEEN,
-	flags = MF_ENEMY|MF_SPAWNCEILING|MF_SHOOTABLE|MF_SOLID|MF_NOGRAVITY,
+	flags = MF_ENEMY|MF_SPAWNCEILING|MF_SHOOTABLE|MF_SOLID|MF_NOGRAVITY|MF_NOCLIPHEIGHT,
 	doomflags = DF_COUNTKILL
 }
 
@@ -48,7 +48,7 @@ local states = {
 		{action = nil, frame = H, tics = 6},
 		{action = nil, frame = I, tics = 6},
 		{action = nil, frame = J, tics = 6},
-		{action = A_DoomFall, frame = K, tics = 6},
+		{action = A_DoomKeenDeath, frame = K, tics = 6},
 		{action = nil, frame = L, tics = -1},
 	},
 }

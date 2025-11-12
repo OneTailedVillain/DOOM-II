@@ -46,6 +46,75 @@ local function IsAboveVersion(major, sub)
 	return (VERSION > major) or (VERSION == major and SUBVERSION >= sub)
 end
 
+local function drawWeaponState(v, player, stateType, bobx, boby, offset)
+	local stateDef, sprite
+	
+	if stateType == "weapon" then
+		stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
+		sprite = stateDef.sprite or doom.weapons[player.doom.curwep].sprite
+	else -- flash
+		if player.doom.flashframe < 1 then return false end
+		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return false end
+		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe] then return false end
+		
+		stateDef = doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe]
+		sprite = stateDef.sprite or doom.weapons[player.doom.curwep].flashsprite
+	end
+
+	local whatFrame = stateDef.frame
+	if whatFrame < 0 then return false end
+	
+	local spriteflags = whatFrame & ~FF_FRAMEMASK
+	whatFrame = $ & FF_FRAMEMASK
+	local patch = v.getSpritePatch(sprite, whatFrame)
+	if not patch then return false end
+
+	local stateOffsetX = 0
+	local stateOffsetY = 0
+	
+	if stateDef then
+		if type(stateDef.offset) == "number" then
+			stateOffsetY = stateDef.offset
+		elseif type(stateDef.offset) == "table" then
+			if type(stateDef.offset[1]) == "number" or type(stateDef.offset[2]) == "number" then
+				stateOffsetX = stateDef.offset[1] or 0
+				stateOffsetY = stateDef.offset[2] or 0
+			else
+				stateOffsetX = stateDef.offset.x or stateDef.offsetX or 0
+				stateOffsetY = stateDef.offset.y or stateDef.offsetY or 0
+			end
+		else
+			stateOffsetX = stateDef.offsetx or stateDef.offsetX or 0
+			stateOffsetY = stateDef.offsety or stateDef.offsetY or 0
+		end
+	end
+
+	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
+	local extraflag = (player.mo.doom.flags & DF_SHADOW) and V_MODULATE or 0
+	local lightlevel = sector.lightlevel
+	
+	if spriteflags & FF_FULLBRIGHT then
+		lightlevel = 255
+	elseif spriteflags & FF_FULLDARK then
+		lightlevel = 0
+	end
+	
+	local colormap = IsAboveVersion(202, 14)
+		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
+		or nil
+
+	local invuln = player.doom.powers[pw_invulnerability] or 0
+	if invuln > 4 * 32 or invuln & 8 then
+		colormap = v.getColormap(nil, nil, "COLORMAPROW33")
+	end
+
+	local finalX = bobx + stateOffsetX
+	local finalY = boby + stateOffsetY + (offset or 0) * FRACUNIT
+
+	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
+	return true
+end
+
 local function drawWeapon(v, player, offset)
 	if player.mo.doom.health > 0 then
 		if camera.chase then return end
@@ -56,95 +125,9 @@ local function drawWeapon(v, player, offset)
 	local boby = player.doom.boby
 	boby = boby + (weaponYOffset * FRACUNIT)
 
-	-- gather sprite/frame/patch
-	local stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
-	local sprite = stateDef.sprite or doom.weapons[player.doom.curwep].sprite
-	local whatFrame = stateDef.frame
-	if whatFrame == nil then
-		print("Weapon '" .. player.doom.curwep .. "' state '" .. player.doom.wepstate .. "' frame '" .. player.doom.wepframe .. "' missing a 'frame' field?")
-		whatFrame = 0
-	end
-	local spriteflags = whatFrame & ~FF_FRAMEMASK
-	whatFrame = $ & FF_FRAMEMASK
-	local patch = v.getSpritePatch(sprite, whatFrame)
-	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
-
-	local stateOffsetX = 0
-	local stateOffsetY = 0
-	-- definition chicanery because there's too many ways to do this
-	-- and yet someone will still find a way to have an invalid offset definition
-	if stateDef then
-		-- single integer: treat as Y offset (vertical)
-		if type(stateDef.offset) == "number" then
-			stateOffsetY = stateDef.offset
-		elseif type(stateDef.offset) == "table" then
-			-- support both array {x,y} and named {x=..., y=...}
-			if type(stateDef.offset[1]) == "number" or type(stateDef.offset[2]) == "number" then
-				stateOffsetX = stateDef.offset[1] or 0
-				stateOffsetY = stateDef.offset[2] or 0
-			else
-				stateOffsetX = stateDef.offset.x or stateDef.offsetX or 0
-				stateOffsetY = stateDef.offset.y or stateDef.offsetY or 0
-			end
-		else
-			-- also accept explicit fields
-			stateOffsetX = stateDef.offsetx or stateDef.offsetX or 0
-			stateOffsetY = stateDef.offsety or stateDef.offsetY or 0
-		end
-	end
-
-	local extraflag = (player.mo.doom.flags & DF_SHADOW) and V_MODULATE or 0
-	local lightlevel = sector.lightlevel
-	if spriteflags & FF_FULLBRIGHT then
-		lightlevel = 255
-	elseif spriteflags & FF_FULLDARK then
-		lightlevel = 0
-	end
-	local colormap = IsAboveVersion(202, 14)
-		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
-		or nil
-
-	local invuln = player.doom.powers[pw_invulnerability] or 0
-
-	if invuln > 4 * 32 or invuln & 8 then
-		colormap = v.getColormap(nil, nil, "COLORMAPROW33")
-	end
-
-	-- combine bob + per-state offsets
-	local finalX = bobx + stateOffsetX
-	local finalY = boby + stateOffsetY + (offset or 0) * FRACUNIT
-
-	if patch then
-		v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
-	end
-
-	if player.doom.flashframe < 1 then return end
-	if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return end
-	if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or flash][player.doom.flashframe] then return end
-
-	local stateDef = doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe]
-	local whatFrame = stateDef.frame
-	local sprite = stateDef.sprite or doom.weapons[player.doom.curwep].flashsprite
-	spriteflags = whatFrame & ~FF_FRAMEMASK
-	whatFrame = $ & FF_FRAMEMASK
-	if whatFrame < 0 then return end
-	local patch = v.getSpritePatch(sprite, whatFrame)
-	lightlevel = sector.lightlevel
-	if spriteflags & FF_FULLBRIGHT then
-		lightlevel = 255
-	elseif spriteflags & FF_FULLDARK then
-		lightlevel = 0
-	end
-
-	local colormap = IsAboveVersion(202, 14)
-		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
-		or nil
-
-	if invuln > 4 * 32 or invuln & 8 then
-		colormap = v.getColormap(nil, nil, "COLORMAPROW33")
-	end
-
-	v.drawScaled(finalX, finalY, stateDef.scale or FRACUNIT, patch, V_PERPLAYER|extraflag|V_SNAPTOBOTTOM, colormap)
+	-- Draw weapon first, then flash overlay
+	drawWeaponState(v, player, "weapon", bobx, boby, offset)
+	drawWeaponState(v, player, "flash", bobx, boby, offset)
 end
 
 local function DrawStatusBarNumbers(v, player)
@@ -603,7 +586,7 @@ hud.add(function(v, player)
             else
                 local fs, bs = line.frontsector, line.backsector
                 if fs.floorheight ~= bs.floorheight then
-                    color = 144
+                    color = 165
                 elseif fs.ceilingheight ~= bs.ceilingheight then
                     color = 231
                 else
@@ -677,6 +660,13 @@ hud.add(function(v, player)
     end
 
     drawStatusBar(v, displayplayer)
+	-- doom.mapString
+	drawInFont(v,
+	0, 160*FRACUNIT,
+	FRACUNIT,
+	"STCFN",
+	DOOM_ResolveString("$" .. doom.mapString .. gamemap),
+	V_SNAPTOBOTTOM|V_SNAPTOLEFT)
 end, "scores")
 
 local zooming = 0

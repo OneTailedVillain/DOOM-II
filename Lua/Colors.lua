@@ -11,7 +11,7 @@ local function SafeFreeSlot(...)
 end
 
 -- Stolen from DOOM, March 2000 Prototype, and Final Demo. Some hand-made
-local oolors = {
+doom.oolors = {
 	{name="GREEN",     ramp={0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7A,0x7B,0x7C,0x7D,0x7E,0x7F}},
 	-- STICKY: the spot where GRAY stands gets used for any sprites using SPR_PLAY!!! So don't move this.
 	{name="GRAY",      ramp={0x60,0x61,0x62,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x6E,0x6F}},
@@ -85,9 +85,9 @@ end
 local loopcount
 -- Apply colors cyclically to accessible colors
 for i, colorIndex in ipairs(accessibleColors) do
-    local cdef = oolors[((i-1) % #oolors) + 1]
+    local cdef = doom.oolors[((i-1) % #doom.oolors) + 1]
     local sc = skincolors[colorIndex]
-	loopcount = i / #oolors
+	loopcount = i / #doom.oolors
 	sc.name = getPrefix(loopcount) .. cdef.name
     sc.ramp = cdef.ramp
     sc.invcolor = SKINCOLOR_WHITE
@@ -96,10 +96,10 @@ for i, colorIndex in ipairs(accessibleColors) do
 end
 
 -- Calculate how many new colors need to be created to complete the cycle
-local numNeeded = #oolors - (#accessibleColors % #oolors)
-if numNeeded > 0 and numNeeded < #oolors then
+local numNeeded = #doom.oolors - (#accessibleColors % #doom.oolors)
+if numNeeded > 0 and numNeeded < #doom.oolors then
     for i = 1, numNeeded do
-        local cdef = oolors[((#accessibleColors + i - 1) % #oolors) + 1]
+        local cdef = doom.oolors[((#accessibleColors + i - 1) % #doom.oolors) + 1]
         local slotname = "SKINCOLOR_DOOM_"..cdef.name
         local slot = SafeFreeSlot(slotname)
         local sc = skincolors[slot[slotname]]
@@ -114,7 +114,7 @@ end
 
 -- Helper to find the first skincolor index by name
 local function FindSkinColorIndex(name)
-    for i, sc in ipairs(oolors) do
+    for i, sc in ipairs(doom.oolors) do
         if sc.name:upper() == name:upper() then
             return i
         end

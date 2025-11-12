@@ -23,7 +23,7 @@ local bgclrs = {
 
 local function endoom(v, player)
 	if not doom.showendoom then return end
-    v.drawFill()  -- Fill screen with black
+    v.drawFill(0, 0, 320, 200, 0)  -- Fill screen with black
 
     -- Draw ENDOOM text with proper colors
     for y = 1, #doom.endoom.text do
@@ -52,11 +52,7 @@ local function endoom(v, player)
 					if char_index <= #line then
 						local char = string.byte(line, char_index)
 						if char ~= 32 then
-							v.drawStretched(x_pos*FRACUNIT, (y-1)*height*FRACUNIT, FRACUNIT/2, FRACUNIT/2, v.cachePatch("DSFNT" .. char), 0, v.getColormap(nil, nil, "DOSPROMPT" .. fg))
-							/*
-							v.draw(x_pos, (y-1)*height, v.cachePatch("DSFNT" .. char), 
-								   0, v.getColormap(nil, nil, "DOSPROMPT" .. fg))
-							*/
+							v.drawScaled(x_pos*FRACUNIT, (y-1)*height*FRACUNIT, FRACUNIT/2, v.cachePatch("DSFNT" .. char), 0, v.getColormap(nil, nil, "DOSPROMPT" .. fg))
 						end
 						char_index = char_index + 1
 					end

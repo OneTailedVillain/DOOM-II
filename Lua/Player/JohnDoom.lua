@@ -273,9 +273,27 @@ addHook("PostThinkFrame", function()
 	end
 end)
 
+local function P_PlayerMove(player)
+	local cmd = player.cmd
+    // Do not let the player control movement
+    //  if not onground.
+	local onground = player.mo.z <= player.mo.floorz
+	
+	if cmd.forwardmove and onground then
+		P_Thrust(player.mo, player.mo.angle, cmd.forwardmove*2048)
+	end
+	if cmd.sidemove and onground then
+		P_Thrust(player.mo, player.mo.angle - ANGLE_90, cmd.sidemove*2048)
+	end
+
+	if (cmd.forwardmove or cmd.sidemove) and player.mo.state == S_PLAY_STND then
+		player.mo.state = S_PLAY_RUN
+	end
+end
+
 addHook("PlayerThink", function(player)
 	if player.mo.skin != "johndoom" then return end
-	-- player.aiming = 0
+	P_PlayerMove(player)
 end)
 
 addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)

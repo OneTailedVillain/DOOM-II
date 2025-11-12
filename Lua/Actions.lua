@@ -776,6 +776,12 @@ doom.predefinedWeapons = {
 			vert = 0,
 		},
 	},
+	{
+		damage = {20, 160},
+		pellets = 1,
+		firesound = sfx_rocket,
+		shootmobj = MT_DOOM_ROCKETPROJ,
+	},
 }
 
 function A_DoomFire(actor, isPlayer, weaponDef, weapon)
@@ -819,7 +825,7 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 		local weapon = doom.predefinedWeapons[weaponDef or 1]
         -- Enemy logic
         S_StartSound(actor, weapon.firesound)
-        DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc)
+        DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread and weapon.spread.horiz or 0, weapon.spread and weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc)
     end
 end
 
@@ -834,6 +840,8 @@ end
 function A_DoomReFire(actor)
 	local player = actor.player
 	if player == nil then return end
+	local funcs = P_GetMethodsForSkin(player)
+	local curHealth = funcs.getHealth(player)
 
 	local wepDef = DOOM_GetWeaponDef(player)
 	local curWepAmmo = player.doom.ammo[wepDef.ammotype] or 0
@@ -842,6 +850,8 @@ function A_DoomReFire(actor)
 	if max(curWepAmmo, 0) >= ammoNeeded and (player.cmd.buttons & BT_ATTACK) and not player.doom.switchtimer and player.mo.doom.health > 0 then
 		player.doom.refire = ($ or 0) + 1
 		DOOM_FireWeapon(player)
+	elseif player.doom.switchingweps or curHealth <= 0 then
+		DOOM_SetState(player, "lower")
 	else
 		player.doom.refire = 0
 		DOOM_DoAutoSwitch(player)
@@ -1152,5 +1162,54 @@ function A_DoomCheckReload(actor, var1, var2, weapon)
 
 	if type(curAmmo) != "boolean" then
 		if curAmmo - weapon.shotcost < 0 then DOOM_DoAutoSwitch(player) return end
+	end
+end
+
+local function checkAliveTypes(targetType)
+	local keenExists = 0
+	local keenDead = 0
+	for mobj in mobjs.iterate() do
+		if mobj.type != targetType then continue end
+		keenExists = $ + 1
+		if mobj.doom.health <= 0 then
+			keenDead = $ + 1
+		end
+	end
+	return keenExists == keenDead
+end
+
+function A_DoomBossDeath(actor)
+	if not doom.bossDeathSpecials[actor.type] then return end
+	
+	local data = doom.bossDeathSpecials[actor.type]
+	local noSurvivors = checkAliveTypes(actor.type)
+	
+	if noSurvivors then
+		-- Check if we have a map-specific condition
+		local shouldActivate = true
+		if data.map then
+			if type(data.map) == "table" then
+				-- Check if current map is in the table
+				shouldActivate = table.contains(data.map, gamemap)
+			else
+				-- Single map value
+				shouldActivate = (data.map == gamemap)
+			end
+		end
+		
+		if shouldActivate then
+			for sector in sectors.tagged(data.tag) do
+				DOOM_AddThinker(sector, doom.lineActions[data.special])
+			end
+		end
+	end
+end
+
+function A_DoomKeenDeath(actor)
+	local noSurvivors = checkAliveTypes(MT_DOOM_KEEN)
+	if noSurvivors then
+		for sector in sectors.tagged(666) do
+			DOOM_AddThinker(sector, doom.lineActions[31])
+		end
 	end
 end

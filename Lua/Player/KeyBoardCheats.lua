@@ -13,8 +13,9 @@ local function cheat(seq, cmd)
 end
 
 local cheats = {
-    cheat("idkfa", "idkfa"),
-    cheat("idfa",  "idfa"),
+    cheat("idkfa",  "idkfa"),
+    cheat("idfa",   "idfa"),
+    cheat("idclip", "idclip"),
 }
 
 addHook("KeyDown", function(keyevent)

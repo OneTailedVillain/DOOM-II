@@ -63,7 +63,7 @@ local states = {
 		{action = A_DoomFall, frame = L, tics = 5},
 		{action = nil, frame = M, tics = 5},
 		{action = nil, frame = N, tics = 5},
-		{action = nil, frame = O, tics = -1},
+		{action = A_DoomBossDeath, frame = O, tics = -1},
 	},
 }
 

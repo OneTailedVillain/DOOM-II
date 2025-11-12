@@ -184,12 +184,21 @@ rawset(_G, "cacheFont", function(v, font)
 end)
 
 -- TODO: maybe extend this a bit?
+/*
+drawInFont(v,
+x, y,
+scale,
+font,
+str,
+flags, alignment, cmap,
+maxChars,
+lineHeight)
+*/
 rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
     str = tostring(str)
 	if type(flags) != "number" then
 		if not cacheShit.lastwarned.flag.typemismatch[tostring(flags)] then
 			print("\82WARNING:\80 Flag type mismatch! (number expected, got " .. type(flags))
-			-- Rolls right off the tongue...
 			cacheShit.lastwarned.flag.typemismatch[tostring(flags)] = true
 		end
 		flags = 0
@@ -214,60 +223,50 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
 		lineHeight = $ * scale
 	end
 
-    local maxWidth = FixedMul(320*FRACUNIT - x, scale)
+    local maxWidth = 320*FRACUNIT
 
-    -- Split into lines on \n first
-    local logicalLines = {}
-    for line in str:gmatch("([^\n]*)\n?") do
-        table.insert(logicalLines, line)
+    local lines = {}
+    for line in str:gmatch("[^\n]+") do
+        table.insert(lines, line)
     end
 
-    -- Expand into wrapped lines
     local wrappedLines = {}
-    for _, line in ipairs(logicalLines) do
-        local words = {}
-        for word in line:gmatch("%S+") do
-            table.insert(words, word)
-        end
-
-        local currentLine = ""
-        local currentWidth = 0
-
-        local function measureWord(w)
-            local wwidth = 0
-            for i = 1, #w do
-                local info = ftable[w:byte(i)]
-                if info then
-                    wwidth = wwidth + FixedMul(info.width * FRACUNIT, scale)
-                end
-            end
-            return wwidth
-        end
-
-        for wi, word in ipairs(words) do
-            local wordWidth = measureWord(word)
-            local spaceWidth = measureWord(" ")
-
-            -- DOOM-style: break at screen edge, not word wrap
-			-- Word wrapping rendered basically null for everything other than our main font
-            if (currentWidth + (currentWidth > 0 and spaceWidth or 0) + wordWidth) > maxWidth and font == "STCFN" then
-                table.insert(wrappedLines, currentLine)
-                currentLine = word
-                currentWidth = wordWidth
-            else
-                if currentWidth > 0 then
-                    currentLine = currentLine .. " " .. word
-                    currentWidth = currentWidth + spaceWidth + wordWidth
-                else
-                    currentLine = word
-                    currentWidth = wordWidth
-                end
+    
+    -- Function to measure string width
+    local function getWidth(str)
+        local totalWidth = 0
+        for i = 1, #str do
+            local info = ftable[str:byte(i)]
+            if info then
+                totalWidth = totalWidth + FixedMul(info.width * FRACUNIT, scale)
             end
         end
-        table.insert(wrappedLines, currentLine)
+        return totalWidth
     end
 
-    -- enforce maxChars across the wrapped lines
+    for _, line in ipairs(lines) do
+        local words = {}
+        for w in line:gmatch("%S+") do 
+            table.insert(words, w) 
+        end
+
+        local current = ""
+        for _, w in ipairs(words) do
+            local test = (current == "" and w) or (current .. " " .. w)
+            if getWidth(test) <= maxWidth then
+                current = test
+            else
+                table.insert(wrappedLines, current)
+                current = w
+            end
+        end
+
+        if current ~= "" then
+            table.insert(wrappedLines, current)
+        end
+    end
+
+    -- Apply maxChars limit if specified
     if maxChars and maxChars > 0 then
         local charCount = 0
         local newWrapped = {}
@@ -285,22 +284,16 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
                 charCount = charCount + 1
             end
 
-            -- Insert whatever part of the line we kept (may be empty if limit was already reached)
             if #keep > 0 then
                 table.insert(newWrapped, keep)
-            else
-                -- If we haven't added any characters for this line but the limit is not reached,
-                -- keep an empty line to preserve vertical spacing. If the limit was reached, stop.
-                if not done then
-                    table.insert(newWrapped, "")
-                end
+            elseif not done then
+                table.insert(newWrapped, "")
             end
         end
-
         wrappedLines = newWrapped
     end
 
-    -- Draw all wrapped lines
+    -- Draw all wrapped lines (keeping the original rendering logic)
     for _, line in ipairs(wrappedLines) do
         -- compute total width for alignment
         local totalWidth = 0
@@ -331,7 +324,7 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
                 xpos = xpos + FixedMul(info.width * FRACUNIT, scale)
                 
                 -- DOOM-style: stop if we hit screen edge
-                if xpos > x + maxWidth then
+                if xpos > maxWidth then
                     break
                 end
             end

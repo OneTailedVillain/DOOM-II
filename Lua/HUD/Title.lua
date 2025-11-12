@@ -17,7 +17,7 @@ doom.titlemenus = {
 			{label = "loadgame", patch = "M_LOADG", x = 97, y = 64+LINEHEIGHT},
 			{label = "savegame", patch = "M_SAVEG", x = 97, y = 64+LINEHEIGHT*2},
 			{label = "readme", patch = "M_RDTHIS", x = 97, y = 64+LINEHEIGHT*3},
-			{label = "quitgame", patch = "M_QUITG", x = 97, y = 64+LINEHEIGHT*4, command = "doom_endoom"}
+			{label = "quitgame", patch = "M_QUITG", x = 97, y = 64+LINEHEIGHT*4, goto = "quitgame"}
 		},
 		customFunc = function(v, player)
 			v.draw(94, 2, v.cachePatch("M_DOOM"))
@@ -43,8 +43,8 @@ doom.titlemenus = {
 		default = 1,
 		-- Episode selection for Doom 1
 		entries = {
-			{label = "episode1", patch = "M_EPI1", x = 48, y = 63, goto = "newgame", episode = 1},
-			{label = "episode2", patch = "M_EPI2", x = 48, y = 63+LINEHEIGHT, goto = "newgame", episode = 2},
+			{label = "episode1", patch = "M_EPI1", x = 48, y = 63,              goto = "newgame", episode = 1},
+			{label = "episode2", patch = "M_EPI2", x = 48, y = 63+LINEHEIGHT,   goto = "newgame", episode = 2},
 			{label = "episode3", patch = "M_EPI3", x = 48, y = 63+LINEHEIGHT*2, goto = "newgame", episode = 3},
 			{label = "episode4", patch = "M_EPI4", x = 48, y = 63+LINEHEIGHT*3, goto = "newgame", episode = 4},
 		},
@@ -70,13 +70,39 @@ doom.titlemenus = {
 	quitgame = {
 		validkeys = {"y", "n"},
 		nocursor = true,
-		key_y = {command = "quit"},
-		key_n = {goto = "title"}
+		key_y = {command = "doom_endoom"},
+		key_n = {goto = "title"},
+		--key_any = {goto = "title"},
+		customFunc = function(v, player)
+			local toDraw = DOOM_ResolveString(menustatus.special and menustatus.special.quitgamestring or "$QUITMSG").."\n\n(press y to quit)"
+			local _, offset = toDraw:gsub("\n", "")
+			offset = ($ + 1) * 4
+			drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
+		end,
+		onEnter = function()
+			menustatus.special = $ or {}
+			menustatus.special.quitgamestring = doom.quitStrings[P_RandomRange(1, #doom.quitStrings)]
+		end
+	},
+	-- This is the shareware version of DOOM.
+	-- You need to order the entire trilogy.
+	sharewaredeny = {
+		validkeys = "any",
+		nocursor = true,
+		key_any = {goto = "episelect"},
+		customFunc = function(v, player)
+			-- Y starts at 100, but gets offset by
+			-- Half of the actual drawn length
+			-- To make it centered
+			local toDraw = DOOM_ResolveString("$SWSTRING")
+			local _, offset = toDraw:gsub("\n", "")
+			offset = ($ + 1) * 4
+			drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
+		end,
 	},
 }
 
--- Store the selected episode globally
-doom.selectedEpisode = 1
+local selectedEpisode = 1
 
 hud.add(function(v, player)
 	hudtime = $ + 1
@@ -96,14 +122,16 @@ hud.add(function(v, player)
 	local currentMenuKey = menustatus.menu
     local menuDef = doom.titlemenus[currentMenuKey]
     if not menuDef then return false end
-	for k, entry in pairs(menuDef.entries) do
-		if not entry.patch then continue end
-		v.draw(entry.x or 0, entry.y or 0, v.cachePatch(entry.patch))
+	if menuDef.entries then
+		for k, entry in pairs(menuDef.entries) do
+			if not entry.patch then continue end
+			v.draw(entry.x or 0, entry.y or 0, v.cachePatch(entry.patch))
 
-		if not menuDef.nocursor then 
-			if k != menustatus.selection + 1 then continue end
-			local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
-			v.draw((entry.x or 0) + SKULLXOFF, entry.y or 0, v.cachePatch(skullframe))
+			if not menuDef.nocursor then 
+				if k != menustatus.selection + 1 then continue end
+				local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
+				v.draw((entry.x or 0) + SKULLXOFF, entry.y or 0, v.cachePatch(skullframe))
+			end
 		end
 	end
 	if menuDef.customFunc then
@@ -147,7 +175,7 @@ local function OnKeyDown(keyevent)
     local menuDef = doom.titlemenus[currentMenuKey]
     if not menuDef then return false end
 
-    local entryCount = #menuDef.entries
+    local entryCount = menuDef.entries and #menuDef.entries or 0
 
     -- Navigation logic if cursor is shown
     if not menuDef.nocursor then
@@ -158,7 +186,7 @@ local function OnKeyDown(keyevent)
             S_StartSound(nil, sfx_swtchx)
             return true
         elseif keyevent.name == "up arrow" then
-            menustatus.selection = (menustatus.selection - 1) % entryCount
+            menustatus.selection = (menustatus.selection - 1 + entryCount) % entryCount
             S_StartSound(nil, sfx_pstop)
             return true
         elseif keyevent.name == "down arrow" then
@@ -170,7 +198,7 @@ local function OnKeyDown(keyevent)
 
     -- Determine selected entry (first if nocursor)
     local idx = menuDef.nocursor and 1 or (menustatus.selection + 1)
-    local selectedEntry = menuDef.entries[idx]
+    local selectedEntry = menuDef.entries and menuDef.entries[idx] or 0
 
     -- If custom validkeys, only allow those
     if menuDef.validkeys then
@@ -191,15 +219,15 @@ local function OnKeyDown(keyevent)
 
     -- Handle episode selection - store the selected episode
     if currentMenuKey == "episelect" and selectedEntry.episode then
-        doom.selectedEpisode = selectedEntry.episode
+        selectedEpisode = selectedEntry.episode
     end
 
     -- Confirm/execute
-    if isGameControl(keyevent, GC_JUMP) or keyevent.name == "enter" then
+    if not menuDef.nocursor and (isGameControl(keyevent, GC_JUMP) or keyevent.name == "enter") then
         -- For episode selection, we need to update the newgame commands with the proper map
         if currentMenuKey == "episelect" and selectedEntry.episode then
             -- Calculate the starting map for the selected episode (maps are 8 apart)
-            local startMapNum = (doom.selectedEpisode - 1) * 8 + 1
+            local startMapNum = (selectedEpisode - 1) * 8 + 1
             local startMap = "map" .. (startMapNum < 10 and "0" .. startMapNum or startMapNum)
             
             -- Update all newgame entries to use the correct episode map
@@ -212,28 +240,53 @@ local function OnKeyDown(keyevent)
             end
         end
         
-        if selectedEntry.command then
+        if selectedEntry and selectedEntry.command then
             local cmds = type(selectedEntry.command) == "table" and selectedEntry.command or {selectedEntry.command}
             for _, cmd in ipairs(cmds) do
                 table.insert(commandBuffer, cmd)
             end
         end
-        if selectedEntry.goto then
+        if selectedEntry and selectedEntry.goto then
             menustatus.menu = selectedEntry.goto
             menustatus.selection = (doom.titlemenus[selectedEntry.goto].default or 1) - 1
+			local nextMenu = doom.titlemenus[selectedEntry.goto]
+			if nextMenu and nextMenu.onEnter then
+				nextMenu.onEnter()
+			end
         end
         S_StartSound(nil, sfx_pistol)
         return true
     end
 
-    -- Handle any-key menus (nocursor)
-    if menuDef.nocursor and menuDef.key_any then
-        if menuDef.key_any.command then
-            table.insert(commandBuffer, menuDef.key_any.command)
-        end
-        menustatus.menu = menuDef.key_any.goto or menustatus.menu
-        return true
-    end
+	-- Handle specific key responses (like key_y, key_n in quitgame)
+	local keyHandler = menuDef["key_" .. keyevent.name:lower()]
+	if keyHandler then
+		if keyHandler.command then
+			table.insert(commandBuffer, keyHandler.command)
+		end
+		if keyHandler.goto then
+			menustatus.menu = keyHandler.goto
+			menustatus.selection = (doom.titlemenus[keyHandler.goto].default or 1) - 1
+		end
+		-- Call onEnter for the current menu when a valid key is pressed
+		if menuDef.onEnter then
+			menuDef.onEnter()
+		end
+		S_StartSound(nil, sfx_pistol)
+		return true
+	end
+
+	-- Handle any-key menus (nocursor)
+	if menuDef.nocursor and menuDef.key_any then
+		if menuDef.key_any.command then
+			table.insert(commandBuffer, menuDef.key_any.command)
+		end
+		menustatus.menu = menuDef.key_any.goto or menustatus.menu
+		if menuDef.onEnter then
+			menuDef.onEnter()
+		end
+		return true
+	end
 
     return false
 end

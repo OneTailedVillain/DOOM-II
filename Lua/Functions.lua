@@ -125,17 +125,12 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		new.angle = FixedAngle(mobj.spawnpoint.angle*FRACUNIT)
 	end, MT)
 
-	addHook("MobjDeath", function(target, inflictor, source, damage, damagetype)
-		if not (target.doom.flags & DF_COUNTKILL) then return end
-		doom.kills = ($ or 0) + 1
-	end, MT)
-
 	addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
-		local attacker = inflictor or source
+		local attacker = source or inflictor
 
 		if inflictor != source or (source.type != MT_DOOM_BULLET) or (source.type != MT_DOOM_LOSTSOUL) then
-			if inflictor.target and (
-				inflictor.target.type == target.type
+			if attacker and (
+				attacker.type == target.type
 			) or ( (inflictor.target.type == MT_DOOM_HELLKNIGHT and target.type == MT_DOOM_BARONOFHELL)
 				  or (inflictor.target.type == MT_DOOM_BARONOFHELL and target.type == MT_DOOM_HELLKNIGHT) ) then
 				return true
@@ -416,6 +411,13 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
         player.doom.damagecount = (player.doom.damagecount or 0) + damage
         if player.doom.damagecount > 100 then player.doom.damagecount = 100 end
         player.doom.attacker = source
+		local num_rings
+		if player.doom.damagecount > 5 then
+			num_rings = (player.doom.damagecount / 5) + 5
+		else
+			num_rings = player.doom.damagecount
+		end
+		--print("Damage would have spawned " .. num_rings .. " rings")
     else
         -- Non-player (monster) handling - DOOM-style
         if not (target.flags & MF_SHOOTABLE) or target.doom.health <= 0 then
@@ -635,6 +637,7 @@ rawset(_G, "DOOM_DoAutoSwitch", function(player, force, ammotype)
 	table.sort(candidates, function(a, b)
 		return a.priority < b.priority
 	end)
+	if not candidates[1] then return end
 	return DOOM_SwitchWeapon(player, candidates[1].name)
 end)
 

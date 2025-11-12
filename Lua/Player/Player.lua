@@ -242,7 +242,7 @@ addHook("PlayerThink", function(player)
 
 	if (player.cmd.buttons & BT_JUMP) then
 		if doom.issrb2 then
-			if P_IsObjectOnGround(player.mo) then
+			if P_IsObjectOnGround(player.mo) and player.realmo.skin == "johndoom" then
 				S_StartSound(player.mo, sfx_jump)
 				player.mo.momz = 6*FRACUNIT
 			end
@@ -391,6 +391,10 @@ addHook("PlayerThink", function(player)
 
 	player.doom.bonuscount = ($ or 1) - 1
 	player.doom.damagecount = ($ or 1) - 1
+	player.doom.messageclock = ($ or 1) - 1
+
+	local support = P_GetSupportsForSkin(player)
+	if support.noWeapons then return end
 
 	-- attacker ##MIGHT be important for killcam logic
 	if player.mo.doom.health > 0 then

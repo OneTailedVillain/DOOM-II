@@ -44,6 +44,18 @@ local states = {
 
 DefineDoomDeco(name, object, states, onPickup)
 
+local name = "BloodyMessExtra"
+
+-- for some reason DOOM does this. so freeslot it again for DEHACKED
+local object = {
+	radius = 12,
+	height = 20,
+	doomednum = 12,
+	sprite = SPR_PLAY,
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
 SafeFreeSlot("SPR_COLU")
 local name = "FloorLamp"
 
@@ -686,6 +698,23 @@ local states = {
     {frame = H|FF_FULLBRIGHT, tics = 2}, --28
     {frame = G|FF_FULLBRIGHT, tics = 2}, --29
     {frame = H|FF_FULLBRIGHT, tics = 2}, --30
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL5")
+local name = "CrushGibs"
+
+local object = {
+	radius = 16,
+	height = 32,
+	doomednum = 24,
+	sprite = SPR_POL5,
+	flags = MF_NOBLOCKMAP|MF_NOGRAVITY|MF_NOCLIPTHING
+}
+
+local states = {
+    {frame = A, tics = -1},
 }
 
 DefineDoomDeco(name, object, states, onPickup)

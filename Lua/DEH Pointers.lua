@@ -13,6 +13,36 @@ doom.dropTable = {
 	[MT_DOOM_SHOTGUNNER] = MT_DOOM_SHOTGUN,
 }
 
+doom.bossDeathSpecials = {
+	[MT_DOOM_BARONOFHELL] = {
+		map = 8,
+		tag = 666,
+		special = 23,
+	},
+	/*
+	[MT_DOOM_BARONOFHELL] = { -- cyber
+		map = 30,
+		tag = 666,
+		special = 112,
+	},
+	[MT_DOOM_BARONOFHELL] = { -- spiderdemon
+		map = 32,
+		tag = 666,
+		special = 23,
+	},
+	[MT_DOOM_BARONOFHELL] = { -- mancubus
+		map = 7,
+		tag = 666,
+		special = 23,
+	},
+	[MT_DOOM_BARONOFHELL] = { -- arachnotron
+		map = 7,
+		tag = 667,
+		type = 30,
+	},
+	*/
+}
+
 doom.dehackedpointers = {
 	sprites = {
 		SPR_TROO,
@@ -195,6 +225,10 @@ doom.dehackedpointers = {
 		nil, -- Arachnotron Fireball
 		[98] = MT_DOOM_STALAGTITE,
 		[106] = MT_DOOM_MEAT5,
+		[113] = MT_DOOM_CORPSE,
+		[119] = MT_DOOM_BLOODYMESS,
+		[120] = MT_DOOM_BLOODYMESSEXTRA,
+		[121] = MT_DOOM_CRUSHGIBS,
 	},
 
 	flags = {

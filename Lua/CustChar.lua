@@ -531,6 +531,86 @@ end
 
 -- Build doom.charSupport using baseMethods and per-char overrides
 doom.charSupport = {
+	bj = {
+		noWeapons = true,
+		noHUD = true,
+		customDamage = true,
+		methods = mergeMethods(baseMethods, {
+			damage = function(player, damage, attacker, proj, damageType, minhealth)
+				if (player.playerstate or PST_LIVE) == PST_DEAD then return false end
+				local player, mobj = resolvePlayerAndMobj(player)
+				player.wolfenstein.health = max($ - damage, minhealth or 0)
+				P_DamageMobj(mobj, proj, attacker, 0, damageType)
+			end,
+
+			getHealth = function(player)
+				if not player or not player.mo then return nil end
+				return player.wolfenstein.health or 0
+			end,
+
+			setHealth = function(player, health)
+				if not player or not player.mo then return false end
+				player.wolfenstein.health = health
+				return true
+			end,
+
+			getCurAmmo = function(player)
+				if not player then return nil end
+				return player.wolfenstein.ammo
+			end,
+
+			getMaxFor = function(player, aType)
+				return 99
+			end,
+
+			giveAmmoFor = function(player, source, dflags)
+				if dflags == nil then dflags = 0 end
+				local tables = {
+					clip           = {"bullets", 10, true},
+					clipbox        = {"bullets", 50},
+					shells         = {"shells", 4, true},
+					shellbox       = {"shells", 20},
+					rocket         = {"rockets", 1, true},
+					rocketbox      = {"rockets", 5},
+					cell           = {"cells", 20, true},
+					cellpack       = {"cells", 100},
+					pistol         = {"bullets", 20, true},
+					chaingun       = {"bullets", 20, true},
+					shotgun        = {"shells", 8, true},
+					supershotgun   = {"shells", 8, true},
+					rocketlauncher = {"rockets", 2, true},
+					plasmarifle    = {"cells", 40, true},
+					bfg9000        = {"cells", 40, true},
+				}
+
+				if not player or not player.doom then return false end
+
+				local entry = tables[source]
+				if not entry then return false end
+
+				if doom.skill == 1 or doom.skill == 5 then
+					entry[2] = $ * 2
+				end
+				if (dflags & DF_DROPPED) then
+					entry[2] = $ / 2
+				end
+
+				if gametype == GT_DOOMDM and entry[3] then
+					entry[2] = $ * 5
+				end
+
+				local aType, addAmount = entry[1], entry[2]
+
+				local curAmmo = player.wolfenstein.ammo or 0
+				local maxAmmo = P_GetMethodsForSkin(player).getMaxFor(player, aType)
+
+				player.wolfenstein.ammo = min(curAmmo + addAmount, maxAmmo)
+
+				return curAmmo ~= player.doom.ammo[aType]
+			end,
+		})
+	},
+
 	kombifreeman = {
 		noWeapons = true,
 		noHUD = true,
@@ -552,6 +632,13 @@ doom.charSupport = {
 				return false
 			end,
 
+			getMaxHealth = function(player)
+				if not player or not player.mo then return nil end
+				local curHealth = player.mo.doom and player.mo.doom.maxhealth
+				if curHealth == nil then return nil end
+				return curHealth
+			end,
+
 			getArmor = function(player)
 				if not player or not player.mo then return nil end
 				if player.mo.doom and player.mo.doom.armor ~= nil then
@@ -567,6 +654,34 @@ doom.charSupport = {
 				player.mo.hl.armor = armor*FRACUNIT
 
 				return true
+			end,
+
+			doBackpack = function(player)
+				player.hl1doubleammo = true
+				local ammoGives = {
+					ammo_9mm = 17,
+					ammo_357 = 6,
+					ammo_argrenade = 2,
+					ammo_buckshot = 4,
+					ammo_bolt = 5,
+					ammo_rocket = 1,
+					ammo_uranium = 20,
+				}
+				for ammotype, amount in pairs(ammoGives) do
+					if doom.skill == 1 or doom.skill == 5 then
+						amount[2] = $ * 2
+					end
+					HL_ApplyPickupStats(player, { ammo = {type = ammotype, give = amount} })
+				end
+				return true
+			end,
+
+			getMaxArmor = function(player)
+				if not player or not player.mo then return nil end
+				if player.mo.doom and player.mo.doom.maxarmor ~= nil then
+					return player.mo.doom.maxarmor
+				end
+				return nil
 			end,
 
 			getCurAmmo = function(player)
@@ -663,7 +778,7 @@ doom.charSupport = {
 						{"ammo_bolt", 10, 9},
 						{"ammo_buckshot", 20, 9},
 					},
-					rockets = {
+					rocket = {
 						{"ammo_argrenade", 2, 3},
 						{"ammo_rocket", 1, 2},
 						--{"ammo_snark", 5, 12},
@@ -679,6 +794,13 @@ doom.charSupport = {
 						{"ammo_satchel", 2, 8},
 						{"ammo_tripmine", 2, 8},
 						{"ammo_grenade", 10, 8},
+					},
+					cell = {
+						{"ammo_uranium", 20, 1},
+						small = true,
+					},
+					cellpack = {
+						{"ammo_uranium", 60, 1}
 					},
 				}
 
@@ -712,6 +834,12 @@ doom.charSupport = {
 				local tables = {
 					chainsaw = {
 						{"weapon_hornetgun", 1}
+					},
+					brassknuckles = {
+						{"weapon_crowbar", 1}
+					},
+					pistol = {
+						{"weapon_9mmhandgun", 1}
 					},
 					shotgun = {
 						{"weapon_shotgun", 1}
@@ -891,6 +1019,13 @@ doom.charSupport = {
 		}
 	},
 }
+
+for charName, charTable in pairs(doom.charSupport) do
+    if charName ~= "other" and charTable.methods then
+        -- Merge this character's methods with baseMethods
+        charTable.methods = mergeMethods(baseMethods, charTable.methods)
+    end
+end
 
 setmetatable(doom.charSupport, {
 	__index = function(t, key) return t.other end

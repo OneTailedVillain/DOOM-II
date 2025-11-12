@@ -34,11 +34,22 @@ end
 
 COM_AddCommand("idkfa", function(player, victim)
 	player.doom.keys = doom.KEY_RED|doom.KEY_BLUE|doom.KEY_YELLOW|doom.KEY_SKULLRED|doom.KEY_SKULLBLUE|doom.KEY_SKULLYELLOW
+	DOOM_DoMessage(player, "$STSTR_KFAADDED")
 	giveWeaponsArmorAndAmmo(player)
 end)
 
 COM_AddCommand("idfa", function(player, victim)
+	DOOM_DoMessage(player, "$STSTR_FAADDED")
 	giveWeaponsArmorAndAmmo(player)
+end)
+
+COM_AddCommand("idclip", function(player, victim)
+	player.pflags = $ ^^ PF_NOCLIP
+	if (player.pflags & PF_NOCLIP) then
+		DOOM_DoMessage(player, "$STSTR_NCON")
+	else
+		DOOM_DoMessage(player, "$STSTR_NCOFF")
+	end
 end)
 
 COM_AddCommand("doom_skill", function(player, victim)
@@ -90,6 +101,13 @@ CV_RegisterVar({
 
 CV_RegisterVar({
 	name = "doom_hiresautomap",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = CV_OnOff
+})
+
+CV_RegisterVar({
+	name = "doom_disableflashes",
 	defaultvalue = "Off",
 	flags = CV_SAVE,
 	PossibleValue = CV_OnOff

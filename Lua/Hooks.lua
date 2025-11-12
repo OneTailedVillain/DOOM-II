@@ -111,6 +111,15 @@ addHook("MapLoad", function(mapid)
 	doom.secretcount = 0
 	doom.textscreen.active = false
 	for mobj in mobjs.iterate() do
+		local mthing = mobj.spawnpoint
+		if not mthing then
+			continue
+		end
+		if (mthing.z & 1) then
+			P_RemoveMobj(mobj)
+			continue
+		end
+
 		mobj.flags2 = $ & ~MF2_OBJECTFLIP
 		mobj.eflags = $ & ~MFE_VERTICALFLIP
 		if not (mobj.info.flags & MF_SPAWNCEILING) then
@@ -165,10 +174,10 @@ addHook("MapLoad", function(mapid)
 		sector.flags = 0
 		sector.specialflags = 0
 		sector.damagetype = 0
-		sector.gravity = -prefGravity
+		--sector.gravity = -prefGravity
 	end
 
-	gravity = -prefGravity
+	gravity = prefGravity
 
 	for player in players.iterate do
 		player.doom = $ or {}
@@ -184,10 +193,14 @@ addHook("MapLoad", function(mapid)
 		[13] = MT_DOOM_REDKEYCARD,
 		[14] = MT_DOOM_TELETARGET,
 		[15] = MT_DOOM_CORPSE,
+		[16] = MT_DOOM_CYBERDEMON,
 		[31] = MT_DOOM_SHORTGREENPILLAR,
 	}
 
 	for mthing in mapthings.iterate do
+		if (mthing.z & 1) then
+			continue
+		end
 		if mthingReplacements[mthing.type] then
 			local x = mthing.x*FRACUNIT
 			local y = mthing.y*FRACUNIT
@@ -202,12 +215,10 @@ addHook("MapLoad", function(mapid)
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTKILL) then
 			doom.killcount = ($ or 0) + 1
+			print(tostring(doom.killcount) .. " enemies total")
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTITEM) then
 			doom.itemcount = ($ or 0) + 1
-		end
-		if (mthing.z & 1) and mthing.mobj then
-			P_RemoveMobj(mthing.mobj)
 		end
 	end
 end)
@@ -244,7 +255,104 @@ local expectedUserdatas = {
 	floor = "sector_t",
 	ceiling = "sector_t",
 	light = "sector_t",
+	stair = "sector_t",
 }
+
+-- BuildStairs: iterative stair builder using DOOM_AddThinker
+-- startsec: sector to start from (sector table)
+-- stairsize: amount added per step (e.g. 8*FRACUNIT)
+-- speed: floor move speed for each created thinker
+-- RETURNS: table { created = <count>, sectors = { <sector>, ... } }
+local function BuildStairs(startsec, stairsize, speed)
+    if not startsec then return { created = 0, sectors = {} } end
+
+    local queue = {}
+    local head, tail = 1, 1
+    -- queue entries are { sec = <sector>, step = <int> }
+    queue[tail] = { sec = startsec, step = 1 }
+
+    -- visited keyed by sector object to avoid duplicates
+    local visited = {}
+    visited[startsec] = true
+
+    local newt = {
+        type = "floor",
+        speed = speed,
+        target = startsec.floorheight + stairsize,
+        -- any stair-only fields you want
+    }
+	doom.thinkers[startsec] = newt
+
+    local created = 0
+    local created_list = {}
+
+    local base_height = startsec.floorheight or 0
+
+    local MAX_ENQUEUED = 20000 -- safety cap (tweak or remove if you want)
+    while head <= tail do
+        if (tail - head) > MAX_ENQUEUED then
+            -- safety bail-out to avoid pathological levels
+            break
+        end
+
+        local entry = queue[head]; head = head + 1
+        local sec = entry.sec
+        local step = entry.step
+        local dest = base_height + (step * stairsize)
+
+        -- If sector already has a thinker, skip creating another; DOOM_AddThinker also checks this,
+        -- but avoiding unnecessary template allocs is nice.
+        if not doom.thinkers[sec] then
+            -- prepare a template for the floor thinker; DOOM_AddThinker will deepcopy it
+            local floorTemplate = {
+                type = "floor",    -- your code expects data.type == "floor"
+                speed = speed,
+                target = dest,     -- your floor thinker reads `data.target`
+                -- you can add any other default fields your thinker needs
+            }
+            DOOM_AddThinker(sec, floorTemplate)
+            created = created + 1
+            created_list[#created_list + 1] = sec
+        end
+
+        -- iterate lines on this sector and enqueue valid backsides
+        for i = 0, #sec.lines - 1 do
+            local line = sec.lines[i]
+            -- skip one-sided lines
+            if (line.flags & ML_TWOSIDED) == 0 then
+                continue
+            end
+
+            -- DOOM-style orientation check: current sector must be the frontsector
+            if line.frontsector ~= sec then
+                continue
+            end
+
+            local backsec = line.backsector
+            -- require same floor texture (as in DOOM)
+            if backsec.floorpic ~= sec.floorpic then
+                continue
+            end
+
+            -- skip if already moving / has thinker
+            if doom.thinkers[backsec] then
+                continue
+            end
+
+            -- skip if we've already enqueued it
+            if visited[backsec] then
+                continue
+            end
+
+            -- enqueue neighbor with step+1
+            tail = tail + 1
+            queue[tail] = { sec = backsec, step = step + 1 }
+            visited[backsec] = true
+        end
+    end
+
+    return { created = created, sectors = created_list }
+end
 
 local thinkers = {
 	door = function(sector, data)
@@ -449,13 +557,21 @@ local thinkers = {
 			data.count = (DOOM_Random() & data.maxtime) + 1
 		end
 	end,
+
+	stair = function(sector, data)
+		local stepSize = data.amount * FRACUNIT
+		local speed = data.speed == "fast" and FRACUNIT*4 or FRACUNIT/4
+		BuildStairs(sector, stepSize, speed)
+	end,
 	
 	floor = function(sector, data)
 		local target
 		local dir = "up"
-		local FLOORSPEED = 2*FRACUNIT
+		local FLOORSPEED = type(data.speed) == "number" and data.speed or 2*FRACUNIT
 		if not (sector and sector.valid) then return end
-		if data.target == "nextfloor" then
+		if type(data.target) == "number" then
+			target = data.target
+		elseif data.target == "nextfloor" then
 			target = P_FindNextHighestFloor(sector, sector.floorheight)
 		elseif data.target == "highest" then
 			target = P_FindHighestFloorSurrounding(sector)
