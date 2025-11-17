@@ -727,8 +727,6 @@ local function doLoadingShit()
 	end
 
 	if matchedGame == "ultdoom" or matchedGame == "shareware" or matchedGame == "doom1" or matchedGame == "doom2" then
-	doom.mapString = "HUSTR_"
-
 	doom.strings = {
 		SWSTRING      = "this is the shareware version of doom.\n\nyou need to order the entire trilogy.\n\npress a key.",
 

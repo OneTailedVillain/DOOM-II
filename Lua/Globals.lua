@@ -24,6 +24,7 @@ end
 if not doom then
 	rawset(_G, "doom", {})
 end
+doom.mapString = "HUSTR_"
 doom.gameskill = 0
 doom.killcount = 0
 doom.kills = 0
