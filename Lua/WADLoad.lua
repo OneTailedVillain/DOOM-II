@@ -269,6 +269,10 @@ local function doLoadingShit()
 	print("Checking current add-ons...", doom.basewad)
 	doom.patchesLoaded = false -- We'll have to run this back anyhow...
 
+	if HL then
+		HL.disableTitleScreen = true
+	end
+
 	if doom.isdoom1 then
 		doom.titlemenus.menu.entries[1].goto = "episelect"
 	end
