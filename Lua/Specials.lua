@@ -28,48 +28,48 @@ Secret exits outside of the above maps restart the current map.
 doom.lineActions = {
 	-- === Direct ===
 	[1] = {
-		type = "door", kind = "open", stay = false,
-		fastdoor = false, repeatable = true, activationType = "interact"
+		type = "door", kind = "open", stay = false, owner = "sector",
+		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[26] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = false,
-		fastdoor = false, repeatable = true, activationType = "interact"
+		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = false, owner = "sector",
+		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[27] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = false,
-		fastdoor = false, repeatable = true, activationType = "interact"
+		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = false, owner = "sector",
+		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[28] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = false,
-		fastdoor = false, repeatable = true, activationType = "interact"
+		type = "door", lock = doom.KEY_RED, kind = "open", stay = false, owner = "sector",
+		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[31] = {
-		type = "door", kind = "open", stay = true,
-		fastdoor = false, repeatable = false, activationType = "interact"
+		type = "door", kind = "open", stay = true, owner = "sector",
+		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[32] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true,
-		fastdoor = false, repeatable = false, activationType = "interact"
+		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true, owner = "sector",
+		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[33] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = true,
-		fastdoor = false, repeatable = false, activationType = "interact"
+		type = "door", lock = doom.KEY_RED, kind = "open", stay = true, owner = "sector",
+		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[34] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true,
-		fastdoor = false, repeatable = false, activationType = "interact"
+		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true, owner = "sector",
+		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[46] = {
 		type = "door", kind = "open", stay = true,
 		fastdoor = false, repeatable = true, activationType = "gunshot"
 	},
 	[117] = {
-		type = "door", kind = "open", stay = false,
-		fastdoor = true, repeatable = true, activationType = "interact"
+		type = "door", kind = "open", stay = false, owner = "sector",
+		fastdoor = true, repeatable = true, activationType = "switch"
 	},
 	[118] = {
-		type = "door", kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "interact"
+		type = "door", kind = "open", stay = true, owner = "sector",
+		fastdoor = true, repeatable = false, activationType = "switch"
 	},
 
 	-- === Remote ===
@@ -82,7 +82,7 @@ doom.lineActions = {
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[4] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", kind = "open", stay = false, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[90] = {
@@ -128,7 +128,7 @@ doom.lineActions = {
 		type = "door", kind = "closewaitopen", delay = 30*TICRATE,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
-	[70] = {
+	[76] = {
 		type = "door", kind = "closewaitopen", delay = 30*TICRATE,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
@@ -183,27 +183,27 @@ doom.lineActions = {
 	-- Key locked fast stays
 	[133] = {
 		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch"
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[99] = {
 		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch"
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[135] = {
 		type = "door", lock = doom.KEY_RED, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch"
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[134] = {
 		type = "door", lock = doom.KEY_RED, kind = "open", stay = true,
-		fastdoor = true, repeatable = true, activationType = "switch"
+		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[137] = {
 		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch"
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[136] = {
 		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true,
-		fastdoor = true, repeatable = true, activationType = "switch"
+		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 
 	-- === Ceilings ===
@@ -386,10 +386,6 @@ doom.lineActions = {
 	[120] = {
 		type = "lift", mode = "lowerwaitraise",
 		repeatable = true, activationType = "walk", speed = "fast"
-	},
-	[121] = {
-		type = "lift", mode = "lowerwaitraise",
-		repeatable = false, activationType = "walk", speed = "fast"
 	},
 
 	-- === Floors (raise/lower, oscillating) ===
@@ -692,11 +688,11 @@ doom.lineActions = {
 	-- === Exits ===
 	[11] = {
 		type = "exit", secret = false,
-		repeatable = false, activationType = "interact"
+		repeatable = false, activationType = "switch"
 	},
 	[51] = {
 		type = "exit", secret = true,
-		repeatable = false, activationType = "interact"
+		repeatable = false, activationType = "switch"
 	},
 	[52] = {
 		type = "exit", secret = false,

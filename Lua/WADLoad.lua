@@ -382,6 +382,7 @@ local function doLoadingShit()
 
 	if matchedGame == "srb2" then
 		-- Autopatch SRB2 March 2000 Prototype
+		doom.gamemode = "registered"
 		doom.defaultgravity = FRACUNIT/2
 		doom.issrb2 = true
 
@@ -731,6 +732,14 @@ local function doLoadingShit()
 	end
 
 	if matchedGame == "ultdoom" or matchedGame == "shareware" or matchedGame == "doom1" or matchedGame == "doom2" then
+	if matchedGame == "doom2" then
+		doom.gamemode = "commercial"
+	elseif matchedGame != "shareware" then
+		doom.gamemode = "registered"
+	else
+		doom.gamemode = "shareware"
+	end
+
 	doom.strings = {
 		SWSTRING      = "this is the shareware version of doom.\n\nyou need to order the entire trilogy.\n\npress a key.",
 
@@ -1036,6 +1045,8 @@ local function doLoadingShit()
 
 	-- Chex Quest (hopefully counts for Chex Quest 2 aswell)
 	if matchedGame == "chex1" then
+		doom.gamemode = "registered"
+
 		-- Autopatch Chex strings
 	doom.strings = {
 		-- P_inter.C

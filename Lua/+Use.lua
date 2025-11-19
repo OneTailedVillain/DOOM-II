@@ -189,22 +189,31 @@ addHook("MobjLineCollide", function(ray, usedLine)
 		end
 		return
 	end
-    if whatIs.activationType == "interact" then
-        if whatIs.type == "exit" then
-			doom.didSecretExit = whatIs.secret
-			DOOM_ExitLevel()
-            return true
-        end
-        DOOM_AddThinker(usedLine.backsector, whatIs)
-    elseif whatIs.activationType == "switch" then
-		S_StartSound(ray.target, sfx_swtchn)
-        for sector in sectors.tagged(usedLine.tag) do
-            DOOM_AddThinker(sector, whatIs)
-        end
-	else
-		S_StartSound(ray.target, sfx_noway)
+    
+    -- Handle immediate exit special
+    if whatIs.type == "exit" then
+        doom.didSecretExit = whatIs.secret
+        DOOM_ExitLevel()
+        return true
     end
 
+    -- Build thinker data and hand off to thinkers
+    local switchThinker = {
+        type = "switch",
+        victimData = whatIs,
+		owner = whatIs.owner,
+        switcher = ray.target,
+        victimLine = usedLine,
+        victimTag = usedLine.tag,
+        allowOff = whatIs.repeatable,
+        lock = whatIs.lock,
+        denyMessage = whatIs.denyMessage,
+        onSound = whatIs.onSound,
+        offSound = whatIs.offSound,
+        delay = whatIs.delay,
+    }
+
+	DOOM_AddThinker(usedLine, switchThinker)
     P_KillMobj(ray)
     return true
 end, MT_DOOM_USERAYCAST)

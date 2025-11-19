@@ -134,7 +134,36 @@ addHook("MapLoad", function(mapid)
 	doom.torespawn = {}
 	doom.sectorspecials = {}
 	doom.sectorbackups = {}
-	
+	doom.switches = {}
+
+	-- Determine episode based on game mode
+	local episode = 1
+	if doom.gamemode == "registered" then
+		episode = 2
+	elseif doom.gamemode == "commercial" then
+		episode = 3
+	end
+
+	local index = 1
+
+	-- Iterate through switch texture names
+	for i, switchTex in ipairs(doom.switchTexNames) do
+		-- Check for end marker (episode == 0)
+		if switchTex[3] == 0 then
+			doom.numswitches = (index - 1) / 2
+			doom.switches[index] = -1
+			break
+		end
+		
+		-- Add switches for current episode or earlier
+		if switchTex[3] <= episode then
+			doom.switches[index] = R_TextureNumForName(switchTex[1])
+			index = index + 1
+			doom.switches[index] = R_TextureNumForName(switchTex[2])
+			index = index + 1
+		end
+	end
+
 	local prefGravity = tonumber(mapheaderinfo[gamemap].doomiigravity) or doom.defaultgravity
 
 	for line in lines.iterate do
@@ -245,6 +274,7 @@ Type	Class	Effect
 */
 
 local expectedUserdatas = {
+	switch = "line_t",
 	door = "sector_t",
 	lift = "sector_t",
 	crusher = "sector_t",
@@ -355,6 +385,89 @@ local function BuildStairs(startsec, stairsize, speed)
 end
 
 local thinkers = {
+	switch = function(line, data)
+		-- Infer switch textures if not already set (for switches activated via interact raycast)
+		if data.victimTextureArea == nil then
+			local side = line.frontside
+			if side then
+				local texTop, texMid, texBot = side.toptexture, side.midtexture, side.bottomtexture
+
+				if doom.numswitches and doom.numswitches > 0 then
+					for i = 1, doom.numswitches * 2 do
+						local v = doom.switches[i]
+						if v == texTop then
+							local partnerIndex = (i % 2 == 1) and (i + 1) or (i - 1)
+							data.onTexture = doom.switches[partnerIndex]
+							data.offTexture = doom.switches[i]
+							data.victimTextureArea = "toptexture"
+							break
+						elseif v == texMid then
+							local partnerIndex = (i % 2 == 1) and (i + 1) or (i - 1)
+							data.onTexture = doom.switches[partnerIndex]
+							data.offTexture = doom.switches[i]
+							data.victimTextureArea = "midtexture"
+							break
+						elseif v == texBot then
+							local partnerIndex = (i % 2 == 1) and (i + 1) or (i - 1)
+							data.onTexture = doom.switches[partnerIndex]
+							data.offTexture = doom.switches[i]
+							data.victimTextureArea = "bottomtexture"
+							break
+						else
+							data.victimTextureArea = false
+						end
+					end
+				end
+
+				-- Set defaults for switch fields if not already present
+				data.allowOff = data.allowOff or data.\repeatable
+				data.onSound = data.onSound or sfx_swtchn
+				data.offSound = data.offSound or sfx_swtchx
+				data.delay = data.delay or TICRATE
+			end
+		end
+
+		local player = data.switcher.player
+
+		if data.lock and not (player.doom.keys & data.lock) then
+			DOOM_DoMessage(player, data.denyMessage or "YOU FORGOT TO SET A MESSAGE FOR THIS!")
+			S_StartSound(data.switcher, sfx_noway)
+			doom.thinkers[line] = nil
+			return
+		end
+
+		if not data.started then
+			if data.victimTextureArea then
+				S_StartSound(data.switcher, data.onSound)
+				line.frontside[data.victimTextureArea] = data.onTexture
+			end
+			if not data.owner then
+				for sector in sectors.tagged(data.victimTag) do
+					DOOM_AddThinker(sector, data.victimData)
+				end
+			else
+				DOOM_AddThinker(data.victimLine.backsector, data.victimData)
+			end
+			data.started = true
+		end
+
+		-- if not data.victimData.repeatable...
+		-- Effectively locks out using the switch again
+		if not data.allowOff then return end
+
+		-- The semi-animation for when the switch is repeatable
+		-- Questionable name? Sure, why the hell not!
+		if data.delay then
+			data.delay = $ - 1
+		else
+			if data.victimTextureArea then
+				S_StartSound(data.switcher, data.onSound)
+				line.frontside[data.victimTextureArea] = data.offTexture
+			end
+			doom.thinkers[line] = nil
+		end
+	end,
+
 	door = function(sector, data)
 		-- opening
 		if not data.reachedGoal then

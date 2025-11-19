@@ -558,21 +558,17 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	DOOM_SetState(player, "attack", 1)
 end)
 
-local function deepcopy(orig)
+rawset(_G, "deepcopy", function(orig)
 	local orig_type = type(orig)
 	if orig_type ~= 'table' then
-		if orig_type == "boolean" then
-			return orig == true
-		else
-			return tonumber(orig) == nil and tostring(orig) or tonumber(orig)
-		end
+		return orig
 	end
 	local copy = {}
 	for k, v in next, orig, nil do
 		copy[deepcopy(k)] = deepcopy(v)
 	end
 	return copy
-end
+end)
 
 rawset(_G, "DOOM_AddThinker", function(any, thinkingType)
     if doom.thinkers[any] ~= nil then return end -- Emulate DOOM disallowing multiple thinkers for one sector
