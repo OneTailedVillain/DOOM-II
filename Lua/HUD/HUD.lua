@@ -152,11 +152,13 @@ local function DrawStatusBarNumbers(v, player)
 	}
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", player.doom.ammo[whatToIndex], V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+		local curAmmo = funcs.getAmmoFor(player, whatToIndex) or 0
+		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", player.doom.backpack and doom.ammos[whatToIndex].backpackmax or doom.ammos[whatToIndex].max, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+		local maxAmmo = funcs.getMaxFor(player, whatToIndex) or 0
+		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	local whatToCheck = {
 		"brassknuckles",
@@ -169,7 +171,7 @@ local function DrawStatusBarNumbers(v, player)
 	}
 	for i = 0, 5 do
 		local whatToIndex = whatToCheck[i + 2]
-		local doIHaveIt = player.doom.weapons[whatToIndex]
+		local doIHaveIt = funcs.hasWeapon(player, whatToIndex)
 		local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
 		drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM, "left")
 	end
@@ -350,6 +352,7 @@ local srb2hud = {
 		if ammo != false then
 			-- FIXME: SRB2 SIGSEGVs whenever we cache a patch like SBOAMMO1?? Reserving the patch doesn't fix it
 			-- Weirder is that the other SBO patches don't do this??
+			local funcs = P_GetMethodsForSkin(player)
 			local myWep = doom.weapons[weapon]
 			local myAmmoType = myWep.ammotype
 			local myAmmoDef = doom.ammos[myAmmoType]
@@ -380,7 +383,7 @@ hud.add(function(v, player)
 	hud.disable("lives")
 	hud.disable("crosshair")
 
-	if not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
+	if not v.patchExists("STFST01") or not v.patchExists("PLAYA1") then
 		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YO! YOU DON'T HAVE A VALID IWAD LOADED YET!\nGRAB YOUR COPY OF DOOM, DOOM II, OR FREEDOOM\nAND LOAD THAT FIRST!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 		return
 	end
@@ -734,18 +737,3 @@ hud.add(function(v, player)
 	end
 	doom.patchesLoaded = true
 end, "game")
-
-/*
-
-	local cnt = player.doom.damagecount
-	local redpal = (cnt+7)>>3
-	local bonuspal = (player.doom.bonuscount+7)>>3
-	local radpal = ( player.doom.powers[pw_ironfeet] > 4*32 or player.doom.powers[pw_ironfeet]&8) and 6 or 0
-	if redpal >= 0 then
-		v.drawFill(0, 0, 320, 200, 176|(redpal<<V_ALPHASHIFT))
-	elseif bonuspal >= 0 then
-		v.drawFill(0, 0, 320, 200, 161|(bonuspal<<V_ALPHASHIFT))
-	elseif radpal then
-		v.drawFill(0, 0, 320, 200, 114|(radpal<<V_ALPHASHIFT))
-	end
-*/

@@ -73,7 +73,7 @@ dofile("DEH Pointers.lua")
 ---@class doomglobal_t
 ---@field isdoom1 boolean Denotes if the IWAD loaded was based on the Doom 1 engine
 ---@field torespawn table<torespawn_t> The list of victims to respawn
----@field strings table<doomstrings_t> The set of strings used for various pickups and events
+---@field strings table<doomstrings> The set of strings used for various pickups and events
 ---@field endoom endoom_t The ENDOOM screen data
 ---@field rndtable table A table of random numbers used for various calculations
 ---@field prndindex integer The current index in the random number table
@@ -101,6 +101,42 @@ dofile("DEH Pointers.lua")
 ---@field lineActions table<integer, table> A table of line special actions, indexed by their line special number
 ---@field linebackups table<line_t, table> A table of line special backups, indexed by their line_t
 ---@field charSupport table<string, doomcharsupport_t> A table of character support definitions, indexed by skin name
+---@field issrb2 boolean Whether the current game is SRB2. Used for Halloween and the March 2000 Prototype.
+---@field dropTable table<mobjtype_t, mobjtype_t> Maps monster types to item types they should drop on death
+---@field bossDeathSpecials table<mobjtype_t, table> Boss death special actions indexed by monster type
+---@field textscreenmaps table<integer, table> Text screen definitions indexed by map number
+---@field subthinkers table<sector_t, table> Sector-specific thinkers for lighting and other effects
+---@field textscreen table Text screen display state and configuration
+---@field pistolstartstate table Default player starting state (health, armor, ammo, weapons)
+---@field soulspheregrant integer Health granted by soul sphere pickup, used in DeHacked
+---@field maxsoulsphere integer Maximum health from soul sphere, used in DeHacked
+---@field megaspheregrant integer Health granted by megasphere pickup, used in DeHacked
+---@field godmodehealth integer Health when god mode is active, used in DeHacked
+---@field idfaarmor integer Armor given by IDFA cheat, used in DeHacked
+---@field greenarmorclass integer Armor class for green armor, used in DeHacked
+---@field bluearmorclass integer Armor class for blue armor, used in DeHacked
+---@field idfaarmorclass integer Armor class given by IDFA cheat, used in DeHacked
+---@field idkfaarmor integer Armor given by IDKFA cheat, used in DeHacked
+---@field idkfaarmorclass integer Armor class given by IDKFA cheat, used in DeHacked
+---@field bfgshotcost integer Ammo cost per shot for BFG9000, used in DeHacked
+---@field infighting boolean Whether monsters can damage each other, used in DeHacked
+---@field rndindex integer Current index in random number table (alias for prndindex)
+---@field sectorspecials table<sector_t, integer> Sector special effects indexed by sector
+---@field sectorbackups table<sector_t, table> Backup data for sector specials
+---@field mapString string Base string prefix for level names (e.g., "HUSTR_" or "THUSTR_")
+---@field lastmap integer The final map number in the current game, only relevant for Chex Quest and Non-Ultimate versions of DOOM.
+---@field quitStrings table<string> Messages shown when quitting the game
+---@field titlemenus table Title screen menu definitions
+---@field secretExits table<integer, integer> Maps secret exit map numbers to their destinations
+---@field dehacked table DeHacked lump data if present
+---@field dehackedpointers table DeHacked pointer remapping data
+---@field validcount integer Validity counter for various lookup operations
+---@field sectordata table Cached sector data for optimizations
+---@field weaponnames table<integer, table> Weapon names indexed by slot and order
+---@field intermission boolean Whether currently in intermission state
+---@field texturesByNum table Textures indexed by number
+---@field switchTexNames table A list of switch texture name mappings for different episodes
+---@field switches table<integer> A table of switch textures
 
 ---@class doomspread_t
 ---@field horiz fixed_t
@@ -118,7 +154,7 @@ dofile("DEH Pointers.lua")
 ---@field attack table<doomstate_t> The attack state of the weapon
 ---@field lower table<doomstate_t> The lower state of the weapon
 ---@field raise table<doomstate_t> The raise state of the weapon
----@field flash table<doomstate_t> The gunflash that shows whenever A_DoomFire gets called
+---@field flash table<doomstate_t> The gunflash "state" of the weapon, only visible through A_DoomFire or A_DoomGunFlash
 
 ---@class weapondef_t
 ---@field sprite spritenum_t The weapon sprite this weapon uses
@@ -214,6 +250,7 @@ dofile("DEH Pointers.lua")
 ---@field armor integer The armor of the mobj
 ---@field armorefficiency integer The armor efficiency of the mobj's armor
 ---@field flags doomflags_t Bitmask of doommobj_t flags (DF_*)
+---@field damage integer The damage this mobj inflicts on hit
 
 ---@class doommethods_t
 ---@field getHealth fun(player: player_t): integer Gets the health of the player
@@ -221,6 +258,8 @@ dofile("DEH Pointers.lua")
 ---@field getArmor fun(player: player_t): integer Gets the armor of the player
 ---@field setArmor fun(player: player_t, armor: integer): boolean Sets the armor of the player, returns true if successful
 ---@field getAmmo fun(player: player_t, ammoType: string): integer Gets the player's ammo for the given ammo type
+---@field getMaxHealth fun(player: player_t): integer Gets the maximum health of the player
+---@field getMaxArmor fun(player: player_t): integer Gets the maximum armor of the player
 ---@field setAmmo fun(player: player_t, ammoType: string, amount: integer): boolean Sets the player's ammo for the given ammo type, returns true if successful
 ---@field giveAmmoFor fun(player: player_t, source: string, dflags: doomflags_t): boolean Gives ammo to the player from the given source, returns true if successful
 ---@field giveWeapon fun(player: player_t, weaponName: string): boolean Gives the specified weapon to the player, returns true if successful
