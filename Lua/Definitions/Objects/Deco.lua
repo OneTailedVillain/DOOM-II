@@ -656,52 +656,6 @@ local states = {
 
 DefineDoomDeco(name, object, states, onPickup)
 
-SafeFreeSlot("SPR_FIRE", "sfx_vilark", "sfx_flamst", "sfx_frame")
-local name = "ArchVileFire"
-
-local object = {
-	radius = 16,
-	height = 32,
-	doomednum = -1,
-	sprite = SPR_FIRE,
-	flags = MF_NOBLOCKMAP|MF_NOGRAVITY|MF_NOCLIPTHING
-}
-
-local states = {
-    {frame = A|FF_FULLBRIGHT, tics = 2}, --1
-    {frame = B|FF_FULLBRIGHT, tics = 2}, --2
-    {frame = A|FF_FULLBRIGHT, tics = 2}, --3
-    {frame = B|FF_FULLBRIGHT, tics = 2}, --4
-    {frame = C|FF_FULLBRIGHT, tics = 2}, --5
-    {frame = B|FF_FULLBRIGHT, tics = 2}, --6
-    {frame = C|FF_FULLBRIGHT, tics = 2}, --7
-    {frame = B|FF_FULLBRIGHT, tics = 2}, --8
-    {frame = C|FF_FULLBRIGHT, tics = 2}, --9
-    {frame = D|FF_FULLBRIGHT, tics = 2}, --10
-    {frame = C|FF_FULLBRIGHT, tics = 2}, --11
-    {frame = D|FF_FULLBRIGHT, tics = 2}, --12
-    {frame = C|FF_FULLBRIGHT, tics = 2}, --13
-    {frame = D|FF_FULLBRIGHT, tics = 2}, --14
-    {frame = E|FF_FULLBRIGHT, tics = 2}, --15
-    {frame = D|FF_FULLBRIGHT, tics = 2}, --16
-    {frame = E|FF_FULLBRIGHT, tics = 2}, --17
-    {frame = D|FF_FULLBRIGHT, tics = 2}, --18
-    {frame = E|FF_FULLBRIGHT, tics = 2}, --19
-    {frame = F|FF_FULLBRIGHT, tics = 2}, --20
-    {frame = E|FF_FULLBRIGHT, tics = 2}, --21
-    {frame = F|FF_FULLBRIGHT, tics = 2}, --22
-    {frame = E|FF_FULLBRIGHT, tics = 2}, --23
-    {frame = F|FF_FULLBRIGHT, tics = 2}, --24
-    {frame = G|FF_FULLBRIGHT, tics = 2}, --25
-    {frame = H|FF_FULLBRIGHT, tics = 2}, --26
-    {frame = G|FF_FULLBRIGHT, tics = 2}, --27
-    {frame = H|FF_FULLBRIGHT, tics = 2}, --28
-    {frame = G|FF_FULLBRIGHT, tics = 2}, --29
-    {frame = H|FF_FULLBRIGHT, tics = 2}, --30
-}
-
-DefineDoomDeco(name, object, states, onPickup)
-
 SafeFreeSlot("SPR_POL5")
 local name = "CrushGibs"
 

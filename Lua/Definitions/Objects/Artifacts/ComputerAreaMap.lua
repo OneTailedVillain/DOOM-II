@@ -39,8 +39,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
 	local armor = funcs.getArmor(player)
-	
-	--player.doom.powers[pw_invisibility] = 60*TICRATE
+
 	DOOM_DoMessage(player, "$GOTMAP")
 end
 

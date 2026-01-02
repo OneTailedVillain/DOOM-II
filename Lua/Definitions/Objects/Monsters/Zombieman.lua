@@ -64,6 +64,12 @@ local states = {
 		{action = nil, frame = K, tics = 5},
 		{action = nil, frame = L, tics = -1},
 	},
+	raise = {
+		{action = nil, frame = K, tics = 5},
+		{action = nil, frame = J, tics = 5},
+		{action = nil, frame = I, tics = 5},
+		{action = nil, frame = H, tics = 5, next = "chase"},
+	},
 	gib = {
 		{action = nil, frame = M, tics = 5},
 		{action = A_DoomXScream, frame = N, tics = 5},

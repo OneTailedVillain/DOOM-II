@@ -1,47 +1,5 @@
 local timer = 0
 
-local episodes = {
-	[1]	= 1,
-	[2]	= 1,
-	[3]	= 1,
-	[4]	= 1,
-	[5]	= 1,
-	[6]	= 1,
-	[7]	= 1,
-	[8]	= 1,
-	[41] = 1,
-	
-	[9]	= 2,
-	[10] = 2,
-	[11] = 2,
-	[12] = 2,
-	[13] = 2,
-	[14] = 2,
-	[15] = 2,
-	[16] = 2,
-	[42] = 2,
-	
-	[17] = 3,
-	[18] = 3,
-	[19] = 3,
-	[20] = 3,
-	[21] = 3,
-	[22] = 3,
-	[23] = 3,
-	[24] = 3,
-	[43] = 3,
-	
-	[25] = 4,
-	[26] = 4,
-	[27] = 4,
-	[28] = 4,
-	[29] = 4,
-	[30] = 4,
-	[31] = 4,
-	[32] = 4,
-	[44] = 4,
-}
-
 local anims_by_eps = {
 	-- epsd 0 (index 0)
 	[0] = {
@@ -344,7 +302,7 @@ local function drawIntermission(v, player)
 	v.draw(320/2 + SP_TIMEX, SP_TIMEY, par)
 	
 	WI_drawTime(v, 320/2 - SP_TIMEX, SP_TIMEY, player.doom.cnt_time)
-	if episodes[gamemap] < 3 then
+	if doom.isdoom1 and (gamemap/9) < 3 then
 		WI_drawTime(v, 320 - SP_TIMEX, SP_TIMEY, player.doom.cnt_par)
 	end
 end
@@ -362,10 +320,10 @@ end
 
 hud.add(function(v, player)
 	if not doom.intermission then return end
+	if doom.textscreen and doom.textscreen.active then return end
 	v.drawFill(nil, nil, nil, nil, 0)
 	if doom.isdoom1 then
-		local whatEpisode = episodes[gamemap]
-		local internalEpisode = whatEpisode - 1
+		local internalEpisode = gamemap/10
 		v.draw(0, 0, v.cachePatch("WIMAP" .. internalEpisode))
 
 		-- draw animations for the current internal episode

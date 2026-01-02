@@ -29,17 +29,24 @@ local states = {
 }
 
 local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
+	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local health = funcs.getHealth(player)
 	
-	if funcs.getHealth(player) < 100 then
-		funcs.setHealth(player, 100)
+	if funcs.doPowerUp then
+		funcs.doPowerUp(player, "berserk")
+	else
+		-- Fallback to original behavior
+		local health = funcs.getHealth(player)
+		if health and health < 100 then
+			funcs.setHealth(player, 100)
+		end
+		player.doom.powers[pw_strength] = 1
+		DOOM_SwitchWeapon(player, "brassknuckles")
 	end
-	player.doom.powers[pw_strength] = 1
+	
 	DOOM_DoMessage(player, "$GOTBERSERK")
-	DOOM_SwitchWeapon(player, "brassknuckles")
+	return false
 end
 
 DefineDoomItem(name, object, states, onPickup)

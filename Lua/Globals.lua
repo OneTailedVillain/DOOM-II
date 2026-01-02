@@ -15,6 +15,16 @@ local toDeclare = {
 	pw_strength = 1,
 	pw_ironfeet = 2,
 	pw_invisibility = 3,
+	pw_infrared = 4,
+	DML_BLOCKING = 1,
+	DML_BLOCKMONSTERS = 2,
+	DML_TWOSIDED = 4,
+	DML_DONTPEGTOP = 8,
+	DML_DONTPEGBOTTOM = 16,
+	DML_SECRET = 32,
+	DML_SOUNDBLOCK = 64,
+	DML_DONTDRAW = 128,
+	DML_MAPPED = 256,
 }
 
 for k, v in pairs(toDeclare) do

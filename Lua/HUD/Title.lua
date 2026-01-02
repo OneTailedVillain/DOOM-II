@@ -1,4 +1,4 @@
-local hudtime = 0
+ local hudtime = 0
 
 local menustatus = {menu = "title", selection = 0}
 local LINEHEIGHT = 16
@@ -8,6 +8,11 @@ addHook("MapLoad", function(mapid)
 	-- refresh this
 	menustatus = {menu = "title", selection = 0}
 end)
+
+local function IsTitleMode()
+	return (gamestate == GS_TITLESCREEN)
+		or ((not multiplayer) and doom.midGameTitlescreen)
+end
 
 doom.titlemenus = {
 	menu = {
@@ -104,40 +109,58 @@ doom.titlemenus = {
 
 local selectedEpisode = 1
 
-hud.add(function(v, player)
+local function DrawTitleScreen(v, player)
 	hudtime = $ + 1
-	if doom.isdoom1 then
-		S_ChangeMusic("introa", false)
-	else
-		S_ChangeMusic("dm2ttl", false)
-	end
-	v.drawFill()
-	local titlePatch
-	if hudtime <= 10*TICRATE then
-		titlePatch = v.cachePatch("TITLEPIC")
-	else
-		titlePatch = v.cachePatch("CREDIT")
-	end
-	v.draw(0, 0, titlePatch)
+
 	local currentMenuKey = menustatus.menu
-    local menuDef = doom.titlemenus[currentMenuKey]
-    if not menuDef then return false end
+	local menuDef = doom.titlemenus[currentMenuKey]
+	if not menuDef then return end
+
 	if menuDef.entries then
 		for k, entry in pairs(menuDef.entries) do
 			if not entry.patch then continue end
 			v.draw(entry.x or 0, entry.y or 0, v.cachePatch(entry.patch))
 
-			if not menuDef.nocursor then 
-				if k != menustatus.selection + 1 then continue end
+			if not menuDef.nocursor then
+				if k ~= menustatus.selection + 1 then continue end
 				local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
 				v.draw((entry.x or 0) + SKULLXOFF, entry.y or 0, v.cachePatch(skullframe))
 			end
 		end
 	end
+
 	if menuDef.customFunc then
 		menuDef.customFunc(v, player)
 	end
+end
+
+hud.add(function(v, player)
+	if IsTitleMode() then
+		if doom.isdoom1 then
+			S_ChangeMusic("introa", false)
+		else
+			S_ChangeMusic("dm2ttl", false)
+		end
+
+		v.drawFill()
+
+		local titlePatch
+		if hudtime <= 10*TICRATE then
+			titlePatch = v.cachePatch("TITLEPIC")
+		else
+			titlePatch = v.cachePatch("CREDIT")
+		end
+		v.draw(0, 0, titlePatch)
+
+		DrawTitleScreen(v, player)
+	end
 end, "title")
+
+hud.add(function(v, player)
+	if IsTitleMode() then
+		DrawTitleScreen(v, player)
+	end
+end, "game")
 
 local function isGameControl(keyevent, gamecontrol)
 	if input.keyNumToName(input.gameControlToKeyNum(gamecontrol)) == keyevent.name then
@@ -159,7 +182,7 @@ end)
 
 local function OnKeyDown(keyevent)
     -- Only handle input on the title screen and ignore repeats or tilde
-    if gamestate ~= GS_TITLESCREEN or keyevent.repeated or keyevent.name == "TILDE" then
+    if not IsTitleMode() or keyevent.repeated or keyevent.name == "TILDE" then
         return false
     end
 
@@ -226,8 +249,8 @@ local function OnKeyDown(keyevent)
     if not menuDef.nocursor and (isGameControl(keyevent, GC_JUMP) or keyevent.name == "enter") then
         -- For episode selection, we need to update the newgame commands with the proper map
         if currentMenuKey == "episelect" and selectedEntry.episode then
-            -- Calculate the starting map for the selected episode (maps are 8 apart)
-            local startMapNum = (selectedEpisode - 1) * 8 + 1
+            -- Calculate the starting map for the selected episode (maps are 9 apart)
+            local startMapNum = (selectedEpisode - 1) * 9 + 1
             local startMap = "map" .. (startMapNum < 10 and "0" .. startMapNum or startMapNum)
             
             -- Update all newgame entries to use the correct episode map

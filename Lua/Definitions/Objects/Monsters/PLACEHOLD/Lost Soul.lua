@@ -38,9 +38,9 @@ local states = {
 	},
 	chase = {
 		{action = A_DoomChase, frame = A, tics = 6},
-		{action = A_DoomChase, frame = B, tics = 6},
+		{action = A_DoomChase, frame = B, tics = 6, next = "chase,"},
 	},
-	attack = {
+	missile = {
 		{action = A_DoomFaceTarget, frame = E, tics = 8},
 		{action = A_DoomFaceTarget, frame = F, tics = 8},
 		{action = A_DoomTroopAttack, frame = G, tics = 6, next = "chase"},
@@ -55,16 +55,6 @@ local states = {
 		{action = nil, frame = K, tics = 6},
 		{action = A_DoomFall, frame = L, tics = 6},
 		{action = nil, frame = M, tics = -1},
-	},
-	gib = {
-		{action = nil, frame = N, tics = 5},
-		{action = A_DoomXScream, frame = O, tics = 5},
-		{action = nil, frame = P, tics = 5},
-		{action = A_DoomFall, frame = Q, tics = 5},
-		{action = nil, frame = R, tics = 5},
-		{action = nil, frame = S, tics = 5},
-		{action = nil, frame = T, tics = 5},
-		{action = nil, frame = U, tics = -1},
 	},
 }
 

@@ -32,15 +32,15 @@ doom.lineActions = {
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[26] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[27] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[28] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[31] = {
@@ -48,15 +48,15 @@ doom.lineActions = {
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[32] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[33] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLBLUE, kind = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[34] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[46] = {
@@ -146,6 +146,10 @@ doom.lineActions = {
 		type = "door", kind = "open", stay = false,
 		fastdoor = true, repeatable = false, activationType = "walk"
 	},
+	[105] = {
+		type = "door", kind = "open", stay = false,
+		fastdoor = true, repeatable = true, activationType = "walk"
+	},
 	[112] = {
 		type = "door", kind = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "walk"
@@ -182,28 +186,28 @@ doom.lineActions = {
 
 	-- Key locked fast stays
 	[133] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true,
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEO"
 	},
 	[99] = {
-		type = "door", lock = doom.KEY_BLUE, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true,
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEO"
 	},
 	[135] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_REDK"
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = true,
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[134] = {
-		type = "door", lock = doom.KEY_RED, kind = "open", stay = true,
-		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_REDK"
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = true,
+		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[137] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true,
+		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 	[136] = {
-		type = "door", lock = doom.KEY_YELLOW, kind = "open", stay = true,
-		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWK"
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true,
+		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 
 	-- === Ceilings ===
@@ -373,11 +377,11 @@ doom.lineActions = {
 	},
 	[123] = {
 		type = "lift", mode = "lowerwaitraise",
-		repeatable = false, activationType = "switch", speed = "fast"
+		repeatable = true, activationType = "switch", speed = "fast"
 	},
 	[122] = {
 		type = "lift", mode = "lowerwaitraise",
-		repeatable = true, activationType = "switch", speed = "fast"
+		repeatable = false, activationType = "switch", speed = "fast"
 	},
 	[121] = {
 		type = "lift", mode = "lowerwaitraise",

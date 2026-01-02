@@ -7,39 +7,11 @@ local function SafeFreeSlot(...)
 	end
 end
 
-SafeFreeSlot("MT_FREEMDEATHCAM", "MT_FREEMCORPSE", "S_PLAY_FREEDYING", "S_PLAY_FREEDEAD", "S_PLAY_FREEGIBBING", "S_PLAY_FREEGIBBED", "SPR2_DYIN", "SPR2_GIBN", "SPR2_GIBD", "sfx_noway", "sfx_oof", "sfx_pldeth", "sfx_pdiehi")
+SafeFreeSlot("MT_FREEMDEATHCAM", "MT_FREEMCORPSE", "sfx_noway", "sfx_oof", "sfx_pldeth", "sfx_pdiehi")
 
-states[S_PLAY_FREEDYING] = {
-	sprite = SPR_PLAY,
-	frame = FF_ANIMATE|SPR2_DYIN,
-	tics = 60,
-	var1 = 6,
-	var2 = 10,
-	nextstate = S_PLAY_FREEDEAD
-}
-
-states[S_PLAY_FREEDEAD] = {
-	sprite = SPR_PLAY,
-	frame = SPR2_DEAD,
-	tics = -1,
-	nextstate = S_PLAY_FREEDEAD
-}
-
-states[S_PLAY_FREEGIBBING] = {
-	sprite = SPR_PLAY,
-	frame = FF_ANIMATE|SPR2_GIBN,
-	tics = 8*5,
-	var1 = 8-1,
-	var2 = 5,
-	nextstate = S_PLAY_FREEGIBBED
-}
-
-states[S_PLAY_FREEGIBBED] = {
-	sprite = SPR_PLAY,
-	frame = SPR2_GIBD,
-	tics = -1,
-	nextstate = S_PLAY_FREEGIBBED
-}
+mobjinfo[MT_PLAYER].missilestate = S_DOOM_PLAYER_ATTACK1
+mobjinfo[MT_PLAYER].deathstate = S_DOOM_PLAYER_DIE1
+mobjinfo[MT_PLAYER].deathsound = sfx_pldeth
 
 mobjinfo[MT_FREEMDEATHCAM] = {
 	spawnstate = S_INVISIBLE,
@@ -53,7 +25,7 @@ mobjinfo[MT_FREEMDEATHCAM] = {
 }
 
 mobjinfo[MT_FREEMCORPSE] = {
-    spawnstate = S_PLAY_FREEDYING,
+    spawnstate = S_INVISIBLE,
     spawnhealth = 100,
     deathstate = S_NULL,
     speed = 0,
@@ -75,14 +47,6 @@ addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 	if mobj.skin ~= "johndoom" then return end
 
 	local player = mobj.player
-
-	if mobj.doom.health > -50 then
-		P_PlayDeathSound(mobj)
-	elseif mobj.doom.health > -100 then
-		S_StartSound(mobj, sfx_spndsh)
-	else
-		S_StartSound(mobj, sfx_zoom)
-	end
 
 	if (gametyperules & GTR_DEATHPENALTY) then
 		if player.score >= 50 then
@@ -116,22 +80,22 @@ addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 	if not GT_SAXAMM or gametype != GT_SAXAMM then
 		mobj.corpse = P_SpawnMobjFromMobj(mobj, 0, 0, 0, MT_FREEMCORPSE)
 		local corpse = mobj.corpse
+		corpse.momz = mobj.momz
+		corpse.fuse = 60*TICRATE
 		corpse.radius = mobj.radius
 		corpse.height = mobj.radius*2
 		corpse.color = mobj.color
 		corpse.angle = mobj.angle
+		corpse.doom = $ or {}
+		corpse.doom.health = mobj.doom.health
 		-- corpse.z = $ - (mobj.height - 15 * FRACUNIT)
 		corpse.skin = "johndoom"
 		if mobj.doom.health <= -100 then
-			corpse.state = S_PLAY_FREEGIBBING
+			corpse.state = S_DOOM_PLAYER_GIB1
 		else
-			corpse.state = S_PLAY_FREEDYING
+			corpse.state = S_DOOM_PLAYER_DIE1
 		end
-		corpse.momz = mobj.momz
-		corpse.fuse = 60*TICRATE
 	end
-
-	mobj.doom.health = 0
 
 	return true
 end, MT_PLAYER)
@@ -261,6 +225,68 @@ addHook("PreThinkFrame", function()
 	end
 end)
 
+local VIEWHEIGHT = 41*FRACUNIT
+-- why does DOOM put this in hex?
+local MAXBOB = 0x100000
+
+local FINEANGLES = 8192
+local FINEMASK = (FINEANGLES-1)
+
+local FINEANGLESHIFT = 19
+
+local function DOOM_CalcHeight(player)
+	local onground = player.mo.z <= player.mo.floorz
+
+	player.bob = FixedMul(player.mo.momx, player.mo.momx) + FixedMul(player.mo.momy,player.mo.momy)
+	player.bob = $ >> 2
+	if player.bob > MAXBOB then
+		player.bob = MAXBOB
+	end
+
+	/*
+		-- ???
+		if (player.doom.cheats & CF_NOMOMENTUM) or onground then
+			player.viewz = player.mo.z + VIEWHEIGHT
+			if player.viewz > player.mo.ceilingz - 4*FRACUNIT
+				player.viewz = player.mo.ceilingz - 4*FRACUNIT
+			end
+			player.viewz = player.mo.z + player.viewheight
+		end
+	*/
+
+	local angle = (FINEANGLES/20*leveltime)&FINEMASK
+	local bob = FixedMul(player.bob/2, sin(angle << FINEANGLESHIFT))
+
+	if player.playerstate == PST_LIVE then
+		player.viewheight = $ + player.deltaviewheight
+		
+		if player.viewheight > VIEWHEIGHT then
+			player.viewheight = VIEWHEIGHT
+			player.deltaviewheight = 0
+		end
+		
+		if player.viewheight < VIEWHEIGHT/2 then
+			player.viewheight = VIEWHEIGHT/2
+			if player.deltaviewheight <= 0 then
+				player.deltaviewheight = 1
+			end
+		end
+		
+		if player.deltaviewheight then
+			player.deltaviewheight = $ + FRACUNIT/4
+			if not player.deltaviewheight then
+				player.deltaviewheight = 1
+			end
+		end
+	end
+
+	player.viewz = player.mo.z + player.viewheight + bob
+
+	if player.viewz > player.mo.ceilingz - 4*FRACUNIT
+		player.viewz = player.mo.ceilingz - 4*FRACUNIT
+	end
+end
+
 addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if not player.mo continue end
@@ -268,32 +294,42 @@ addHook("PostThinkFrame", function()
 		player.bob = 0
 		player.viewheight = player.mo.height - 15*FRACUNIT
 		player.deltaviewheight = 0
+
+		DOOM_CalcHeight(player)
+
 		if not (player.killcam and player.killcam.valid) then continue end
 		player.killcam.z = $ + (player.killcam.height - 8 * player.killcam.scale)
 	end
 end)
 
-local function P_PlayerMove(player)
+local function P_PlayerMove(player, doRun)
+	if player.mo.reactiontime then return end
+
+	local mult = doRun and 2048 or 1024
+
 	local cmd = player.cmd
     // Do not let the player control movement
     //  if not onground.
 	local onground = player.mo.z <= player.mo.floorz
 	
 	if cmd.forwardmove and onground then
-		P_Thrust(player.mo, player.mo.angle, cmd.forwardmove*2048)
+		P_Thrust(player.mo, player.mo.angle, cmd.forwardmove*mult)
 	end
 	if cmd.sidemove and onground then
-		P_Thrust(player.mo, player.mo.angle - ANGLE_90, cmd.sidemove*2048)
+		P_Thrust(player.mo, player.mo.angle - ANGLE_90, cmd.sidemove*mult)
 	end
 
 	if (cmd.forwardmove or cmd.sidemove) and player.mo.state == S_PLAY_STND then
-		player.mo.state = S_PLAY_RUN
+		player.mo.state = S_DOOM_PLAYER_MOVE1
 	end
 end
 
 addHook("PlayerThink", function(player)
 	if player.mo.skin != "johndoom" then return end
-	P_PlayerMove(player)
+	local run = CV_FindVar("doom_alwaysrun").value != 0
+	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0
+	local doRun = run != usingSPIN
+	P_PlayerMove(player, doRun)
 end)
 
 addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)

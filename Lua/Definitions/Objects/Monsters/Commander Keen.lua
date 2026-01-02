@@ -25,7 +25,7 @@ local object = {
 	painsound = sfx_keenpn,
 	deathsound = sfx_keendt,
 	sprite = SPR_KEEN,
-	flags = MF_ENEMY|MF_SPAWNCEILING|MF_SHOOTABLE|MF_SOLID|MF_NOGRAVITY|MF_NOCLIPHEIGHT,
+	flags = MF_ENEMY|MF_SPAWNCEILING|MF_SHOOTABLE|MF_SOLID,
 	doomflags = DF_COUNTKILL
 }
 

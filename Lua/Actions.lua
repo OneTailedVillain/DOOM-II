@@ -1,52 +1,4 @@
-states[S_DOOM_IMPFIRE1] = {
-    sprite    = SPR_BAL1,
-    frame     = A,
-	tics      = 4,
-	nextstate = S_DOOM_IMPFIRE2
-}
-
-states[S_DOOM_IMPFIRE2] = {
-    sprite    = SPR_BAL1,
-    frame     = B,
-	tics      = 4,
-	nextstate = S_DOOM_IMPFIRE1
-}
-
-states[S_DOOM_IMPFIREEXPLODE1] = {
-    sprite    = SPR_BAL1,
-    frame     = C,
-	tics      = 6,
-	nextstate = S_DOOM_IMPFIREEXPLODE2
-}
-
-states[S_DOOM_IMPFIREEXPLODE2] = {
-    sprite    = SPR_BAL1,
-    frame     = D,
-	tics      = 6,
-	nextstate = S_DOOM_IMPFIREEXPLODE3
-}
-
-states[S_DOOM_IMPFIREEXPLODE3] = {
-    sprite    = SPR_BAL1,
-    frame     = E,
-	tics      = 6,
-	nextstate = S_NULL
-}
-
-mobjinfo[MT_TROOPSHOT] = {
-	spawnstate   = S_DOOM_IMPFIRE1,
-	seesound     = sfx_firsht,
-	deathstate   = S_DOOM_IMPFIREEXPLODE1,
-	deathsound   = sfx_firxpl,
-	speed        = 10 * FRACUNIT,
-	radius       = 6 * FRACUNIT,
-	height       = 8 * FRACUNIT,
-	damage       = 3,
-	flags        = MF_MISSILE|MF_NOGRAVITY,
-}
-
-local gameskill = 3
-local sk_nightmare = 4
+local sk_nightmare = 5
 
 /*
 void A_Look (mobj_t* actor)
@@ -114,7 +66,7 @@ void A_Look (mobj_t* actor)
 
 function A_DoomLook(actor)
 	local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
-	--local targ = secdata and secdata.soundtarget
+	local targ = secdata and secdata.soundtarget
 	actor.threshold = 0 // any shot will wake up
 
 	local gotoseeyou = false
@@ -357,13 +309,20 @@ function A_DoomChase(actor)
 
 	// Turn toward movement direction if not there yet
 	if actor.movedir and actor.movedir < 8 then
-		actor.angle = $ & ANGLE_315
-		delta = actor.angle - (actor.movedir << 29)
+		-- snap angle to nearest 45 sector
+		actor.angle = $ & (7<<29)
 
+		-- convert both to fixed degrees
+		local a = AngleFixed(actor.angle)
+		local target = AngleFixed(actor.movedir << 29)
+
+		local delta = a - target
+
+		-- turn 45 degrees toward desired direction
 		if delta > 0 then
-			actor.angle = $ - ANGLE_45
+			actor.angle = FixedAngle(a - 45*FRACUNIT)
 		elseif delta < 0 then
-			actor.angle = $ + ANGLE_45
+			actor.angle = FixedAngle(a + 45*FRACUNIT)
 		end
 	end
 
@@ -380,7 +339,7 @@ function A_DoomChase(actor)
 	// Prevent attacking twice in a row
 	if (actor.flags2 & MF2_JUSTATTACKED) then
 		actor.flags2 = $ & ~MF2_JUSTATTACKED
-		if gameskill ~= sk_nightmare and not fastparm then
+		if doom.gameskill ~= sk_nightmare and not fastparm then
 			P_NewChaseDir(actor)
 		end
 		return
@@ -398,7 +357,7 @@ function A_DoomChase(actor)
 	// Missile attack check
 	local doMissile = true
 	if actor.info.missilestate then
-		if gameskill < sk_nightmare and not fastparm and actor.movecount then
+		if doom.gameskill < sk_nightmare and not fastparm and actor.movecount then
 			doMissile = false
 		end
 
@@ -576,6 +535,7 @@ function A_DoomScream(actor)
 	end
 /*
     // Check for bosses.
+	-- TODO: CREATE THESE TWO!!! Slacker.
     if (actor.type==MT_SPIDER or actor.type == MT_CYBORG)
 		// full volume
 		S_StartSound (NULL, sound)
@@ -616,37 +576,6 @@ function A_DoomXScream(actor)
     S_StartSound(actor, sfx_slop)
 end
 
-/*
-action void A_ReFire(statelabel flash = null, bool autoSwitch = true)
-{
-	let player = player;
-	bool pending;
-
-	if (NULL == player)
-	{
-		return;
-	}
-	pending = player.PendingWeapon != WP_NOCHANGE && (player.WeaponState & WF_REFIRESWITCHOK);
-	if ((player.cmd.buttons & BT_ATTACK)
-		&& !player.ReadyWeapon.bAltFire && !pending && player.health > 0)
-	{
-		player.refire++;
-		player.mo.FireWeapon(ResolveState(flash));
-	}
-	else if ((player.cmd.buttons & BT_ALTATTACK)
-		&& player.ReadyWeapon.bAltFire && !pending && player.health > 0)
-	{
-		player.refire++;
-		player.mo.FireWeaponAlt(ResolveState(flash));
-	}
-	else
-	{
-		player.refire = 0;
-		player.ReadyWeapon.CheckAmmo (player.ReadyWeapon.bAltFire? Weapon.AltFire : Weapon.PrimaryFire, autoSwitch);
-	}
-}
-*/
-
 local soundblocks = 0
 
 local function P_LineOpening(line)
@@ -681,38 +610,65 @@ local function P_LineOpening(line)
     return openrange -- nonzero = open
 end
 
-local function P_RecursiveSound(sec, soundblocks, emitter)
-	doom.sectordata[sec] = $ or {validcount = -999, soundtraversed = -999}
-	local data = doom.sectordata[sec]
+local function P_IterativeSound(start_sec, start_soundblocks, emitter)
+    local queue = {}
+    local visited = {} -- Track sectors we've already processed
 
-    if data.validcount == doom.validcount and data.soundtraversed <= soundblocks + 1 then
-        return
-    end
+    table.insert(queue, {
+        sec = start_sec,
+        soundblocks = start_soundblocks
+    })
+    
+    while #queue > 0 do
+        local current = table.remove(queue, 1)
+        local sec = current.sec
+        local soundblocks = current.soundblocks
+        
+        doom.sectordata[sec] = $ or {validcount = -999, soundtraversed = -999}
+        local data = doom.sectordata[sec]
 
-    data.validcount = validcount
-    data.soundtraversed = soundblocks + 1
-    data.soundtarget = emitter
-
-    for i = 0, #sec.lines - 1 do
-        local line = sec.lines[i]
-        if not (line.flags & ML_TWOSIDED) then continue end
-
-        local openrange = P_LineOpening(line)
-        if openrange <= 0 then continue end
-
-        local other = nil
-        if line.frontsector == sec then
-            other = line.backsector
-        else
-            other = line.frontsector
+        -- Skip if we've already visited with better or equal soundblocks
+        if data.validcount == doom.validcount and data.soundtraversed <= soundblocks + 1 then
+            continue
         end
 
-        if (line.flags & ML_EFFECT2) ~= 0 then
-            if soundblocks == 0 then
-                P_RecursiveSound(other, 1, emitter)
+        -- Mark as visited and update data
+        visited[sec] = true
+        data.validcount = doom.validcount
+        data.soundtraversed = soundblocks + 1
+        data.soundtarget = emitter
+
+        -- Process all lines from this sector
+        for i = 0, #sec.lines - 1 do
+            local line = sec.lines[i]
+            if not (line.flags & ML_TWOSIDED) then continue end
+
+            local openrange = P_LineOpening(line)
+            if openrange <= 0 then continue end
+
+            local other = nil
+            if line.frontsector == sec then
+                other = line.backsector
+            else
+                other = line.frontsector
             end
-        else
-            P_RecursiveSound(other, soundblocks, emitter)
+
+            -- Skip if we've already visited this sector
+            if visited[other] then continue end
+
+            if (line.flags & DML_SOUNDBLOCK) ~= 0 then
+                if soundblocks == 0 then
+                    table.insert(queue, {
+                        sec = other,
+                        soundblocks = 1
+                    })
+                end
+            else
+                table.insert(queue, {
+                    sec = other,
+                    soundblocks = soundblocks
+                })
+            end
         end
     end
 end
@@ -720,7 +676,7 @@ end
 local function P_NoiseAlert(target, emitter)
 	doom.validcount = $ + 1
 	soundblocks = 0
-	P_RecursiveSound(emitter.subsector.sector, soundblocks, target)
+	P_IterativeSound(emitter.subsector.sector, soundblocks, target)
 end
 
 function A_ChainSawSound(actor, sfx)
@@ -731,20 +687,19 @@ function A_ChainSawSound(actor, sfx)
 	S_StartSound(actor, sfx)
 end
 
-function A_DoomPunch(actor)
+function A_DoomPunch(actor, var1, var2, weapon)
 	local player = actor.player
 	if player == nil then return end
 	local mult = player.doom.powers[pw_strength] and 10 or 1
-	DOOM_Fire(player, MELEERANGE, 0, 0, 1, 5 * mult, 15 * mult)
+	DOOM_Fire(player, MELEERANGE, 0, 0, 1, 2 * mult, 20 * mult, nil, nil, nil, nil, nil, weapon.hitsound)
+	P_NoiseAlert(actor, actor)
 end
 
-function A_SawHit(actor)
+function A_SawHit(actor, var1, var2, weapon)
 	local player = actor.player
 	if player == nil then return end
-	A_DoomPunch(actor)
-	local mult = player.doom.powers[pw_strength] and 10 or 1
 	A_ChainSawSound(actor, sfx_sawful)
-	DOOM_Fire(player, MELEERANGE, 0, 0, 1, 5 * mult, 15 * mult)
+	A_DoomPunch(actor, var1, var2, weapon)
 end
 
 -- Cut-down definitions for SPECIFICALLY enemies
@@ -801,13 +756,21 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 			if curAmmo - weapon.shotcost < 0 then return end
 		end
 
+		actor.state = S_DOOM_PLAYER_ATTACK1
+
 		if weapon.firesound then
 			S_StartSound(actor, weapon.firesound)
 		end
 
+		P_NoiseAlert(actor, actor)
+
 		if not wepProperties.noFlash and weapon.states.flash then
 			player.doom.flashframe = 1
 			player.doom.flashtics = weapon.states.flash[1].tics
+			local nextDef = weapon.states.flash[1]
+			if nextDef.action then
+				nextDef.action(player.mo, nextDef.var1, nextDef.var2, DOOM_GetWeaponDef(player))
+			end
 		end
 
         local spread
@@ -820,12 +783,12 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 
         funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
 
-        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc)
+        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     else
 		local weapon = doom.predefinedWeapons[weaponDef or 1]
         -- Enemy logic
         S_StartSound(actor, weapon.firesound)
-        DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread and weapon.spread.horiz or 0, weapon.spread and weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc)
+        DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread and weapon.spread.horiz or 0, weapon.spread and weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     end
 end
 
@@ -837,21 +800,52 @@ function A_DoomGunFlash(actor, var1, var2, weapon)
 	end
 end
 
+/*
+void A_ReFire
+( player_t*	player,
+  pspdef_t*	psp )
+{
+    
+    // check for fire
+    //  (if a weaponchange is pending, let it go through instead)
+    if ( (player->cmd.buttons & BT_ATTACK) 
+	 && player->pendingweapon == wp_nochange
+	 && player->health)
+    {
+	player->refire++;
+	P_FireWeapon (player);
+    }
+    else
+    {
+	player->refire = 0;
+	P_CheckAmmo (player);
+    }
+}
+*/
+
 function A_DoomReFire(actor)
 	local player = actor.player
-	if player == nil then return end
+	if not player then return end
+
 	local funcs = P_GetMethodsForSkin(player)
-	local curHealth = funcs.getHealth(player)
+	local health = funcs.getHealth(player)
 
 	local wepDef = DOOM_GetWeaponDef(player)
 	local curWepAmmo = player.doom.ammo[wepDef.ammotype] or 0
 	local ammoNeeded = wepDef.shotcost
 
-	if max(curWepAmmo, 0) >= ammoNeeded and (player.cmd.buttons & BT_ATTACK) and not player.doom.switchtimer and player.mo.doom.health > 0 then
-		player.doom.refire = ($ or 0) + 1
+	-- Rough equivalent of "pendingweapon == wp_nochange"
+	local noPendingSwitch =
+		(not player.doom.switchingweps)
+		and (player.doom.wishwep == nil or player.doom.wishwep == player.doom.curwep)
+
+	if (player.cmd.buttons & BT_ATTACK) ~= 0
+	--and max(curWepAmmo, 0) >= ammoNeeded
+	and noPendingSwitch
+	and health > 0
+	then
+		player.doom.refire = (player.doom.refire or 0) + 1
 		DOOM_FireWeapon(player)
-	elseif player.doom.switchingweps or curHealth <= 0 then
-		DOOM_SetState(player, "lower")
 	else
 		player.doom.refire = 0
 		DOOM_DoAutoSwitch(player)
@@ -880,6 +874,34 @@ function A_CPosRefire(actor)
     A_DoomFaceTarget(actor)
 	
 	if DOOM_Random() < 40 then return end
+	
+	if not actor.target or actor.target.doom.health <= 0 or not P_CheckSight(actor, actor.target) then
+		actor.state = actor.info.seestate
+	end
+end
+
+/*
+void A_SpidRefire (mobj_t* actor)
+{	
+    // keep firing unless target got out of sight
+    A_FaceTarget (actor);
+
+    if (P_Random () < 10)
+	return;
+
+    if (!actor->target
+	|| actor->target->health <= 0
+	|| !P_CheckSight (actor, actor->target) )
+    {
+	P_SetMobjState (actor, actor->info->seestate);
+    }
+}
+*/
+
+function A_SpidRefire(actor)
+    A_DoomFaceTarget(actor)
+	
+	if DOOM_Random() < 10 then return end
 	
 	if not actor.target or actor.target.doom.health <= 0 or not P_CheckSight(actor, actor.target) then
 		actor.state = actor.info.seestate
@@ -998,6 +1020,9 @@ function A_DoomLower(mobj)
         return
     end
 
+	-- Keep our weapon at WEAPONBOTTOM
+	mobj.player.doom.switchtimer = WEAPONBOTTOM
+
     -- if mobj has no health, keep the weapon off-screen
     if not mobj.doom.health or mobj.doom.health <= 0 then
         return
@@ -1115,27 +1140,41 @@ function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 	local funcs = P_GetMethodsForSkin(player)
 	local curHealth = funcs.getHealth(player)
 
+	if actor.state == S_DOOM_PLAYER_ATTACK1
+	or actor.state == S_DOOM_PLAYER_ATTACK2 then
+		actor.state = S_PLAY_STND
+	end
+
+	-- Play idle sound (once when entering ready)
 	if weapondef.idlesound then
 		S_StartSound(actor, weapondef.idlesound)
 	end
 
+	-- Call additional custom action if provided
 	if action and type(action) == "function" then
 		local var1 = actionvars and actionvars.var1
 		local var2 = actionvars and actionvars.var2
 		action(actor, var1, var2)
 	end
+	local noPendingSwitch =
+		(not player.doom.switchingweps)
+		and (player.doom.wishwep == nil or player.doom.wishwep == player.doom.curwep)
 
-	if player.doom.switchingweps or curHealth <= 0 then
+	-- Only lower weapon if switching or dead
+	if not noPendingSwitch or curHealth <= 0 then
 		DOOM_SetState(player, "lower")
 	end
 
-	player.hl1wepbob = FixedMul(actor.momx, actor.momx) + FixedMul(actor.momy, actor.momy)
-	player.hl1wepbob = player.hl1wepbob >> 2
-	if player.hl1wepbob > FRACUNIT*16 then
-		player.hl1wepbob = FRACUNIT*16
+	-- Weapon bobbing (always active in ready state)
+	player.hl1wepbob = (FixedMul(actor.momx, actor.momx) + FixedMul(actor.momy, actor.momy)) >> 2
+	if player.hl1wepbob > FRACUNIT * 16 then
+		player.hl1wepbob = FRACUNIT * 16
 	end
 
-	if (player.cmd.buttons & BT_ATTACK) then
+	-- Handle attack input
+	local attackHeld = (player.cmd.buttons & BT_ATTACK) ~= 0
+	if attackHeld and noPendingSwitch then
+		-- Only fire if attack wasn’t already down, or if weapon allows auto-fire
 		if not player.doom.attackdown or not weapondef.noautoswitchfire then
 			player.doom.attackdown = true
 			DOOM_FireWeapon(player)
@@ -1143,12 +1182,14 @@ function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 		end
 	else
 		player.doom.attackdown = false
+		player.doom.refire = 0
 	end
 
-	local bobAngle = ((128 * leveltime) & 8191) << 19
-	player.doom.bobx = FixedMul((player.hl1wepbob or 0), cos(bobAngle))
-	bobAngle = ((128 * leveltime) & 4095) << 19
-	player.doom.boby = FixedMul((player.hl1wepbob or 0), sin(bobAngle))
+	-- Weapon bob angles
+	local bobAngleX = ((128 * leveltime) & 8191) << 19
+	local bobAngleY = ((128 * leveltime) & 4095) << 19
+	player.doom.bobx = FixedMul(player.hl1wepbob or 0, cos(bobAngleX))
+	player.doom.boby = FixedMul(player.hl1wepbob or 0, sin(bobAngleY))
 end
 
 function A_DoomCheckReload(actor, var1, var2, weapon)
@@ -1212,4 +1253,32 @@ function A_DoomKeenDeath(actor)
 			DOOM_AddThinker(sector, doom.lineActions[31])
 		end
 	end
+end
+
+function A_DoomLight0(actor)
+	local player = actor.player
+	player.doom.extralight = 0
+end
+
+function A_DoomLight1(actor)
+	local player = actor.player
+	player.doom.extralight = 1
+end
+
+function A_DoomLight2(actor)
+	local player = actor.player
+	player.doom.extralight = 2
+end
+
+function A_DoomPlayerScream(actor)
+	local sound = sfx_pldeth
+	-- Source code seems to suggest that hideth is locked to doom ii?
+	-- GZDoom says otherwise, though
+	if
+		-- doom.gamemode == "commercial" and 
+		actor.doom.health < -50 then
+		sound = sfx_pdiehi
+	end
+
+	S_StartSound(actor, sound)
 end

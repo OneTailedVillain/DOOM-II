@@ -32,10 +32,18 @@ local states = {
 }
 
 local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
+	if not mobj.player then return true end
 	local player = mobj.player
-	player.doom.powers[pw_invulnerability] = 30*TICRATE
+	local funcs = P_GetMethodsForSkin(player)
+	
+	if funcs.doPowerUp then
+		funcs.doPowerUp(player, "invulnerability")
+	else
+		player.doom.powers[pw_invulnerability] = 30*TICRATE
+	end
+	
 	DOOM_DoMessage(player, "$GOTINVUL")
+	return false
 end
 
 DefineDoomItem(name, object, states, onPickup)

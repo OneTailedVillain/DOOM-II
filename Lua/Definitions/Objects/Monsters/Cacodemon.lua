@@ -28,6 +28,7 @@ local object = {
 	painsound = sfx_dmpain,
 	deathsound = sfx_cacdth,
 	sprite = SPR_HEAD,
+	flags = MF_FLOAT|MF_NOGRAVITY|MF_ENEMY|MF_SOLID|MF_SHOOTABLE,
 	doomflags = DF_COUNTKILL
 }
 

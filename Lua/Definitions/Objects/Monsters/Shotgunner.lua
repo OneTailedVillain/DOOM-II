@@ -49,8 +49,8 @@ local states = {
 		{action = A_DoomChase, frame = D, tics = 3, next = "chase"},
 	},
 	missile = {
-		{action = A_DoomFaceTarget, frame = F, tics = 10},
-		{action = A_DoomFire, frame = F, tics = 8, var1 = 0, var2 = 2},
+		{action = A_DoomFaceTarget, frame = E, tics = 10},
+		{action = A_DoomFire, frame = F|FF_FULLBRIGHT, tics = 8, var1 = 0, var2 = 2},
 		{action = nil, frame = E, tics = 8, next = "chase"},
 	},
 	pain = {
@@ -63,6 +63,12 @@ local states = {
 		{action = A_DoomFall, frame = J, tics = 5},
 		{action = nil, frame = K, tics = 5},
 		{action = nil, frame = L, tics = -1},
+	},
+	raise = {
+		{action = nil, frame = K, tics = 5},
+		{action = nil, frame = J, tics = 5},
+		{action = nil, frame = I, tics = 5},
+		{action = nil, frame = H, tics = 5, next = "chase"},
 	},
 	gib = {
 		{action = nil, frame = M, tics = 5},

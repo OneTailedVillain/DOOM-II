@@ -1,4 +1,4 @@
-DOOM_Freeslot("MT_DOOM_USERAYCAST", "sfx_swtchn", "MT_DOOM_BULLET", "S_ONETICINVIS",
+DOOM_Freeslot("MT_DOOM_USERAYCAST", "sfx_swtchn", "MT_DOOM_BULLETRAYCAST", "S_ONETICINVIS",
 "S_DEBUG")
 
 states[S_ONETICINVIS] = {
@@ -30,7 +30,7 @@ mobjinfo[MT_DOOM_USERAYCAST] = {
 	flags = MF_MISSILE|MF_NOGRAVITY,
 }
 
-mobjinfo[MT_DOOM_BULLET] = {
+mobjinfo[MT_DOOM_BULLETRAYCAST] = {
 	spawnstate = S_DEBUG,
 	spawnhealth = 100,
 	deathstate = S_ONETICINVIS,
@@ -159,7 +159,7 @@ end)
 
 rawset(_G, "DOOM_ShootBullet", function(player, dist)
     if not (player and player.mo) then return end
-    local ray = P_SpawnPlayerMissile(player.mo, MT_DOOM_BULLET)
+    local ray = P_SpawnPlayerMissile(player.mo, MT_DOOM_BULLETRAYCAST)
     if not (ray and ray.valid) then return end
 
     ray.scale = player.mo.scale
@@ -168,14 +168,64 @@ rawset(_G, "DOOM_ShootBullet", function(player, dist)
     DOOM_GenericRaycast(ray, { maxdist = dist or MISSILERANGE })
 end)
 
-addHook("MobjLineCollide", function(ray, usedLine)
-    if not (ray and ray.valid) then return end
+rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
+	local lineSpecial = doom.linespecials[usedLine]
+	if not lineSpecial then
+		if not (usedLine.flags & ML_TWOSIDED) 
+		or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight 
+		then
+			S_StartSound(ray.target, sfx_noway)
+			P_KillMobj(ray)
+			return true
+		end
+		return false
+	end
 
+	local whatIs = doom.lineActions[lineSpecial]
+	if not whatIs then
+		S_StartSound(ray.target, sfx_noway)
+		P_KillMobj(ray)
+		return true
+	end
+
+	if whatIs.activationType == "switch" then
+		if whatIs.type == "exit" then
+			doom.didSecretExit = whatIs.secret
+			DOOM_ExitLevel()
+			return true
+		end
+
+		local switchThinker = {
+			type = "switch",
+			victimData = whatIs,
+			owner = whatIs.owner,
+			switcher = ray.target,
+			victimLine = usedLine,
+			victimTag = usedLine.tag,
+			allowOff = whatIs.repeatable,
+			lock = whatIs.lock,
+			denyMessage = whatIs.denyMessage,
+			onSound = whatIs.onSound,
+			offSound = whatIs.offSound,
+			delay = whatIs.delay,
+		}
+
+		DOOM_AddThinker(usedLine, switchThinker)
+		P_KillMobj(ray)
+		return true
+	end
+
+	return false
+end)
+
+rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, silent)
     local lineSpecial = doom.linespecials[usedLine]
 	if not lineSpecial then
 		if not (usedLine.flags & ML_TWOSIDED) or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
 			-- Blocked
-			S_StartSound(ray.target, sfx_noway)
+			if not silent then
+				S_StartSound(ray.target, sfx_noway)
+			end
 			P_KillMobj(ray)
 			return
 		end
@@ -185,9 +235,17 @@ addHook("MobjLineCollide", function(ray, usedLine)
     if not whatIs then
 		if lineSpecial != 0 then
 			print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
-			S_StartSound(ray.target, sfx_noway) P_KillMobj(ray)
+			if not silent then
+				S_StartSound(ray.target, sfx_noway) P_KillMobj(ray)
+			end
 		end
 		return
+	end
+
+	if whatIs.activationType != useType then return end
+
+	if not whatIs.repeatable then
+		doom.linespecials[usedLine] = 0
 	end
     
     -- Handle immediate exit special
@@ -216,7 +274,17 @@ addHook("MobjLineCollide", function(ray, usedLine)
 	DOOM_AddThinker(usedLine, switchThinker)
     P_KillMobj(ray)
     return true
+end)
+
+addHook("MobjLineCollide", function(ray, usedLine)
+    if not (ray and ray.valid) then return end
+	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "switch") then return true else return end
 end, MT_DOOM_USERAYCAST)
+
+addHook("MobjLineCollide", function(ray, usedLine)
+    if not (ray and ray.valid) then return end
+	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "gunshot", true) then return true else return end
+end, MT_DOOM_BULLETRAYCAST)
 
 local function MaybeHitFloor_Simple(bullet)
     local shooter = bullet.shooter
@@ -256,6 +324,14 @@ local function BulletHitObject_Simple(tmthing, thing)
     if not (thing.flags & MF_SHOOTABLE) then return false end
     if not (thing.z + thing.height >= tmthing.z and thing.z <= tmthing.z + tmthing.height) then return end
 
+	if tmthing.doom.hitsound then
+		S_StartSound(tmthing.target, tmthing.doom.hitsound)
+	elseif tmthing.target.player and tmthing.target.player.doom.curwep then
+		if doom.weapons[tmthing.target.player.doom.curwep] and doom.weapons[tmthing.target.player.doom.curwep].hitsound then
+			S_StartSound(tmthing.target, doom.weapons[tmthing.target.player.doom.curwep].hitsound)
+		end
+	end
+
     local damage = tmthing.doom.damage or 10
     DOOM_DamageMobj(thing, tmthing, tmthing and tmthing.target or tmthing, damage)
     -- tmthing.state = S_HL1_HIT or S_NULL
@@ -268,13 +344,13 @@ local function BulletHitObject_Simple(tmthing, thing)
     return false
 end
 
-for _, mt in ipairs({MT_DOOM_BULLET}) do
+for _, mt in ipairs({MT_DOOM_BULLETRAYCAST}) do
     addHook("MobjThinker", MaybeHitFloor_Simple, mt)
     addHook("MobjMoveBlocked", BulletHit_Simple, mt)
     addHook("MobjMoveCollide", BulletHitObject_Simple, mt)
 end
 
-rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs, shootmobj, shootflags2, shootfuse, firefunc)
+rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs, shootmobj, shootflags2, shootfuse, firefunc, hitsound)
     if not (source and source.valid) then return end
 
     -- normalize arguments
@@ -318,9 +394,9 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
         -- choose spawn call
         local bullet
         if player then
-            bullet = P_SpawnPlayerMissile(shooter, shootmobj or MT_DOOM_BULLET, shootflags2)
+            bullet = P_SpawnPlayerMissile(shooter, shootmobj or MT_DOOM_BULLETRAYCAST, shootflags2)
         else
-            bullet = P_SPMAngle(shooter, shootmobj or MT_DOOM_BULLET, shooter.angle, 0, shootflags2)
+            bullet = P_SPMAngle(shooter, shootmobj or MT_DOOM_BULLETRAYCAST, shooter.angle, 0, shootflags2)
         end
 
 		if firefunc then
@@ -336,6 +412,7 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
             local divisor = incs or min
             bullet.doom = $ or {}
             bullet.doom.damage = min != max and ((DOOM_Random() % (max / divisor) + 1) * divisor) or max
+			bullet.doom.hitsound = hitsound
 
             bullet.scale   = shooter.scale
             bullet.target  = shooter
@@ -344,7 +421,7 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
 			bullet.fuse    = shootfuse or 0
 
             -- raycast cleanup
-			if bullet.type == MT_DOOM_BULLET then
+			if bullet.type == MT_DOOM_BULLETRAYCAST then
 				DOOM_GenericRaycast(bullet, {
 					maxdist = dist,
 					onfinish = function(ray, hit)

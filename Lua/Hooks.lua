@@ -14,10 +14,22 @@ local function deepcopy(orig)
 	return copy
 end
 
+local PLATWAIT = 3
+local PLATSPEED = FRACUNIT
 
 DOOM_Freeslot("sfx_doropn", "sfx_dorcls", "sfx_bdopn", "sfx_bdcls",
 "sfx_stnmov")
 
+local function stop_plats_by_tag(tag)
+	if not tag then return end
+	for sec, v in pairs(doom.thinkers) do
+		if type(v) == "table" and (v.action == "oscillate" or v.action == "oscillate_stop" or v.isPlatLike) then
+			if v.tag and v.tag == tag then
+				doom.thinkers[sec] = nil
+			end
+		end
+	end
+end
 
 local function getNextSector(line, sector)
     -- check front/back sector relation
@@ -102,6 +114,15 @@ local function P_SpawnLightFlash(sector)
     doom.subthinkers[sector] = flash
 end
 
+local function SkillMaskFor(skill)
+	if skill <= 2 then
+		return 1
+	elseif skill == 3 then
+		return 2
+	end
+	return 4
+end
+
 addHook("MapLoad", function(mapid)
 	doom.kills = 0
 	doom.killcount = 0
@@ -110,12 +131,20 @@ addHook("MapLoad", function(mapid)
 	doom.secrets = 0
 	doom.secretcount = 0
 	doom.textscreen.active = false
+	doom.intermission = false
+	doom.midGameTitlescreen = false
 	for mobj in mobjs.iterate() do
 		local mthing = mobj.spawnpoint
 		if not mthing then
 			continue
 		end
 		if (mthing.z & 1) then
+			P_RemoveMobj(mobj)
+			continue
+		end
+
+		local needed = SkillMaskFor(doom.gameskill)
+		if not (mthing.options & needed) then
 			P_RemoveMobj(mobj)
 			continue
 		end
@@ -134,6 +163,7 @@ addHook("MapLoad", function(mapid)
 	doom.torespawn = {}
 	doom.sectorspecials = {}
 	doom.sectorbackups = {}
+	doom.sectordata = {}
 	doom.switches = {}
 
 	-- Determine episode based on game mode
@@ -211,26 +241,21 @@ addHook("MapLoad", function(mapid)
 	for player in players.iterate do
 		player.doom = $ or {}
 		player.doom.killcount = 0
+		player.doom.intstate = -1
+		player.doom.notrigger = 0
 	end
-
-	local mthingReplacements = {
-		[5] = MT_DOOM_BLUEKEYCARD,
-		[6] = MT_DOOM_YELLOWKEYCARD,
-		[8] = MT_DOOM_BACKPACK,
-		[9] = MT_DOOM_SHOTGUNNER,
-		[10] = MT_DOOM_BLOODYMESS,
-		[13] = MT_DOOM_REDKEYCARD,
-		[14] = MT_DOOM_TELETARGET,
-		[15] = MT_DOOM_CORPSE,
-		[16] = MT_DOOM_CYBERDEMON,
-		[31] = MT_DOOM_SHORTGREENPILLAR,
-	}
 
 	for mthing in mapthings.iterate do
 		if (mthing.z & 1) then
 			continue
 		end
-		if mthingReplacements[mthing.type] then
+
+		local needed = SkillMaskFor(doom.gameskill)
+		if not (mthing.options & needed) then
+			continue
+		end
+
+		if doom.mthingReplacements[mthing.type] then
 			local x = mthing.x*FRACUNIT
 			local y = mthing.y*FRACUNIT
 			local z
@@ -239,12 +264,17 @@ addHook("MapLoad", function(mapid)
 			else
 				z = P_FloorzAtPos(x, y, 0, 0)
 			end
-			local teleman = P_SpawnMobj(x, y, z, mthingReplacements[mthing.type])
+			local teleman = P_SpawnMobj(x, y, z, doom.mthingReplacements[mthing.type])
 			teleman.angle = FixedAngle(mthing.angle*FRACUNIT)
+			if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTKILL) then
+				doom.killcount = ($ or 0) + 1
+			end
+			if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTITEM) then
+				doom.itemcount = ($ or 0) + 1
+			end
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTKILL) then
 			doom.killcount = ($ or 0) + 1
-			print(tostring(doom.killcount) .. " enemies total")
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTITEM) then
 			doom.itemcount = ($ or 0) + 1
@@ -287,6 +317,82 @@ local expectedUserdatas = {
 	light = "sector_t",
 	stair = "sector_t",
 }
+
+local function sectorHasUnfittableObject(a, b, c, d, shootables)
+	-- resolve args to bounds
+	local minx, maxx, miny, maxy
+
+	if a and a.lines then
+		-- 'a' is a sector_t, compute bounding box from its lines
+		minx = INT32_MAX
+		maxx = INT32_MIN
+		miny = INT32_MAX
+		maxy = INT32_MIN
+
+		for linenum = 0, #a.lines - 1 do
+			local line = a.lines[linenum]
+			for i = 1, 2 do
+				local vx = line["v" .. i].x
+				local vy = line["v" .. i].y
+				if vx < minx then minx = vx end
+				if vx > maxx then maxx = vx end
+				if vy < miny then miny = vy end
+				if vy > maxy then maxy = vy end
+			end
+		end
+	else
+		-- expecting minx,maxx,miny,maxy
+		minx = a
+		maxx = b
+		miny = c
+		maxy = d
+		-- quick safety check
+		if not (minx and maxx and miny and maxy) then return false end
+	end
+
+	-- local helper: inclusive bounds check
+	local function insideBounds(mobj, minx, maxx, miny, maxy)
+		if not mobj or not mobj.valid then return false end
+
+		local r = mobj.radius or 0
+
+		if (mobj.x + r) < minx then return false end
+		if (mobj.x - r) > maxx then return false end
+
+		if (mobj.y + r) < miny then return false end
+		if (mobj.y - r) > maxy then return false end
+
+		return true
+	end
+
+	-- iterate mobjs, return true on first offending object
+	for mobj in mobjs.iterate() do
+		if not mobj or not mobj.valid then
+			continue
+		end
+
+		if insideBounds(mobj, minx, maxx, miny, maxy) then
+			-- skip noclip / noclipheight
+			if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then
+				continue
+			end
+
+			if shootables then
+				if not (mobj.flags & MF_SHOOTABLE) then
+					continue
+				end
+			end
+
+			local space = abs(mobj.floorz - mobj.ceilingz)
+			-- if object fits, ignore; otherwise it's an offending object
+			if (mobj.doom and mobj.doom.height) and mobj.doom.height >= space then
+				return true
+			end
+		end
+	end
+
+	return false
+end
 
 -- BuildStairs: iterative stair builder using DOOM_AddThinker
 -- startsec: sector to start from (sector table)
@@ -420,7 +526,7 @@ local thinkers = {
 				end
 
 				-- Set defaults for switch fields if not already present
-				data.allowOff = data.allowOff or data.\repeatable
+				data.allowOff = data.allowOff or data.repeatable
 				data.onSound = data.onSound or sfx_swtchn
 				data.offSound = data.offSound or sfx_swtchx
 				data.delay = data.delay or TICRATE
@@ -512,6 +618,16 @@ local thinkers = {
 
 			sector.ceilingheight = $ - speed
 
+			if sectorHasUnfittableObject(sector) then
+				if data.fastdoor then
+					S_StartSound(sector, sfx_bdopn)
+				else
+					S_StartSound(sector, sfx_doropn)
+				end
+				data.reachedGoal = false
+				sector.ceilingheight = $ + speed
+			end
+
 			if sector.ceilingheight <= target then
 				sector.ceilingheight = target
 
@@ -586,9 +702,73 @@ local thinkers = {
 			end
 		end
 
+		-- TODO: USE sectorHasUnfittableObject() INSTEAD!!
+		if not (leveltime % 4) then
+			local lowestX = INT32_MAX
+			local highestX = INT32_MIN
+			local lowestY = INT32_MAX
+			local highestY = INT32_MIN
+			for linenum = 0, #sector.lines - 1 do
+				local line = sector.lines[linenum]
+				for i = 1, 2 do
+					local xPos = line["v" .. i].x
+					local yPos = line["v" .. i].y
+					if xPos < lowestX then
+						lowestX = xPos
+					end
+					if xPos > highestX then
+						highestX = xPos
+					end
+					if yPos < lowestY then
+						lowestY = yPos
+					end
+					if yPos > highestY then
+						highestY = yPos
+					end
+				end
+			end
+
+			-- Helper: check if point is inside bounding box
+			local function insideBounds(mobj, minx, maxx, miny, maxy)
+				if not mobj or not mobj.valid then return false end
+
+				local r = mobj.radius or 0
+
+				if (mobj.x + r) < minx then return false end
+				if (mobj.x - r) > maxx then return false end
+
+				if (mobj.y + r) < miny then return false end
+				if (mobj.y - r) > maxy then return false end
+
+				return true
+			end
+
+			-- Iterate all mobjs and only act on those inside the calculated rectangle.
+			-- This avoids relying on searchBlockmap's refmobj behavior.
+			for mobj in mobjs.iterate() do
+				if not mobj or not mobj.valid then
+					continue
+				else
+					if insideBounds(mobj, lowestX, highestX, lowestY, highestY) then
+						if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then continue end
+						if not (mobj.flags & MF_SHOOTABLE) then continue end
+						local space = abs(mobj.floorz - mobj.ceilingz)
+						-- if object fits, ignore; otherwise crush
+						if (mobj.doom and mobj.doom.height) and mobj.doom.height >= space then
+							data.caughtObject = true
+							DOOM_DamageMobj(mobj, nil, nil, 10)
+						end
+					end
+				end
+			end
+		end
+
 		if not data.goingUp then
 			local target = (doom.sectorbackups[sector].floor or 0) + 8*FRACUNIT
 			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
+			if data.speed != "fast" and data.caughtObject then
+				speed = $ / 8
+			end
 
 			if not (sector and sector.valid) then return end
 
@@ -597,17 +777,22 @@ local thinkers = {
 			if sector.ceilingheight <= target then
 				S_StartSound(sector, sfx_pstop)
 				sector.ceilingheight = target
+				data.caughtObject = false
 				data.goingUp = true
 			end
 		else
 			local target = doom.sectorbackups[sector].ceil or 0
 			local speed = data.speed == "fast" and 4*FRACUNIT or 1*FRACUNIT
+			if data.speed != "fast" and data.caughtObject then
+				speed = $ / 8
+			end
 
 			sector.ceilingheight = $ + speed
 
 			if sector.ceilingheight >= target then
 				S_StartSound(sector, sfx_pstop)
 				sector.ceilingheight = target
+				data.caughtObject = false
 				data.goingUp = false
 			end
 		end
@@ -678,110 +863,252 @@ local thinkers = {
 	end,
 	
 	floor = function(sector, data)
-		local target
-		local dir = "up"
-		local FLOORSPEED = type(data.speed) == "number" and data.speed or 2*FRACUNIT
-		if not (sector and sector.valid) then return end
-		if type(data.target) == "number" then
-			target = data.target
-		elseif data.target == "nextfloor" then
-			target = P_FindNextHighestFloor(sector, sector.floorheight)
-		elseif data.target == "highest" then
-			target = P_FindHighestFloorSurrounding(sector)
-			dir = "down"
-		elseif data.target == "8abovehighest" then
-			target = P_FindHighestFloorSurrounding(sector) + 8 * FRACUNIT
-		elseif data.target == "lowestceiling" then
-			target = P_FindLowestCeilingSurrounding(sector)
-		elseif data.target == "8belowceiling" then
-			target = P_FindLowestCeilingSurrounding(sector) - 8 * FRACUNIT
-		elseif data.target == "lowest" then
-			target = P_FindLowestFloorSurrounding(sector)
-			dir = "down"
-		elseif data.target == "shortestlowertex" then
-			-- wiki fallback value when no surrounding lower texture exists
-			local DEFAULT_TARGET = 32000 * FRACUNIT
-
-			local best = DEFAULT_TARGET
-
-			-- iterate the linedefs touching this sector
-			for i = 0, #sector.lines - 1 do
-				local line = sector.lines[i]
-				-- determine which side is the "other" side (the side not belonging to `sector`)
-				local othersec, texnum
-
-				if line.frontsector == sector and line.backsector then
-					othersec = line.backsector
-					texnum = line.backside and line.backside.bottomtexture or 0
-				elseif line.backsector == sector and line.frontsector then
-					othersec = line.frontsector
-					texnum = line.frontside and line.frontside.bottomtexture or 0
-				end
-
-				-- only consider this boundary if there *is* a lower texture on the opposite side
-				if othersec and texnum ~= 0 then
-					-- Simple candidate: neighbouring floor height
-					local candidate = othersec.floorheight
-
-					-- If we have a texture object and it reports a .height (in pixels), use it
-					-- to get a more accurate "texture bottom" height: othersec.floor + texture.height.
-					local tex = doom.texturesByNum[texnum]
-					if tex and tex.height and tex.height > 0 then
-						candidate = othersec.floorheight + (tex.height * FRACUNIT)
-					end
-
-					-- keep the smallest candidate (shortest)
-					if candidate < best then
-						best = candidate
-					end
-				end
-			end
-
-			target = best
-		else
-			print("No defined target for '" .. tostring(data.target) .. "'!")
+		if not (sector and sector.valid) then
+			-- sector went away or invalid: remove thinker
 			doom.thinkers[sector] = nil
 			return
 		end
-		
-		local speed = data.speed == "fast" and FLOORSPEED*4 or FLOORSPEED
-		if dir == "up" then
-			sector.floorheight = $ + speed
-		else
-			sector.floorheight = $ - speed
-		end
-		
-		if not (leveltime & 7) then
-			S_StartSound(sector, sfx_stnmov)
+
+		-- base speeds: keep compatibility with your existing logic
+		local BASE_SPEED = type(data.speed) == "number" and data.speed or PLATSPEED
+		local spd = (data.speed == "fast") and (BASE_SPEED * 4) or BASE_SPEED
+
+		-- Infer action if caller didn't provide one
+		if not data.action then
+			if type(data.target) == "number" then
+				-- Floor height target, but how do we deal with it?
+				if data.target > sector.floorheight then
+					data.action = "raise"
+				elseif data.target < sector.floorheight then
+					data.action = "lower"
+				else
+					doom.thinkers[sector] = nil
+					return
+				end
+			elseif type(data.target) == "string" then
+				if data.target == "lowest" then
+					data.action = "lower"
+				elseif data.target == "highest" or data.target == "8abovehighest" then
+					data.action = "lower"
+				else
+					data.action = "raise"
+				end
+			else
+				print("floor thinker: missing action and target")
+				doom.thinkers[sector] = nil
+				return
+			end
 		end
 
-		if dir == "up" then
-			if sector.floorheight >= target then
-				sector.floorheight = target
-				doom.thinkers[sector] = nil
-				local newfloor = deepcopy(sector.floorheight)
-				doom.sectorbackups[sector].floor = newfloor
-				S_StartSound(sector, sfx_pstop)
+		-- Convenience fields used for platform-like behavior
+		if data.action == "oscillate" and not data.init then
+			-- init plat-like thinker (perpetualRaise / plat behaviour)
+			data.isPlatLike = true
+			-- determine low/high bounds if not provided
+			data.low = data.low or P_FindLowestFloorSurrounding(sector)
+			if data.low > sector.floorheight then data.low = sector.floorheight end
+			data.high = data.high or P_FindHighestFloorSurrounding(sector)
+			if data.high < sector.floorheight then data.high = sector.floorheight end
+			-- default wait time (matches C: plat->wait = 35*PLATWAIT roughly)
+			data.wait = data.wait or (35)
+			-- status: up/down (randomize as in C if not provided)
+			if not data.status then
+				data.status = (DOOM_Random() & 1) == 1 and "up" or "down"
 			end
-		else
-			if sector.floorheight <= target then
-				sector.floorheight = target
-				doom.thinkers[sector] = nil
-				local newfloor = deepcopy(sector.floorheight)
-				doom.sectorbackups[sector].floor = newfloor
-				S_StartSound(sector, sfx_pstop)
-			end
+			data.init = true
+			S_StartSound(sector, sfx_pstart)
 		end
+
+		-- Immediate stop-plat action: remove existing plat thinkers that share the tag
+		if data.action == "oscillate_stop" then
+			stop_plats_by_tag(data.tag)
+			-- remove this stop-thinker immediately (it is a single-shot command)
+			doom.thinkers[sector] = nil
+			return
+		end
+
+		-- Platform-like "oscillate" state machine (perpetual platforms, DWUS, blazeDWUS)
+		if data.action == "oscillate" or data.action == "downWaitUpStay" or data.action == "blazeDWUS" or data.isPlatLike then
+			-- map some possible names to internal behavior
+			local speedMultiplier = 1
+			if data.action == "downWaitUpStay" then
+				speedMultiplier = 4
+			elseif data.action == "blazeDWUS" then
+				speedMultiplier = 8
+			elseif data.speed == "fast" then
+				speedMultiplier = 4
+			end
+			local platspd = spd * speedMultiplier
+
+			-- ensure low/high exist (safety)
+			data.low = data.low or P_FindLowestFloorSurrounding(sector)
+			if data.low > sector.floorheight then data.low = sector.floorheight end
+			data.high = data.high or sector.floorheight
+
+			-- status: up / down / waiting
+			if data.status == "up" then
+				sector.floorheight = sector.floorheight + platspd
+				if sector.floorheight >= data.high then
+					sector.floorheight = data.high
+					data.status = "wait"
+					data.waitClock = data.wait or 35
+					S_StartSound(sector, sfx_pstop)
+				end
+
+			elseif data.status == "down" then
+				sector.floorheight = sector.floorheight - platspd
+				if sector.floorheight <= data.low then
+					sector.floorheight = data.low
+					data.status = "wait"
+					data.waitClock = data.wait or 35
+					S_StartSound(sector, sfx_pstop)
+				end
+
+			elseif data.status == "wait" then
+				-- tick wait clock down
+				data.waitClock = (data.waitClock or 0) - 1
+				if data.waitClock <= 0 then
+					-- toggle direction when wait expires
+					if data.lastDir == "up" then
+						data.status = "down"
+						data.lastDir = "down"
+					else
+						data.status = "up"
+						data.lastDir = "up"
+					end
+					-- play start sound for movement
+					S_StartSound(sector, sfx_pstart)
+				end
+			end
+
+			-- play movement sound occasionally like the C code (every 8 tics)
+			if not data.isPlatLike then
+				if not (leveltime & 7) then
+					S_StartSound(sector, sfx_stnmov)
+				end
+			end
+
+			-- persist: this thinker stays until externally stopped (unless you've requested single-shot)
+			return
+		end
+
+		-- Standard raise/lower actions ------------------------------------------------
+		if data.action == "raise" or data.action == "lower" then
+			-- compute target
+			local target = nil
+			local dir = (data.action == "raise") and "up" or "down"
+
+			if type(data.target) == "number" then
+				target = data.target
+			elseif data.target == "nextfloor" then
+				target = P_FindNextHighestFloor(sector, sector.floorheight)
+			elseif data.target == "highest" then
+				target = P_FindHighestFloorSurrounding(sector); dir = "down"
+			elseif data.target == "8abovehighest" then
+				target = P_FindHighestFloorSurrounding(sector) + (8 * FRACUNIT)
+				dir = "down"
+			elseif data.target == "lowestceiling" then
+				target = P_FindLowestCeilingSurrounding(sector)
+			elseif data.target == "8belowceiling" then
+				target = P_FindLowestCeilingSurrounding(sector) - (8 * FRACUNIT)
+			elseif data.target == "lowest" then
+				target = P_FindLowestFloorSurrounding(sector); dir = "down"
+			elseif data.target == "shortestlowertex" then
+				-- re-use your previous implementation for shortest lower texture
+				local DEFAULT_TARGET = 32000 * FRACUNIT
+				local best = DEFAULT_TARGET
+				for i = 0, #sector.lines - 1 do
+					local line = sector.lines[i]
+					local othersec, texnum
+					if line.frontsector == sector and line.backsector then
+						othersec = line.backsector
+						texnum = line.backside and line.backside.bottomtexture or 0
+					elseif line.backsector == sector and line.frontsector then
+						othersec = line.frontsector
+						texnum = line.frontside and line.frontside.bottomtexture or 0
+					end
+					if othersec and texnum ~= 0 then
+						local candidate = othersec.floorheight
+						local tex = doom.texturesByNum[texnum]
+						if tex and tex.height and tex.height > 0 then
+							candidate = othersec.floorheight + (tex.height * FRACUNIT)
+						end
+						if candidate < best then best = candidate end
+					end
+				end
+				target = best
+			else
+				-- unknown target
+				print("floor thinker: unknown target '" .. tostring(data.target) .. "'")
+				doom.thinkers[sector] = nil
+				return
+			end
+
+			-- move sector toward target
+			if dir == "up" then
+				sector.floorheight = sector.floorheight + spd
+			else
+				sector.floorheight = sector.floorheight - spd
+			end
+
+			if not (leveltime & 7) then
+				S_StartSound(sector, sfx_stnmov)
+			end
+
+			-- check if reached target
+			if dir == "up" then
+				if sector.floorheight >= target then
+					sector.floorheight = target
+					-- set sector backup and stop thinker
+					local newfloor = deepcopy(sector.floorheight)
+					doom.sectorbackups[sector].floor = newfloor
+					-- handle "changes" (texture change) if caller provided newfloorpic
+					if data.changes and data.newfloorpic then
+						sector.floorpic = data.newfloorpic
+					end
+					-- play stop sound
+					S_StartSound(sector, sfx_pstop)
+					-- crush behavior
+					if data.crush then
+						-- mark sector special if desired (C sets sec->special sometimes)
+						sector.special = sector.special or 0
+					end
+					-- remove thinker
+					doom.thinkers[sector] = nil
+				end
+			else
+				if sector.floorheight <= target then
+					sector.floorheight = target
+					local newfloor = deepcopy(sector.floorheight)
+					doom.sectorbackups[sector].floor = newfloor
+					if data.changes and data.newfloorpic then
+						sector.floorpic = data.newfloorpic
+					end
+					S_StartSound(sector, sfx_pstop)
+					doom.thinkers[sector] = nil
+				end
+			end
+
+			return
+		end
+
+		-- LIFT-style wait/return behaviour handled in the lift thinker.
+		-- If we get something we don't recognize, remove the thinker.
+		print("floor thinker: unhandled action '" .. tostring(data.action) .. "'")
+		doom.thinkers[sector] = nil
 	end,
-	
+
 	ceiling = function(sector, data)
 		local target
 		local dir = 1
 		local FLOORSPEED = 2*FRACUNIT
 		if data.target == "nextfloor" then
-			target = P_FindNextHighestFloor(sector, sector.floorheight)
+			target = P_FindNextHighestFloor(sector, sector.ceilingheight)
 		elseif data.target == "lowestceiling" then
 			target = P_FindLowestCeilingSurrounding(sector)
+		elseif data.target == "highest" then
+			target = P_FindHighestCeilingSurrounding(sector)
+			dir = -1
 		elseif data.target == "8belowceiling" then
 			target = P_FindLowestCeilingSurrounding(sector) - 8 * FRACUNIT
 		else
@@ -790,20 +1117,30 @@ local thinkers = {
 		end
 		
 		local speed = data.speed == "fast" and FLOORSPEED*4 or FLOORSPEED
-		sector.floorheight = $ + speed
+		sector.ceilingheight = $ - (speed * dir)
 		
 		if not (leveltime & 7) then
 			S_StartSound(sector, sfx_stnmov)
 		end
-		
-		if sector.floorheight >= target then
-			sector.floorheight = target
-			doom.thinkers[sector] = nil
-			local newfloor = deepcopy(sector.floorheight)
-			doom.sectorbackups[sector].floor = newfloor
-			S_StartSound(sector, sfx_pstop)
+
+		if dir >= 1 then
+			if sector.ceilingheight <= target then
+				sector.ceilingheight = target
+				doom.thinkers[sector] = nil
+				local newfloor = deepcopy(sector.ceilingheight)
+				doom.sectorbackups[sector].ceil = newfloor
+				S_StartSound(sector, sfx_pstop)
+			end
+		elseif dir <= -1 then
+			if sector.ceilingheight >= target then
+				sector.ceilingheight = target
+				doom.thinkers[sector] = nil
+				local newfloor = deepcopy(sector.ceilingheight)
+				doom.sectorbackups[sector].ceil = newfloor
+				S_StartSound(sector, sfx_pstop)
+			end
 		end
-		
+
 		for i = 0, #sector.lines-1 do
 			
 		end
@@ -880,6 +1217,8 @@ addHook("MobjSpawn", function(mobj)
 			mobj.eflags = $ | MFE_DOOMENEMY
 		end
 	end
+	mobj.doom.height = mobj.info.height
+	mobj.doom.spawnpoint = {x = mobj.x, y = mobj.y, z = mobj.z, angle = mobj.angle}
 end)
 
 addHook("MusicChange", function(_, newname, mflags, looping, position, prefade, fadein)

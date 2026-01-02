@@ -40,6 +40,9 @@ local function onPickup(item, mobj)
 	local health = funcs.getHealth(player)
 	
 	funcs.setHealth(player, min(health + doom.soulspheregrant, doom.maxsoulsphere))
+	if funcs.onSoulsphere then
+		funcs.onSoulsphere(player)
+	end
 	DOOM_DoMessage(player, "$GOTSUPER")
 end
 

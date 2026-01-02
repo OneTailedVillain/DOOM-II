@@ -52,6 +52,8 @@ local function endoom(v, player)
 					if char_index <= #line then
 						local char = string.byte(line, char_index)
 						if char ~= 32 then
+							char = string.format("%03d", $)
+							print(char)
 							v.drawScaled(x_pos*FRACUNIT, (y-1)*height*FRACUNIT, FRACUNIT/2, v.cachePatch("DSFNT" .. char), 0, v.getColormap(nil, nil, "DOSPROMPT" .. fg))
 						end
 						char_index = char_index + 1

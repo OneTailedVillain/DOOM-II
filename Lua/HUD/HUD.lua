@@ -90,7 +90,7 @@ local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 	end
 
 	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
-	local extraflag = (player.mo.doom.flags & DF_SHADOW) and V_MODULATE or 0
+	local extraflag = (player.mo.doom.flags & DF_SHADOW) and (V_ADD|V_10TRANS) or 0
 	local lightlevel = sector.lightlevel
 	
 	if spriteflags & FF_FULLBRIGHT then
@@ -152,13 +152,17 @@ local function DrawStatusBarNumbers(v, player)
 	}
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		local curAmmo = funcs.getAmmoFor(player, whatToIndex) or 0
-		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+		local curAmmo = funcs.getAmmoFor(player, whatToIndex)
+		local whatFont = curAmmo != false and "STYSNUM" or "STGNUM"
+		curAmmo = $ or 0
+		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
-		local maxAmmo = funcs.getMaxFor(player, whatToIndex) or 0
-		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, "STYSNUM", maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
+		local maxAmmo = funcs.getMaxFor(player, whatToIndex)
+		local whatFont = maxAmmo != false and "STYSNUM" or "STGNUM"
+		maxAmmo = $ or 0
+		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 	end
 	local whatToCheck = {
 		"brassknuckles",
@@ -179,6 +183,7 @@ end
 
 local function drawFace(v, player)
 	local index = player.doom.faceindex + 1
+	if index > #st_faces then index = #st_faces end
 	local patch = st_faces[index]
 	if patch != nil then
 		v.draw(143, 168, v.cachePatch(patch), V_PERPLAYER|V_SNAPTOBOTTOM)
@@ -381,7 +386,6 @@ hud.add(function(v, player)
 	hud.disable("time")
 	hud.disable("rings")
 	hud.disable("lives")
-	hud.disable("crosshair")
 
 	if not v.patchExists("STFST01") or not v.patchExists("PLAYA1") then
 		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YO! YOU DON'T HAVE A VALID IWAD LOADED YET!\nGRAB YOUR COPY OF DOOM, DOOM II, OR FREEDOOM\nAND LOAD THAT FIRST!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
@@ -584,7 +588,7 @@ hud.add(function(v, player)
         if cx1 != nil then
             local color = 0
 
-            if not line.backsector then
+            if not line.backsector or (line.flags & DML_SECRET) then
                 color = 176
             else
                 local fs, bs = line.frontsector, line.backsector
@@ -661,6 +665,11 @@ hud.add(function(v, player)
             minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, flags, scale)
         end
     end
+
+	local gamemap = gamemap
+	if doom.isdoom1 then
+		gamemap = DOOM_Doom2MapIDToDoom1MapID($)
+	end
 
     drawStatusBar(v, displayplayer)
 	-- doom.mapString

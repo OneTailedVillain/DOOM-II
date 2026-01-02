@@ -1,13 +1,13 @@
 DOOM_Freeslot("sfx_pistol", "sfx_sgcock")
 
-local doom1Pars = {
+doom.doom1Pars = {
 	{30, 75, 120, 90, 165, 180, 180, 30, 165},
 	{0, 30, 75, 120, 90, 165, 180, 180, 30, 165},
 	{0, 90, 90, 90, 120, 90, 360, 240, 30, 170},
 	{0, 90, 45, 90, 150, 90, 90, 165, 30, 135},
 }
 
-local doom2Pars = {
+doom.doom2Pars = {
 	30, 90, 120, 120, 90, 150, 120, 120, 270, 90,
 	210, 150, 150, 150, 210, 150, 320, 150, 210, 150,
 	240, 150, 180, 150, 150, 300, 330, 420, 300, 180,
@@ -16,70 +16,39 @@ local doom2Pars = {
 
 -- Modern mapes use DeHackEd or MAPINFO
 
-local Doom2MapToDoom1 = {
-	-- Episode 1
-	[1]  = {ep = 1, map = 1},
-	[2]  = {ep = 1, map = 2},
-	[3]  = {ep = 1, map = 3},
-	[4]  = {ep = 1, map = 4},
-	[5]  = {ep = 1, map = 5},
-	[6]  = {ep = 1, map = 6},
-	[7]  = {ep = 1, map = 7},
-	[8]  = {ep = 1, map = 8},
-	[41] = {ep = 1, map = 9}, -- secret
-	
-	-- Episode 2
-	[9]  = {ep = 2, map = 1},
-	[10] = {ep = 2, map = 2},
-	[11] = {ep = 2, map = 3},
-	[12] = {ep = 2, map = 4},
-	[13] = {ep = 2, map = 5},
-	[14] = {ep = 2, map = 6},
-	[15] = {ep = 2, map = 7},
-	[16] = {ep = 2, map = 8},
-	[42] = {ep = 2, map = 9}, -- secret
-	
-	-- Episode 3
-	[17] = {ep = 3, map = 1},
-	[18] = {ep = 3, map = 2},
-	[19] = {ep = 3, map = 3},
-	[20] = {ep = 3, map = 4},
-	[21] = {ep = 3, map = 5},
-	[22] = {ep = 3, map = 6},
-	[23] = {ep = 3, map = 7},
-	[24] = {ep = 3, map = 8},
-	[43] = {ep = 3, map = 9}, -- secret
-	
-	-- Episode 4
-	[25] = {ep = 4, map = 1},
-	[26] = {ep = 4, map = 2},
-	[27] = {ep = 4, map = 3},
-	[28] = {ep = 4, map = 4},
-	[29] = {ep = 4, map = 5},
-	[30] = {ep = 4, map = 6},
-	[31] = {ep = 4, map = 7},
-	[32] = {ep = 4, map = 8},
-	[44] = {ep = 4, map = 9}, -- secret
-}
+-- Build mapping from global MAP number -> (episode, map) using 9 maps per episode.
+doom.Doom2MapToDoom1 = {}
+do
+	-- canonical mapping for MAP01..MAP36 (E1M1..E4M9)
+	for n = 1, 36 do
+		local ep = ((n - 1) / 9) + 1
+		local mp = ((n - 1) % 9) + 1
+		doom.Doom2MapToDoom1[n] = { ep = ep, map = mp }
+	end
+end
+
+rawset(_G, "DOOM_Doom2MapIDToDoom1MapID", function(map)
+	local index = doom.Doom2MapToDoom1[map]
+	return "E" .. tostring(index.ep or 0) .. "M" .. tostring(index.map or 0)
+end)
 
 /*
-SECRET EXITS:
-E1M3 = E1M9
-E2M5 = E2M9
-E3M6 = E3M9
-E4M2 = E4M9
-MAP15 = MAP31
-MAP31 = MAP32
-Secret exits outside of the above maps restart the current map.
+SECRET EXITS (new MAP numbering):
+E1M3 -> E1M9
+E2M5 -> E2M9
+E3M6 -> E3M9
+E4M2 -> E4M9
+Legacy DOOM II secret mappings (MAP15->MAP31, MAP31->MAP32) are kept below
+where applicable. Secret exits outside of the above maps restart the current map.
 */
 
 -- TODO: MAPINFO has these set, usually... Make sure to add support for those sometime in the future
 doom.secretExits = $ or {
 	-- DOOM 1
-	[3] = 41,
-	[13] = 42,
-	[22] = 43,
-	[26] = 44,
+	[3]  = 9,
+	[13] = 18,
+	[22] = 27,
+	[26] = 36,
 
 	-- DOOM II
 	[15] = 31,
@@ -161,12 +130,12 @@ addHook("PlayerThink", function(player)
 		end
 
 		if doom.isdoom1 then
-			local Doom1Map = Doom2MapToDoom1[gamemap]
+			local Doom1Map = doom.Doom2MapToDoom1[gamemap]
 			local ep = Doom1Map.ep
 			local mis = Doom1Map.map
-			parTarg = doom1Pars[ep] and doom1Pars[ep][mis] or 0
+			parTarg = doom.doom1Pars[ep] and doom.doom1Pars[ep][mis] or 0
 		else
-			parTarg = doom2Pars[gamemap] or $
+			parTarg = doom.doom2Pars[gamemap] or $
 		end
 		if player.doom.cnt_par >= parTarg then
 			player.doom.cnt_par = parTarg
@@ -177,27 +146,28 @@ addHook("PlayerThink", function(player)
 			end
 		end
 	elseif player.doom.intstate == 10 then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.onNowEntering then
+			funcs.onNowEntering(player)
+		end
 		S_StartSound(nil, sfx_sgcock, player)
+		player.doom.intstate = $ + 1
 		-- I don't actually have a surefire way to get this done during THIS specific intstate,
 		-- So defer to an intstate not present originally
-		if not doom.isdoom1 then
-			player.doom.intpause = 2*TICRATE
-			player.doom.intstate = $ + 1
-		else
+		if doom.isdoom1 then
 			player.doom.intpause = 4*TICRATE
-			player.doom.intstate = $ + 1
+		else
+			player.doom.intpause = 2*TICRATE
 		end
 	elseif player.doom.intstate == 12 then
 		player.doom.intpause = TICRATE
-		player.doom.intstate = -1
 		if doom.intermission then
-			doom.intermission = false
 			player.doom.notrigger = true
 			DOOM_NextLevel()
 		end
 	elseif (player.doom.intstate & 1) then
 		player.doom.intpause = ($ or 1) - 1
-		if not player.doom.intpause
+		if not player.doom.intpause then
 			player.doom.intstate = $ + 1
 			player.doom.intpause = TICRATE
 		end

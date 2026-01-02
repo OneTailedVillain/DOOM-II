@@ -6,6 +6,7 @@ dofile("Freeslots.lua")
 dofile("Specials.lua")
 dofile("Colors.lua")
 dofile("CustChar.lua")
+dofile("WADString.lua")
 dofile("WADLoad.lua")
 dofile("Functions.lua")
 dofile("Actions.lua")
@@ -23,6 +24,7 @@ dofile("Definitions/Objects/Artifacts/Radiation Suit.lua")
 dofile("Definitions/Objects/Artifacts/Soulsphere.lua")
 dofile("Definitions/Objects/Artifacts/Backpack.lua")
 dofile("Definitions/Objects/Artifacts/ComputerAreaMap.lua")
+dofile("Definitions/Objects/Artifacts/Lite-Amp.lua")
 dofile("Definitions/Objects/Items/Ammo.lua")
 dofile("Definitions/Objects/Items/Armor.lua")
 dofile("Definitions/Objects/Items/Health.lua")
@@ -30,6 +32,9 @@ dofile("Definitions/Objects/Items/Weapons.lua")
 dofile("Definitions/Objects/Keycards/Yellow Key.lua")
 dofile("Definitions/Objects/Keycards/Blue Key.lua")
 dofile("Definitions/Objects/Keycards/Red Key.lua")
+dofile("Definitions/Objects/Keycards/Yellow Skull Key.lua")
+dofile("Definitions/Objects/Keycards/Blue Skull Key.lua")
+dofile("Definitions/Objects/Keycards/Red Skull Key.lua")
 dofile("Definitions/Objects/Monsters/Commander Keen.lua")
 dofile("Definitions/Objects/Monsters/Cacodemon.lua")
 dofile("Definitions/Objects/Monsters/Cyberdemon.lua")
@@ -42,22 +47,37 @@ dofile("Definitions/Objects/Monsters/SS Guard.lua")
 dofile("Definitions/Objects/Monsters/Hell Knight.lua")
 dofile("Definitions/Objects/Monsters/RomeroHead.lua")
 dofile("Definitions/Objects/Monsters/Exploding Barrel.lua")
+dofile("Definitions/Objects/Monsters/Mancubus.lua")
+dofile("Definitions/Objects/Monsters/Arachnotron.lua")
 dofile("Definitions/Objects/Monsters/PLACEHOLD/Archvile.lua")
 dofile("Definitions/Objects/Monsters/PLACEHOLD/Lost Soul.lua")
 dofile("Definitions/Objects/Projectiles/Rocket.lua")
+dofile("Definitions/Objects/Projectiles/Imp Fireball.lua")
+dofile("Definitions/Objects/Projectiles/Mancubus Fireball.lua")
+dofile("Definitions/Objects/Projectiles/Plasma.lua")
+dofile("Definitions/Objects/Projectiles/Arachnotron Plasma.lua")
+dofile("Definitions/Objects/Effects/Telefog.lua")
+dofile("Definitions/States/Player.lua")
 dofile("HUD/HUDLib.lua")
-dofile("HUD/Title.lua")
 dofile("HUD/HUD.lua")
 dofile("HUD/Inter.lua")
 dofile("HUD/Text Screens.lua")
+dofile("HUD/Title.lua")
+dofile("HUD/Cast Drawer.lua")
 dofile("HUD/ENDOOM.lua")
 dofile("Player/JohnDoom.lua")
 dofile("Player/Player.lua")
 dofile("Player/IntermissionThinker.lua")
 dofile("Player/KeyBoardCheats.lua")
+dofile("Player/PreThink.lua")
+dofile("Player/PostThink.lua")
 dofile("DEH Pointers.lua")
 
 -- VSCode shit since with the advent of doomgfx it's now somewhat more viable as an option
+
+---@class mapheader_t
+---@field nextsecretlevel integer The level number of the map to go to on secret exit
+---@field monsterscantelefrag boolean If this map should let monsters telefrag the player and their own kind
 
 ---@class torespawn_t
 ---@field time integer The time the victim was added to the respawn table
@@ -66,11 +86,83 @@ dofile("DEH Pointers.lua")
 ---@field y fixed_t The y position of the victim
 ---@field z fixed_t The z position of the victim
 
----@class endoom_t
----@field colors table A 2D table of color values used in ENDOOM screens. Is run-length encoded.
----@field text table A 2D table of strings used in ENDOOM screens.
+---@alias validsource
+---| "clip"           -- Source: Clip (ammo pickup).
+---| "clipbox"        -- Source: Clip Box (ammo box).
+---| "shells"         -- Source: Shell (pickup).
+---| "shellbox"       -- Source: Shell Box (ammo box).
+---| "rocket"         -- Source: Rocket (pickup).
+---| "rocketbox"      -- Source: Rocket Box (ammo box).
+---| "cell"           -- Source: Cell Pack (pickup).
+---| "cellpack"       -- Source: Cell Pack (large pack).
+---| "pistol"         -- Source: Pistol weapon (extensible; not used by engine).
+---| "chaingun"       -- Source: Chaingun weapon (extensible; not used by engine).
+---| "shotgun"        -- Source: Shotgun weapon (extensible; not used by engine).
+---| "supershotgun"   -- Source: Super Shotgun weapon (extensible; not used by engine).
+---| "rocketlauncher" -- Source: Rocket Launcher weapon (extensible; not used by engine).
+---| "plasmarifle"    -- Source: Plasma Rifle weapon (extensible; not used by engine).
+---| "bfg9000"        -- Source: BFG 9000 weapon (extensible; not used by engine).
 
----@class doomglobal_t
+-- Engine default behavior for ammo gifts:
+--   When the engine gives ammo automatically, it uses doom.ammoTypeGifts[ammoType].
+--   *Single pickups* use doom.ammoTypeGifts[...] and *box/pack* variants normally multiply by 5.
+--   Weapon-based defaults often multiply that value (e.g. chaingun: *2).  
+--   These defaults do NOT account for dropped weapons, Deathmatch, or skill modifiers;
+--   giveAmmoFor should be used to implement any such special logic or to override defaults.
+
+-- Modifiers, by default, follow the below order:
+/*
+	The current difficulty level being "I'm too young to die." or "Nightmare!" multiplies the ammo amount by 2.
+	The current gamemode being Deathmatch turns small pick-ups into their large ammo counterparts.
+	doomflags & DF_DROPPED divides the ammo amount by 2.
+*/
+
+
+---@alias poweruptype  Non-class. Denotes what power-up types doPowerUp expects.
+---| "berserk"         Berserk pack.    Usually does NOT have a duration.
+---| "invisibility"    Invisibility.    Lasts 60 seconds.
+---| "invulnerability" Invulnerability. Lasts 30 seconds.
+---| "ironfeet"        Radiation suit.  Lasts 60 seconds.
+
+---@class doommethods_t List of Doom-specific methods for handling between different weapon/health/ammo systems.
+---@field getHealth fun(player: player_t): integer|nil Returns the player's current health as an integer or nil if unavailable
+---@field setHealth fun(player: player_t, health: integer): boolean Sets the player's health. Returns true if successful.
+---@field getMaxHealth fun(player: player_t): integer|nil Returns the player's maximum health as an integer or nil if unavailable
+---@field getArmor fun(player: player_t): integer|nil Returns the player's armor as an integer or nil if unavailable
+---@field setArmor fun(player: player_t, armor: integer, efficiency: number|fixed_t|nil): boolean Sets the player's armor. Efficiency is in fixed_t (0-FRACUNIT). Returns true if successful.
+---@field getMaxArmor fun(player: player_t): integer|nil Returns the player's maximum armor as an integer or nil if unavailable
+---@field getCurAmmo fun(player: player_t): integer|false|nil Returns the player's current ammo for their current weapon, false if the weapon doesn't use ammo, or nil if unavailable
+---@field getCurAmmoType fun(player: player_t): string|nil Returns the ammo type string for the player's current weapon, or nil if unavailable
+---@field getAmmoFor fun(player: player_t, aType: string): integer|false Returns the player's current ammo for the given ammo type, or false if unavailable
+---@field setAmmoFor fun(player: player_t, aType: string, amount: integer): boolean Sets the player's ammo for the given ammo type. Returns true if successful.
+---@field getMaxFor fun(player: player_t, aType: string): integer|nil Returns the player's maximum ammo for the given ammo type, or nil if unavailable
+---@field giveWeapon fun(player: player_t, weapon: string, doomflags: integer|nil): boolean Gives the specified weapon to the player. Returns true if the gift was successful (typically if the player didn't already have it or wasn't at max ammo)
+---@field hasWeapon fun(player: player_t, weapon: string): boolean Returns true if the player has the specified weapon
+---@field giveAmmoFor fun(player: player_t, source: validsource, dflags: integer|nil): boolean Gives ammo to the player based on `source`. Returns true if ammo was added.
+---@field damage fun(player: mobj_t, damage: integer, attacker: player_t|mobj_t|nil, proj: mobj_t|nil, damageType: integer|nil, minhealth: integer|nil): boolean|nil Applies damage to the player using doom-style armor efficiency. Returns true if damage was applied. (Due to a bug, the player argument is not actually of type player_t)
+---@field doBackpack fun(player: player_t): nil Gives the player a backpack and maximum ammo
+---@field doPowerUp fun(player: player_t, powerType: poweruptype): boolean Gives a power-up to the player. Returns true if successful.
+
+---@class doomcharsupport_t Character support definition
+---@field noWeapons boolean If true, disable Doom weapon system. Nil = default behavior (uses Doom system)
+---@field noHUD boolean If true, disable Doom HUD. Nil = default behavior (uses Doom HUD)
+---@field customDamage boolean (TODO: Unhackify this???) Set this to true if the character uses P_DamageMobj in their damage method. This WILL cause a stack overflow otherwise!!
+---@field dontSetRings boolean (TODO: Remove this!) If true, prevents ring count from being set based on current ammo. Nil = default behavior
+---@field methods doommethods_t The methods table for this character
+
+---@class dehackedpointers Semi-class, holds arrays of Dehacked-related pointers
+---@field sprites integer[] Array of sprite IDs
+---@field things mobjtype_t[] Array of mobj types
+---@field flags table<integer, {num: integer, type: string}> Mapping of flag bitmask to flag number and type
+---@field sounds integer[] Array of sound effect enums
+---@field frames integer[] Array of state IDs
+---@field frametowepstate table<integer, {[1]: string, [2]: string, [3]: integer}> Mapping of frame number to weapon state (weapon name, state name, state index)
+
+---@class endoom_t The current ENDOOM screen data, populated by the conversion script.
+---@field colors table A 2D table of color values for the current ENDOOM screen. Entries use RLE of format {attribute, count}.
+---@field text table A 2D table of strings used in the current ENDOOM screen.
+
+---@class doomglobal_t Global Doom-specific variables and functions
 ---@field isdoom1 boolean Denotes if the IWAD loaded was based on the Doom 1 engine
 ---@field torespawn table<torespawn_t> The list of victims to respawn
 ---@field strings table<doomstrings> The set of strings used for various pickups and events
@@ -94,49 +186,59 @@ dofile("DEH Pointers.lua")
 ---@field killcount integer The total number of kills in the current map
 ---@field itemcount integer The total number of items in the current map
 ---@field secretcount integer The total number of secrets in the current map
----@field kills integer (Deprecated?) The number of kills the player has made in the current map
+---@field kills integer @deprecated Use player.killcount instead
 ---@field items integer (Deprecated?) The number of items the player has collected in the current map
 ---@field secrets integer (Deprecated?) The number of secrets the player has found in the current map
 ---@field defaultgravity fixed_t The default gravity value for the map
 ---@field lineActions table<integer, table> A table of line special actions, indexed by their line special number
 ---@field linebackups table<line_t, table> A table of line special backups, indexed by their line_t
 ---@field charSupport table<string, doomcharsupport_t> A table of character support definitions, indexed by skin name
----@field issrb2 boolean Whether the current game is SRB2. Used for Halloween and the March 2000 Prototype.
----@field dropTable table<mobjtype_t, mobjtype_t> Maps monster types to item types they should drop on death
----@field bossDeathSpecials table<mobjtype_t, table> Boss death special actions indexed by monster type
----@field textscreenmaps table<integer, table> Text screen definitions indexed by map number
----@field subthinkers table<sector_t, table> Sector-specific thinkers for lighting and other effects
----@field textscreen table Text screen display state and configuration
----@field pistolstartstate table Default player starting state (health, armor, ammo, weapons)
----@field soulspheregrant integer Health granted by soul sphere pickup, used in DeHacked
----@field maxsoulsphere integer Maximum health from soul sphere, used in DeHacked
----@field megaspheregrant integer Health granted by megasphere pickup, used in DeHacked
----@field godmodehealth integer Health when god mode is active, used in DeHacked
----@field idfaarmor integer Armor given by IDFA cheat, used in DeHacked
----@field greenarmorclass integer Armor class for green armor, used in DeHacked
----@field bluearmorclass integer Armor class for blue armor, used in DeHacked
----@field idfaarmorclass integer Armor class given by IDFA cheat, used in DeHacked
----@field idkfaarmor integer Armor given by IDKFA cheat, used in DeHacked
----@field idkfaarmorclass integer Armor class given by IDKFA cheat, used in DeHacked
----@field bfgshotcost integer Ammo cost per shot for BFG9000, used in DeHacked
----@field infighting boolean Whether monsters can damage each other, used in DeHacked
----@field rndindex integer Current index in random number table (alias for prndindex)
----@field sectorspecials table<sector_t, integer> Sector special effects indexed by sector
----@field sectorbackups table<sector_t, table> Backup data for sector specials
----@field mapString string Base string prefix for level names (e.g., "HUSTR_" or "THUSTR_")
----@field lastmap integer The final map number in the current game, only relevant for Chex Quest and Non-Ultimate versions of DOOM.
----@field quitStrings table<string> Messages shown when quitting the game
----@field titlemenus table Title screen menu definitions
----@field secretExits table<integer, integer> Maps secret exit map numbers to their destinations
----@field dehacked table DeHacked lump data if present
----@field dehackedpointers table DeHacked pointer remapping data
----@field validcount integer Validity counter for various lookup operations
----@field sectordata table Cached sector data for optimizations
----@field weaponnames table<integer, table> Weapon names indexed by slot and order
----@field intermission boolean Whether currently in intermission state
----@field texturesByNum table Textures indexed by number
----@field switchTexNames table A list of switch texture name mappings for different episodes
----@field switches table<integer> A table of switch textures
+---@field midGameTitlescreen boolean (MULTIPLAYER UNSAFE!) If true, enables access to the titlescreen in singleplayer mid-game.
+---@field titlemenus table<string, table> The title menu definitions.
+---@field intermission boolean True if in intermission.
+---@field textscreen table|nil The active text screen, if any.
+---@field mapString string The prefix string for the current map's lumps
+---@field subthinkers table<any, table> The sub-thinkers in the current map. Only used for light effects
+---@field texturesByNum table<integer, string> A mapping of texture numbers to texture names
+---@field weaponnames table<integer, table<integer, string>> A mapping of weapon slots and orders to weapon names
+---@field sectorspecials table<integer, table> A mapping of sector indices to their special
+---@field sectorbackups table<sector_t, table> A mapping of sector userdatas to their backup data
+---@field validcount integer A counter used to mark valid sectors for processing
+---@field sectordata table<sector_t, table> A mapping of sector userdatas to their custom data
+---@field gamemode string The current game mode ("shareware", "registered", "commercial", etc)
+---@field switchTexNames table<integer, table<1, string>|table<2, string>|table<3, integer>> A list of switch texture name mappings for different game versions
+---@field textscreenmaps table<integer, table> A mapping of text screen IDs to their data
+---@field pistolstartstate table The initial player state (and back-up, in case of missing values)
+---@field soulspheregrant integer The amount of health granted by a soulsphere pickup
+---@field maxsoulsphere integer The maximum health a player can have when picking up a soulsphere
+---@field megaspheregrant integer The amount of health granted by a megasphere pickup
+---@field godmodehealth integer The health value set when god mode is activated
+---@field idfaarmor integer The amount of armor granted by using the IDFA cheat
+---@field greenarmorclass integer The armor class value for Security Armor
+---@field bluearmorclass integer The armor class value for Combat Armor
+---@field idfaarmorclass integer The armor class value for the IDFA cheat
+---@field idkfaarmor integer The amount of armor granted by using the IDKFA cheat
+---@field idkfaarmorclass integer The armor class value for the IDKFA cheat
+---@field bfgshotcost integer The amount of cells consumed by firing the BFG9000
+---@field infighting boolean Whether monster infighting is enabled
+---@field linespecials table<any, integer> The line specials in the current map.
+---@field switches table<integer, integer> The switch texture numbers.
+---@field numswitches integer The number of switches in the current map.
+---@field patchesLoaded boolean Whether the WAD patches have been loaded
+---@field issrb2 boolean Whether the loaded WAD is SRB2
+---@field lastmap integer The last map number in this WAD
+---@field quitStrings table<integer, string> The quit messages for this WAD
+---@field dropTable table<mobjtype_t, mobjtype_t> Mapping of monster types to which item they drop on death
+---@field bossDeathSpecials table<mobjtype_t, {map: integer, tag: integer, special: integer, type?: integer}> Special level actions triggered on boss deaths
+---@field dehackedpointers dehackedpointers Holds Dehacked-related pointers
+---@field doom1Pars table<number, table<number>> Doom 1 par times, indexed via [episode][map]
+---@field doom2Pars table<number, number> Doom 2 par times, indexed via map number
+---@field Doom2MapToDoom1 table<number, {ep: number, map: number}> Mapping of Doom 2 map numbers to Doom 1 episode and map numbers
+---@field secretExits table<number, number> Mapping of map numbers to their secret exit destinations
+---@field animatorOffsets table<integer, integer> Mapping of weapon state IDs to animator offsets
+---@field oolors table A list of custom skincolors used for DOOM team colors and more. Yes, the name was misspelled.
+---@field predefinedWeapons table<number, weapondef_t> Predefined weapon definitions for enemies
+---@field didSecretExit boolean If the player exited via a secret exit
 
 ---@class doomspread_t
 ---@field horiz fixed_t
@@ -145,18 +247,18 @@ dofile("DEH Pointers.lua")
 ---@class doomstate_t
 ---@field frame integer The frame of the current state
 ---@field tics integer The number of tics this state lasts for
----@field action function The action to perform during this state
+---@field action fun(actor: mobj_t, var1: any, var2: any, weapon: weapondef_t) The action to perform during this state
 ---@field var1 any The first variable for the action
 ---@field var2 any The second variable for the action
 
----@class doomweaponstates_t
+---@class doomweaponstates_t Table of valid weapon states
 ---@field idle table<doomstate_t> The idle state of the weapon
 ---@field attack table<doomstate_t> The attack state of the weapon
 ---@field lower table<doomstate_t> The lower state of the weapon
 ---@field raise table<doomstate_t> The raise state of the weapon
----@field flash table<doomstate_t> The gunflash "state" of the weapon, only visible through A_DoomFire or A_DoomGunFlash
+---@field flash table<doomstate_t> The gunflash that shows whenever A_DoomFire gets called
 
----@class weapondef_t
+---@class weapondef_t Definition of a Doom weapon
 ---@field sprite spritenum_t The weapon sprite this weapon uses
 ---@field weaponslot integer The slot this weapon occupies in the player's inventory
 ---@field order integer The order of this weapon in the player's inventory (higher == lower)
@@ -170,18 +272,18 @@ dofile("DEH Pointers.lua")
 ---@field states doomweaponstates_t The states for this weapon
 ---@field noinitfirespread boolean Whether this weapon should only apply spread on refire
 
----@class ammodef_t
+---@class ammodef_t Definition of a Doom ammo type
 ---@field max integer The maximum amount of this ammo the player can carry
 ---@field backpackmax integer The maximum amount of this ammo the player can carry when they have twoxammo active
 ---@field icon string (Unused) The icon representing this ammo type
 ---@field backpackicon string (Unused) The icon representing this ammo type when they have twoxammo active
 
----@class doompowers_t
+---@class doompowers_t Powerup timers
 ---@field pw_strength integer Timer for the Berserk power-up. Counts up if non-zero.
 ---@field pw_ironfeet integer Timer for the Radiation Suit power-up. Counts down until it turns back to zero.
 ---@field pw_invisibility integer Timer for the Blursphere power-up. Counts down until it turns back to zero.
 
----@class laststate_t
+---@class laststate_t Snapshot of player state, taken on level exit
 ---@field ammo table<number, integer> The ammo counts since last archive.
 ---@field weapons table<number, integer> The weapons owned since last archive.
 ---@field oldweapons table<number, integer> The last weapons owned since last archive.
@@ -193,7 +295,7 @@ dofile("DEH Pointers.lua")
 ---@field momentum vector3_t The last momentum the player had since last archive.
 ---@field map integer The last map the player was in since last archive.
 
----@class doomplayer_t
+---@class doomplayer_t Doom-specific player fields
 ---@field ammo table<string, integer> Ammo counts by ammo type/index
 ---@field weapons table<string, boolean> Owned weapons map (weapon name -> true)
 ---@field oldweapons table Previous weapons map/state
@@ -230,7 +332,7 @@ dofile("DEH Pointers.lua")
 ---@field message string|nil HUD message text
 ---@field messageclock integer|nil Message display timer
 
----@class doomflags_t
+---@class doomflags_t Bitmask of doommobj_t flags
 ---@field DF_DROPPED integer If the object was dropped by a monster or player
 ---@field DF_NOBLOOD integer If the object should not bleed when damaged
 ---@field DF_CORPSE integer If the object is a corpse
@@ -245,49 +347,27 @@ dofile("DEH Pointers.lua")
 ---@field DF_INFLOAT integer If the object is in a floating state
 ---@field DF_TELEPORT integer If the object was teleported this tic
 
----@class doommobj_t
+---@class doommobj_t Doom-specific mobj fields
 ---@field health integer The health of the mobj
 ---@field armor integer The armor of the mobj
 ---@field armorefficiency integer The armor efficiency of the mobj's armor
 ---@field flags doomflags_t Bitmask of doommobj_t flags (DF_*)
----@field damage integer The damage this mobj inflicts on hit
-
----@class doommethods_t
----@field getHealth fun(player: player_t): integer Gets the health of the player
----@field setHealth fun(player: player_t, health: integer): boolean Sets the health of the player, returns true if successful
----@field getArmor fun(player: player_t): integer Gets the armor of the player
----@field setArmor fun(player: player_t, armor: integer): boolean Sets the armor of the player, returns true if successful
----@field getAmmo fun(player: player_t, ammoType: string): integer Gets the player's ammo for the given ammo type
----@field getMaxHealth fun(player: player_t): integer Gets the maximum health of the player
----@field getMaxArmor fun(player: player_t): integer Gets the maximum armor of the player
----@field setAmmo fun(player: player_t, ammoType: string, amount: integer): boolean Sets the player's ammo for the given ammo type, returns true if successful
----@field giveAmmoFor fun(player: player_t, source: string, dflags: doomflags_t): boolean Gives ammo to the player from the given source, returns true if successful
----@field giveWeapon fun(player: player_t, weaponName: string): boolean Gives the specified weapon to the player, returns true if successful
----@field hasWeapon fun(player: player_t, weaponName: string): boolean Checks if the player has the specified weapon
----@field getMaxFor fun(player: player_t, ammoType: string): integer Gets the maximum ammo for the given ammo type
----@field setAmmoFor fun(player: player_t, ammoType: string, amount: integer): boolean Sets the player's ammo for the given ammo type, returns true if successful
----@field getAmmoFor fun(player: player_t, ammoType: string): integer Gets the player's ammo for the given ammo type
----@field getCurAmmoType fun(player: player_t): string Gets the current ammo type for the player's active weapon
----@field getCurAmmo fun(player: player_t): integer Gets the current ammo count for the player's active weapon
----@field damage fun(player: player_t, amount: integer, source: mobj_t, inflictor: mobj_t, damageType: integer, minhealth: integer) Inflicts damage to the player
-
----@class doomcharsupport_t
----@field noWeapons boolean Whether the character will use our weapon system (true or nil if yes)
----@field noHUD boolean Whether the character will use our HUD system (true or nil if yes)
----@field dontSetRings boolean Whether the character will have their player_t.rings set to their current ammo (true or nil if yes)
----@field customDamage boolean Whether the character will not use their own custom damage handling (true or nil if yes)
----@field methods doommethods_t The methods table for this character
 
 ---@class mobj_t
----@field doom doommobj_t
+---@field doom doommobj_t The Doom-specific fields for this object
+---@field parent mobj_t The "parent" of this object
+---@field child mobj_t The "child" of this object
+---@field corpse mobj_t The corpse object of the player
 
 ---@class player_t
----@field doom doomplayer_t
+---@field doom doomplayer_t The Doom-specific fields for this player
+---@field killcam mobj_t|nil The player's killcam mobj, if any
+---@field attacker mobj_t|nil The last attacker of the player, if any. Automatically reset when their damagecount is zero.
 
 ---@class mobjinfo_t
 ---@field doomflags doomflags_t Bitmask of doommobj_t flags (DF_*). Auto-copied to mobj_t.doom.flags on spawn.
 
----@class doomstrings
+---@class doomstrings Non-class, holds the IDs of Doom strings
 ---@field GOTARMOR string Message for picking up the CombatArmor.
 ---@field GOTMEGA string Message for picking up the MegaArmor.
 ---@field GOTHTHBONUS string Message for picking up a health bonus.

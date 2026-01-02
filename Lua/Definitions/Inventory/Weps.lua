@@ -9,6 +9,7 @@ DOOM_Freeslot(
 "SPR_PLSG",
 "SPR_BFGG", "SPR_BFGF",
 "sfx_sawidl", "sfx_sawful", "sfx_sawup", "sfx_sawhit",
+"sfx_punch",
 "sfx_pistol",
 "sfx_dshtgn", "sfx_dbopn", "sfx_dbload", "sfx_dbcls",
 "sfx_rlaunc",
@@ -21,6 +22,7 @@ doom.addWeapon("chainsaw", {
 	priority = 2200,
 	damage = {5, 15},
 	raycaster = true,
+	hitsound = sfx_sawhit,
 	pellets = 1,
 	shotcost = 0,
 	upsound = sfx_sawup,
@@ -56,6 +58,7 @@ doom.addWeapon("brassknuckles", {
 	damage = {5, 15},
 	raycaster = true,
 	wimpyweapon = true,
+	hitsound = sfx_punch,
 	pellets = 1,
 	shotcost = 0,
 	spread = {
@@ -115,7 +118,8 @@ doom.addWeapon("pistol", {
 			{frame = B, tics = 5, action = A_DoomReFire},
 		},
 		flash = {
-			{frame = A|FF_FULLBRIGHT, tics = 6},
+			{frame = A|FF_FULLBRIGHT, tics = 6, action = A_DoomLight1},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	ammotype = "bullets",
@@ -160,8 +164,9 @@ doom.addWeapon("supershotgun", {
 			{frame = A, tics = 3, nextstate = "lower"},
 		},
 		flash = {
-			{frame = I, tics = 4},
-			{frame = J, tics = 3},
+			{frame = I|FF_FULLBRIGHT, tics = 4, action = A_DoomLight1},
+			{frame = J|FF_FULLBRIGHT, tics = 3, action = A_DoomLight2},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	ammotype = "shells",
@@ -203,8 +208,9 @@ doom.addWeapon("shotgun", {
 			{frame = A, tics = 7, action = A_DoomReFire},
 		},
 		flash = {
-			{frame = A|FF_FULLBRIGHT, tics = 4},
-			{frame = B|FF_FULLBRIGHT, tics = 3},
+			{frame = A|FF_FULLBRIGHT, tics = 4, action = A_DoomLight1},
+			{frame = B|FF_FULLBRIGHT, tics = 3, action = A_DoomLight2},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	ammotype = "shells",
@@ -240,8 +246,9 @@ doom.addWeapon("chaingun", {
 			{frame = B, tics = 0, action = A_DoomReFire},
 		},
 		flash = {
-			{frame = A|FF_FULLBRIGHT, tics = 4},
-			{frame = B|FF_FULLBRIGHT, tics = 4},
+			{frame = A|FF_FULLBRIGHT, tics = 4, action = A_DoomLight1},
+			{frame = B|FF_FULLBRIGHT, tics = 4, action = A_DoomLight2},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	raycaster = true,
@@ -280,10 +287,11 @@ doom.addWeapon("rocketlauncher", {
 			{frame = B, tics = 0, action = A_DoomReFire},
 		},
 		flash = {
-			{frame = A, tics = 3},
+			{frame = A, tics = 3, action = A_DoomLight1},
 			{frame = B, tics = 4},
-			{frame = C, tics = 4},
-			{frame = D, tics = 4},
+			{frame = C, tics = 4, action = A_DoomLight2},
+			{frame = D, tics = 4, action = A_DoomLight2},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	raycaster = true,
@@ -353,8 +361,9 @@ doom.addWeapon("bfg9000", {
 			{frame = B, tics = 20, action = A_DoomReFire},
 		},
 		flash = {
-			{frame = A, tics = 11},
-			{frame = B, tics = 6},
+			{frame = A, tics = 11, action = A_DoomLight1},
+			{frame = B, tics = 6, action = A_DoomLight2},
+			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
 	raycaster = true,

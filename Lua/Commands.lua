@@ -52,29 +52,57 @@ COM_AddCommand("idclip", function(player, victim)
 	end
 end)
 
-COM_AddCommand("doom_skill", function(player, victim)
+local gameSkillNames = {
+	[1] = "I'm too young to die.",
+	[2] = "Hey, not too rough.",
+	[3] = "Hurt me plenty.",
+	[4] = "Ultra-violence.",
+	[5] = "Nightmare!",
+}
 
-end)
+COM_AddCommand("doom_skill", function(player, skill)
+	skill = tonumber($)
+	if gamestate == GS_LEVEL and skill != doom.gameskill then
+		local curSkillName = gameSkillNames[skill] or "Unknown skill level '" .. skill .. "'"
+		local message = "Game skill has been set to '" .. curSkillName .. "'. Changes will apply on the next map."
+		message = $:upper()
+		print(message)
+		if doom.isdoom1 then
+			S_StartSound(nil, sfx_tink)
+		else
+			S_StartSound(nil, sfx_radio)
+		end
+	end
+	doom.gameskill = skill
+end, COM_ADMIN)
+
+COM_AddCommand("doom_setfixedcolormap", function(player, level)
+	player.doom.fixedcolormap = level
+end, COM_ADMIN)
 
 COM_AddCommand("doom_endoom", function(player, level)
 	doom.showendoom = true
 end, COM_ADMIN)
 
-COM_AddCommand("doom_doblursphere", function(player, victim)
-	player.doom.powers[pw_invisibility] = 60*TICRATE
-end)
-
-COM_AddCommand("doom_doinvincibility", function(player, victim)
-	player.doom.powers[pw_invulnerability] = 30*TICRATE
-end)
-
-COM_AddCommand("doom_dotextscreen", function(player, text)
-	--DOOM_StartTextScreen("$E1TEXT")
-	DOOM_StartTextScreen({text = "$E1TEXT", bg = "EP1CUTSC"})
-end)
-
 COM_AddCommand("doom_exitlevel", function()
 	DOOM_ExitLevel()
+end)
+
+COM_AddCommand("doom_docast", function(player, victim)
+	F_StartCast()
+end)
+
+COM_AddCommand("resurrect", function(player, victim)
+	player.playerstate = PST_LIVE
+	player.mo.flags = $ | MF_SHOOTABLE
+	player.mo.state = S_PLAY_STND
+	player.mo.doom.health = 100
+	player.mo.health = 1
+	player.deadtimer = 0
+	player.awayviewtics = 0
+	player.awayviewmobj = nil
+	player.doom.switchtimer = 0
+	DOOM_SetState(player, "idle", 1)
 end)
 
 doom.cvars = {}
@@ -108,6 +136,13 @@ CV_RegisterVar({
 
 CV_RegisterVar({
 	name = "doom_disableflashes",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = CV_OnOff
+})
+
+CV_RegisterVar({
+	name = "doom_alwaysrun",
 	defaultvalue = "Off",
 	flags = CV_SAVE,
 	PossibleValue = CV_OnOff

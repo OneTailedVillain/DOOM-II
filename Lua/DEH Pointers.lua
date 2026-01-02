@@ -1,3 +1,125 @@
+local function BulletHitObject(tmthing, thing)
+    if tmthing.hitenemy then return false end
+    if tmthing.target == thing then return false end
+	if not (thing.flags & MF_SHOOTABLE) then return false end
+
+	local damageVal = mobjinfo[tmthing.type].damage
+	local damage = (DOOM_Random() % 8 + 1) * damageVal
+
+	tmthing.hitenemy = true
+	tmthing.momx = 0
+	tmthing.momy = 0
+	tmthing.momz = 0
+    DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
+	P_KillMobj(tmthing)
+	return false
+end
+
+local projectiles = {
+	MT_TROOPSHOT,
+	MT_DOOM_MANCUBUSFIREBALL,
+	MT_DOOM_ARCHNOTRONPLASMA,
+}
+
+for _, mt in ipairs(projectiles) do
+    addHook("MobjMoveCollide", BulletHitObject, mt)
+end
+
+doom.mthingReplacements = {
+	[5] = MT_DOOM_BLUEKEYCARD,
+	[6] = MT_DOOM_YELLOWKEYCARD,
+	[8] = MT_DOOM_BACKPACK,
+	[9] = MT_DOOM_SHOTGUNNER,
+	[10] = MT_DOOM_BLOODYMESS,
+	[13] = MT_DOOM_REDKEYCARD,
+	[14] = MT_DOOM_TELETARGET,
+	[15] = MT_DOOM_CORPSE,
+	[16] = MT_DOOM_CYBERDEMON,
+	[31] = MT_DOOM_SHORTGREENPILLAR,
+}
+
+doom.immunity = doom.immunity or {}
+doom.immunity.excludedSourceTypes = $ or {} -- source types that bypass the checks (like bullet trays/lost souls)
+doom.immunity.pairImmunities = $ or {} -- table-of-tables for specific A->B immunity
+doom.immunity.ignoreSameType = ($ == nil) and true or $ -- default behaviour: ignore same-type attacks
+doom.immunity.noRetaliateAgainst = $ or {} -- types that monsters should not retaliate against (e.g. Arch-Vile)
+doom.immunity.noExplosionDamage = $ or {} -- types that are immune to explosion damage (e.g. the Cyberdemon)
+
+-- Helper functions to populate/manage immunities
+function doom.setIgnoreSameType(enabled)
+    doom.immunity.ignoreSameType = enabled and true or false
+end
+
+function doom.addExcludedSourceType(t)
+    doom.immunity.excludedSourceTypes[t] = true
+end
+
+function doom.addNoExplosionDamageType(t)
+    doom.immunity.noExplosionDamage[t] = true
+end
+
+function doom.removeExcludedSourceType(t)
+    doom.immunity.excludedSourceTypes[t] = nil
+end
+
+-- Add pair immunity: if attackerType attacks targetType, target ignores the attack.
+-- This is symmetric if you call both addPairImmunity(a,b) and addPairImmunity(b,a)
+function doom.addPairImmunity(attackerType, targetType)
+    doom.immunity.pairImmunities[attackerType] = doom.immunity.pairImmunities[attackerType] or {}
+    doom.immunity.pairImmunities[attackerType][targetType] = true
+end
+function doom.removePairImmunity(attackerType, targetType)
+    if doom.immunity.pairImmunities[attackerType] then
+        doom.immunity.pairImmunities[attackerType][targetType] = nil
+    end
+end
+
+-- Control which monster types should not be retaliated against (e.g. Arch-Vile)
+function doom.setNoRetaliateAgainst(monsterType, enabled)
+    if enabled then
+        doom.immunity.noRetaliateAgainst[monsterType] = true
+    else
+        doom.immunity.noRetaliateAgainst[monsterType] = nil
+    end
+end
+
+doom.addExcludedSourceType(MT_DOOM_BULLETRAYCAST)
+doom.addExcludedSourceType(MT_DOOM_LOSTSOUL)
+
+doom.addPairImmunity(MT_DOOM_HELLKNIGHT, MT_DOOM_BARONOFHELL)
+doom.addPairImmunity(MT_DOOM_BARONOFHELL, MT_DOOM_HELLKNIGHT)
+
+doom.setNoRetaliateAgainst(MT_DOOM_ARCHVILE, true)
+
+doom.addNoExplosionDamageType(MT_DOOM_CYBERDEMON)
+-- "Later." - Medic TF2
+-- doom.addNoExplosionDamageType(MT_DOOM_SPIDERMASTERMIND)
+
+sfxinfo[sfx_pistol].caption = "Pistol Shot"
+sfxinfo[sfx_shotgn].caption = "Shotgun Shot"
+sfxinfo[sfx_sgcock].caption = "Shotgun Cock" -- shotgun WHAT?! :fearful:
+sfxinfo[sfx_dshtgn].caption = "Super Shotgun Firing"
+sfxinfo[sfx_dbopn].caption = "Double-barrel Opening"
+sfxinfo[sfx_dbcls].caption = "Double-barrel Closing"
+sfxinfo[sfx_dbload].caption = "Double-barrel Loaded"
+sfxinfo[sfx_plasma].caption = "Plasma Rifle Firing"
+sfxinfo[sfx_bfg].caption = "BFG Shot"
+sfxinfo[sfx_sawup].caption = "Chainsaw Raising"
+sfxinfo[sfx_sawidl].caption = "Chainsaw Idle"
+sfxinfo[sfx_sawful].caption = "Chainsaw Miss"
+sfxinfo[sfx_sawhit].caption = "Chainsaw Hit"
+sfxinfo[sfx_rlaunc].caption = "Rocket Launched"
+sfxinfo[sfx_barexp].caption = "Explosion"
+sfxinfo[sfx_firsht].caption = "Fireball Shot"
+sfxinfo[sfx_firxpl].caption = "Fireball Explosion"
+sfxinfo[sfx_noway].caption = "Unf!"
+sfxinfo[sfx_oof].caption = "Unf!"
+sfxinfo[sfx_slop].caption = "Gibbing noises"
+sfxinfo[sfx_swtchn].caption = "Switch activated"
+sfxinfo[sfx_swtchx].caption = "Switch deactivated"
+sfxinfo[sfx_secret].caption = "A secret is revealed!"
+sfxinfo[sfx_itmbk].caption = "Item respawned"
+
 DOOM_Freeslot("S_LIGHTDONE", "S_SPAWNFIRE1", "S_SPAWNFIRE2", "S_SPAWNFIRE3", "S_SPAWNFIRE4", "S_SPAWNFIRE5", "S_SPAWNFIRE6", "S_SPAWNFIRE7", "S_SPAWNFIRE8")
 
 states[S_SPAWNFIRE5] = {
@@ -19,28 +141,28 @@ doom.bossDeathSpecials = {
 		tag = 666,
 		special = 23,
 	},
-	/*
-	[MT_DOOM_BARONOFHELL] = { -- cyber
+	[MT_DOOM_CYBERDEMON] = { -- cyber
 		map = 30,
 		tag = 666,
 		special = 112,
 	},
+	/*
 	[MT_DOOM_BARONOFHELL] = { -- spiderdemon
 		map = 32,
 		tag = 666,
 		special = 23,
 	},
-	[MT_DOOM_BARONOFHELL] = { -- mancubus
+	*/
+	[MT_DOOM_MANCUBUS] = { -- mancubus
 		map = 7,
 		tag = 666,
 		special = 23,
 	},
-	[MT_DOOM_BARONOFHELL] = { -- arachnotron
+	[MT_DOOM_ARACHNOTRON] = { -- arachnotron
 		map = 7,
 		tag = 667,
-		type = 30,
+		special = 30,
 	},
-	*/
 }
 
 doom.dehackedpointers = {
@@ -207,7 +329,7 @@ doom.dehackedpointers = {
 		MT_DOOM_LOSTSOUL,
 		nil, -- Spiderdemon
 		nil, -- Arachnotron
-		nil, -- Cyberdemon
+		MT_DOOM_CYBERDEMON, -- Cyberdemon
 		nil, -- Pain Elemental
 		MT_DOOM_SSGUARD, -- aka "SS Nazi"
 		MT_DOOM_KEEN, -- aka "Commander Keen"
@@ -223,6 +345,7 @@ doom.dehackedpointers = {
 		MT_DOOM_PLASMASHOT, -- Plasma Bullet
 		nil, -- BFG Shot
 		nil, -- Arachnotron Fireball
+		[81] = MT_DOOM_SHORTTECHNOFLOORLAMP,
 		[98] = MT_DOOM_STALAGTITE,
 		[106] = MT_DOOM_MEAT5,
 		[113] = MT_DOOM_CORPSE,
@@ -261,6 +384,7 @@ doom.dehackedpointers = {
 		[1<<26] = {num = DF_SKINCOLOR1,   type = "DF"},
 		[1<<27] = {num = DF_SKINCOLOR2,   type = "DF"},
 	},
+
 	sounds = {
 		nil,
 		sfx_pistol,
@@ -374,6 +498,7 @@ doom.dehackedpointers = {
 	},
 
 	frames = {
+		[0] = S_NULL,
 		[90] = S_DOOM_BLOOD1,
 		[91] = S_DOOM_BLOOD2,
 		[92] = S_DOOM_BLOOD3,
@@ -391,6 +516,54 @@ doom.dehackedpointers = {
 		[104] = 0, -- S_RBALLX1
 		[105] = 0, -- S_RBALLX2
 		[106] = 0, -- S_RBALLX3
+		[174] = S_DOOM_ZOMBIEMAN_STAND1,
+		[175] = S_DOOM_ZOMBIEMAN_STAND2,
+		[176] = S_DOOM_ZOMBIEMAN_CHASE1,
+		[177] = S_DOOM_ZOMBIEMAN_CHASE2,
+		[178] = S_DOOM_ZOMBIEMAN_CHASE3,
+		[179] = S_DOOM_ZOMBIEMAN_CHASE4,
+		[180] = S_DOOM_ZOMBIEMAN_CHASE5,
+		[181] = S_DOOM_ZOMBIEMAN_CHASE6,
+		[182] = S_DOOM_ZOMBIEMAN_CHASE7,
+		[183] = S_DOOM_ZOMBIEMAN_CHASE8,
+		[184] = S_DOOM_ZOMBIEMAN_MISSILE1,
+		[185] = S_DOOM_ZOMBIEMAN_MISSILE2,
+		[186] = S_DOOM_ZOMBIEMAN_MISSILE3,
+		[187] = S_DOOM_ZOMBIEMAN_PAIN1,
+		[188] = S_DOOM_ZOMBIEMAN_PAIN2,
+		[189] = S_DOOM_ZOMBIEMAN_DIE1,
+		[190] = S_DOOM_ZOMBIEMAN_DIE2,
+		[191] = S_DOOM_ZOMBIEMAN_DIE3,
+		[192] = S_DOOM_ZOMBIEMAN_DIE4,
+		[193] = S_DOOM_ZOMBIEMAN_DIE5,
+		[194] = S_DOOM_ZOMBIEMAN_GIB1,
+		[195] = S_DOOM_ZOMBIEMAN_GIB2,
+		[196] = S_DOOM_ZOMBIEMAN_GIB3,
+		[197] = S_DOOM_ZOMBIEMAN_GIB4,
+		[198] = S_DOOM_ZOMBIEMAN_GIB5,
+		[199] = S_DOOM_ZOMBIEMAN_GIB6,
+		[200] = S_DOOM_ZOMBIEMAN_GIB7,
+		[201] = S_DOOM_ZOMBIEMAN_GIB8,
+		[202] = S_DOOM_ZOMBIEMAN_GIB9,
+		[203] = S_DOOM_ZOMBIEMAN_RAISE1,
+		[204] = S_DOOM_ZOMBIEMAN_RAISE2,
+		[205] = S_DOOM_ZOMBIEMAN_RAISE3,
+		[206] = S_DOOM_ZOMBIEMAN_RAISE4,
+		[207] = S_DOOM_SHOTGUNNER_STAND1,
+		[208] = S_DOOM_SHOTGUNNER_STAND2,
+		[209] = S_DOOM_SHOTGUNNER_CHASE1,
+		[210] = S_DOOM_SHOTGUNNER_CHASE2,
+		[211] = S_DOOM_SHOTGUNNER_CHASE3,
+		[212] = S_DOOM_SHOTGUNNER_CHASE4,
+		[213] = S_DOOM_SHOTGUNNER_CHASE5,
+		[214] = S_DOOM_SHOTGUNNER_CHASE6,
+		[215] = S_DOOM_SHOTGUNNER_CHASE7,
+		[216] = S_DOOM_SHOTGUNNER_CHASE8,
+		[217] = S_DOOM_SHOTGUNNER_MISSILE1,
+		[218] = S_DOOM_SHOTGUNNER_MISSILE2,
+		[219] = S_DOOM_SHOTGUNNER_MISSILE3,
+		[220] = S_DOOM_SHOTGUNNER_PAIN1,
+		[221] = S_DOOM_SHOTGUNNER_PAIN2,
 		[281] = S_DOOM_ARCHVILEFIRE_1,
 		[282] = S_DOOM_ARCHVILEFIRE_2,
 		[283] = S_DOOM_ARCHVILEFIRE_3,
@@ -443,6 +616,10 @@ doom.dehackedpointers = {
 		[943] = S_DOOM_SHORTGREENTORCH_2,
 		[944] = S_DOOM_SHORTGREENTORCH_3,
 		[945] = S_DOOM_SHORTGREENTORCH_4,
+		[963] = S_DOOM_SHORTTECHNOFLOORLAMP_1,
+		[964] = S_DOOM_SHORTTECHNOFLOORLAMP_2,
+		[965] = S_DOOM_SHORTTECHNOFLOORLAMP_3,
+		[966] = S_DOOM_SHORTTECHNOFLOORLAMP_4,
 	},
 
 	frametowepstate = {

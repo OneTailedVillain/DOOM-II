@@ -108,34 +108,37 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		if mobj.z < mobj.subsector.sector.floorheight then
 			P_MoveOrigin(mobj, mobj.x, mobj.y, mobj.subsector.sector.floorheight)
 		end
+
 		local mdoom = mobj.doom
+
+        local space = abs(mobj.floorz - mobj.ceilingz)
+        if space < mdoom.height then
+            mobj.height = max(space, 0)
+        else
+            mobj.height = mdoom.height
+        end
+
 		if mobj.tics ~= -1 then return end
 		if not (mobj.doom.flags & DF_COUNTKILL) then return end
-		if not doom.respawnmonsters then return end
+		if not (doom.respawnmonsters or doom.gameskill == 5) then return end
 		mobj.movecount = ($ or 0) + 1
 		if mobj.movecount < 12*TICRATE then return end
 		if leveltime & 31 then return end
-		if DOOM_Random() > 4 then return end
-		local new = P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, mobj.type)
-        local spawnz = P_FloorzAtPos(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, 0, 0)
-        local new = P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, spawnz, mobj.type)
-        P_SpawnMobj(mobj.spawnpoint.x*FRACUNIT, mobj.spawnpoint.y*FRACUNIT, spawnz, MT_DOOM_TELEFOG)
+		if DOOM_Random() > 4 then print("FAIL: DOOM_Random() > 4") return end
+		local spawnpoint = mobj.doom.spawnpoint
+        local spawnz = P_FloorzAtPos(spawnpoint.x, spawnpoint.y, INT32_MIN, 0)
+        local new = P_SpawnMobj(spawnpoint.x, spawnpoint.y, spawnz, mobj.type)
+        P_SpawnMobj(spawnpoint.x, spawnpoint.y, spawnz, MT_DOOM_TELEFOG)
         mobj.state = S_TELEFOG1
-        mobj.type = MT_DOOM_TELEFOG
-		new.angle = FixedAngle(mobj.spawnpoint.angle*FRACUNIT)
+        --mobj.type = MT_DOOM_TELEFOG
+		mobj.flags = $ & ~(MF_SHOOTABLE|MF_SOLID)
+		mobj.target = nil
+		new.angle = spawnpoint.angle
 	end, MT)
 
 	addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 		local attacker = source or inflictor
 
-		if inflictor != source or (source.type != MT_DOOM_BULLET) or (source.type != MT_DOOM_LOSTSOUL) then
-			if attacker and (
-				attacker.type == target.type
-			) or ( (inflictor.target.type == MT_DOOM_HELLKNIGHT and target.type == MT_DOOM_BARONOFHELL)
-				  or (inflictor.target.type == MT_DOOM_BARONOFHELL and target.type == MT_DOOM_HELLKNIGHT) ) then
-				return true
-			end
-		end
 		if damage == 0 then return end
 		DOOM_DamageMobj(target, inflictor, source, damage, damagetype)
 		return true
@@ -280,6 +283,9 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
             sprite    = frame.sprite != nil and frame.sprite or objData.sprite,
             frame     = (type(frame) == "table" and frame.frame) and tonumber(frame.frame),
             tics      = (type(frame) == "table" and frame.tics) and tonumber(frame.tics),
+			action    = (type(frame) == "table" and frame.action) and tonumber(frame.action),
+			var1      = (type(frame) == "table" and frame.var1) and tonumber(frame.var1),
+			var2      = (type(frame) == "table" and frame.var2) and tonumber(frame.var2),
             nextstate = nextSlot or S_NULL,
         }
     end
@@ -406,7 +412,14 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
         -- Player-specific handling
 		if DOOM_IsExiting() then return end
 		if (player.pflags & PF_GODMODE) then return end
+		if player.doom.powers[pw_invulnerability] then return end
         local funcs = P_GetMethodsForSkin(player)
+		if not funcs.getHealth(player) then return end
+
+		if doom.gameskill == 1 then
+			damage = $ / 2
+		end
+
         funcs.damage(target, damage, source, inflictor, damagetype, minhealth)
         player.doom.damagecount = (player.doom.damagecount or 0) + damage
         if player.doom.damagecount > 100 then player.doom.damagecount = 100 end
@@ -420,6 +433,26 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		--print("Damage would have spawned " .. num_rings .. " rings")
     else
         -- Non-player (monster) handling - DOOM-style
+
+		local attacker = (inflictor and inflictor.target) or source
+
+		if inflictor != source
+			and source.type != MT_DOOM_BULLETRAYCAST
+			and source.type != MT_DOOM_LOSTSOUL
+		then
+			if attacker.type == target.type then
+				return
+			end
+
+			if inflictor and inflictor.target
+			and (
+				(inflictor.target.type == MT_DOOM_HELLKNIGHT and target.type == MT_DOOM_BARONOFHELL)
+			 or (inflictor.target.type == MT_DOOM_BARONOFHELL and target.type == MT_DOOM_HELLKNIGHT)
+			) then
+				return
+			end
+		end
+
         if not (target.flags & MF_SHOOTABLE) or target.doom.health <= 0 then
             return
         end
@@ -453,7 +486,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             -- Handle death
             target.flags = $ & ~(MF_SHOOTABLE|MF_FLOAT)
 			target.flags2 = $ & ~MF2_SKULLFLY
-            if target.type ~= MT_DOOM_LOSTSOUL or target.type ~= MT_DOOM_KEEN then
+            if target.type ~= MT_DOOM_LOSTSOUL then
                 target.flags = $ & ~MF_NOGRAVITY
             end
             target.doom.flags = $ | DF_CORPSE|DF_DROPOFF
@@ -463,9 +496,17 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             if source and source.player then
                 if target.doom.flags & DF_COUNTKILL then
                     source.player.doom.killcount = ($ or 0) + 1
-                end
-            elseif not netgame and (target.doom.flags & DF_COUNTKILL) then
-                players[0].doom.killcount = ($ or 0) + 1
+					local funcs = P_GetMethodsForSkin(source.player)
+					if funcs.onKill then
+						funcs.onKill(source.player, target)
+					end
+				end
+            elseif not multiplayer and (target.doom.flags & DF_COUNTKILL) then
+                consoleplayer.doom.killcount = ($ or 0) + 1
+				local funcs = P_GetMethodsForSkin(consoleplayer)
+				if funcs.onKill then
+					funcs.onKill(consoleplayer, target)
+				end
             end
 
             -- Set death state
@@ -609,32 +650,50 @@ rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 end)
 
 rawset(_G, "DOOM_DoAutoSwitch", function(player, force, ammotype)
-	local candidates = {}
+	if not (player and player.valid and player.doom) then return end
 	local funcs = P_GetMethodsForSkin(player)
 	local weapon = DOOM_GetWeaponDef(player)
 	local curAmmo = funcs.getCurAmmo(player)
+	print("Calling with ammotype " .. tostring(ammotype) .. "!")
+
+	-- 1) If we have enough ammo for current weapon, do nothing
 	if not force then
-		if type(curAmmo) == "boolean" then return end
-		if curAmmo - weapon.shotcost >= 0 then return end
+		if type(curAmmo) ~= "boolean" and curAmmo >= (weapon.shotcost or 1) then
+			return true
+		end
 	end
-	for name, definition in pairs(doom.weapons) do
+
+	-- 2) Out of ammo → choose a new weapon
+	local candidates = {}
+
+	for name, def in pairs(doom.weapons) do
+		-- Player must own weapon
 		if not player.doom.weapons[name] then continue end
-		if ammotype and definition.ammotype != ammotype then continue end
+		-- Filter by ammo type if specified
+		if ammotype and def.ammotype ~= ammotype then continue end
 
-        local funcs = P_GetMethodsForSkin(player)
-		curAmmo = funcs.getAmmoFor(player, definition.ammotype)
-		if curAmmo - definition.shotcost < 0 then continue end
+		local ammoCount = funcs.getAmmoFor(player, def.ammotype)
+		if ammoCount < (def.shotcost or 1) then continue end
 
-		table.insert(candidates, {
-		priority = definition.priority or 1000,
-		name = name
-		})
+		-- Priority comes from definition, fallback = 1000
+		table.insert(candidates, {name = name, priority = def.priority or 1000})
 	end
+
+	-- Sort by priority ascending (lowest = most preferred)
 	table.sort(candidates, function(a, b)
 		return a.priority < b.priority
 	end)
-	if not candidates[1] then return end
-	return DOOM_SwitchWeapon(player, candidates[1].name)
+
+	-- Pick first valid candidate, or default to fists
+	local chosen
+	if candidates[1] then
+		chosen = candidates[1].name
+	else
+		-- Default fallback weapon, always available
+		chosen = doom.fallbackWeapon or "fist"
+	end
+
+	return DOOM_SwitchWeapon(player, chosen)
 end)
 
 local function DOOM_WhatInter()
@@ -735,13 +794,24 @@ rawset(_G, "DOOM_ExitLevel", function()
 			end
 		end
 		for player in players.iterate() do
+			local funcs = P_GetMethodsForSkin(player)
 			player.doom.intstate = 1
 			player.doom.intpause = TICRATE
 			player.doom.wintime = leveltime
+			if funcs.onIntermission then
+				funcs.onIntermission(player)
+			end
 			saveStatus(player)
+			if player == displayplayer then
+				local charDef = P_GetSupportsForSkin(player)
+				if charDef.intermusic then
+					S_ChangeMusic(charDef.intermusic)
+				else
+					S_ChangeMusic(DOOM_WhatInter())
+				end
+			end
 		end
 		doom.intermission = true
-		S_ChangeMusic(DOOM_WhatInter())
 	end
 
 	for mobj in mobjs.iterate() do
@@ -817,6 +887,11 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
 end)
 
 rawset(_G, "DOOM_Random", function()
+    doom.prndindex = (doom.prndindex+1)&0xff;
+    return doom.rndtable[doom.prndindex + 1];
+end)
+
+rawset(_G, "DOOM_IsSecretLevel", function()
     doom.prndindex = (doom.prndindex+1)&0xff;
     return doom.rndtable[doom.prndindex + 1];
 end)

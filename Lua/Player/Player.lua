@@ -264,7 +264,7 @@ local function updateWeaponState(player, isFlashState)
 			local curDef = DOOM_GetWeaponDef(player)
 			local stateTable = curDef and curDef.states and curDef.states[player.doom.flashstate or "flash"]
 			local currentFrameDef = stateTable and stateTable[player.doom.flashframe]
-			
+
 			if currentFrameDef then
 				if currentFrameDef.terminate then
 					-- Terminate flash state early
@@ -274,30 +274,41 @@ local function updateWeaponState(player, isFlashState)
 					-- Use weapon-defined next state/frame for flash
 					player.doom.flashstate = currentFrameDef.nextstate
 					player.doom.flashframe = currentFrameDef.nextframe or 1
-					
+
 					-- Check if flash state transitions to a different weapon
 					if currentFrameDef.nextwep then
 						-- Cross-weapon flash transition (rare but possible)
 						player.doom.curwep = currentFrameDef.nextwep
 						curDef = DOOM_GetWeaponDef(player)
 					end
-					
-					local nextDef = curDef and curDef.states and curDef.states[player.doom.flashstate] and curDef.states[player.doom.flashstate][player.doom.flashframe]
+
+					local nextDef = curDef and curDef.states and
+						curDef.states[player.doom.flashstate] and
+						curDef.states[player.doom.flashstate][player.doom.flashframe]
+
 					if nextDef then
 						player.doom.flashtics = nextDef.tics
+						-- Call action like DOOM_SetState does (if provided)
+						if nextDef.action then
+							nextDef.action(player.mo, nextDef.var1, nextDef.var2, DOOM_GetWeaponDef(player))
+						end
 					else
 						player.doom.flashframe = 0
 						player.doom.flashstate = "flash"
 					end
 				else
 					-- Linear progression (original behavior)
-					player.doom.flashframe = ($ or 1) + 1
+					player.doom.flashframe = (player.doom.flashframe or 1) + 1
 					local nextDef = stateTable and stateTable[player.doom.flashframe]
 					if nextDef == nil then
 						player.doom.flashframe = 0
 						player.doom.flashstate = "flash"
 					else
 						player.doom.flashtics = nextDef.tics
+						-- Call action for the newly-active flash frame (if any)
+						if nextDef.action then
+							nextDef.action(player.mo, nextDef.var1, nextDef.var2, DOOM_GetWeaponDef(player))
+						end
 					end
 				end
 			else
@@ -311,7 +322,7 @@ local function updateWeaponState(player, isFlashState)
 			local curDef = DOOM_GetWeaponDef(player)
 			local stateTable = curDef and curDef.states and curDef.states[player.doom.wepstate]
 			local currentFrameDef = stateTable and stateTable[player.doom.wepframe]
-			
+
 			if currentFrameDef then
 				if currentFrameDef.terminate then
 					-- Terminate state early and go to idle
@@ -320,23 +331,23 @@ local function updateWeaponState(player, isFlashState)
 					-- Use weapon-defined next state/frame
 					local nextState = currentFrameDef.nextstate
 					local nextFrame = currentFrameDef.nextframe or 1
-					
+
 					-- Check if we're transitioning to a different weapon
 					if currentFrameDef.nextwep then
 						-- Cross-weapon transition
 						player.doom.curwep = currentFrameDef.nextwep
 						curDef = DOOM_GetWeaponDef(player)
 					end
-					
+
 					DOOM_SetState(player, nextState, nextFrame)
 				else
 					-- Linear progression (original behavior)
-					player.doom.wepframe = ($ or 1) + 1
+					player.doom.wepframe = (player.doom.wepframe or 1) + 1
 					local nextDef = stateTable and stateTable[player.doom.wepframe]
 					if nextDef == nil then
 						-- Get the next state from weapon definition or use default
 						local nextState = curDef and curDef.nextstate and curDef.nextstate[player.doom.wepstate]
-						
+
 						if nextState then
 							-- Weapon defines a specific next state for this state
 							DOOM_SetState(player, nextState)
@@ -383,6 +394,10 @@ addHook("PlayerThink", function(player)
 
 	if player.doom.powers[pw_ironfeet] then
 		player.doom.powers[pw_ironfeet] = $ - 1
+	end
+
+	if player.doom.powers[pw_infrared] then
+		player.doom.powers[pw_infrared] = $ - 1
 	end
 
 	if player.doom.powers[pw_invulnerability] then
@@ -571,6 +586,88 @@ addHook("PlayerThink", function(player)
 	player.doom.lastwepbutton = currentButtons or 0
 end)
 
+local function DoomSectorDamage(player, amount, burnthrough)
+	-- If they have ironfeet, normally ignore damage
+	if player
+	and player.doom
+	and player.doom.powers
+	and player.doom.powers[pw_ironfeet]
+	then
+		-- burnthrough ONLY applies to 20 dmg floors
+		if not burnthrough then
+			return
+		end
+
+		-- burnthrough chance (NOT pw_ironfeet OR DOOM_Random()<5)
+		if DOOM_Random() >= 5 then
+			return
+		end
+	end
+
+	DOOM_DamageMobj(player.mo, nil, nil, amount)
+end
+
+local function getIntersectingObjects(target, shootables)
+	if not target or not target.valid then
+		return {}
+	end
+
+	local results = {}
+
+	local tx = target.x
+	local ty = target.y
+	local tr = target.radius or 0
+
+	-- target vertical span
+	local ttop = target.z + (target.height or 0)
+	local tbot = target.z
+
+	for mobj in mobjs.iterate() do
+		if not mobj or not mobj.valid then
+			continue
+		end
+
+		if mobj == target then
+			continue
+		end
+
+		-- skip noclip / noclipheight
+		if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then
+			continue
+		end
+
+		if shootables then
+			if not (mobj.flags & MF_SHOOTABLE) then
+				continue
+			end
+		end
+
+		local r = mobj.radius or 0
+
+		-- XY cylinder overlap check
+		-- Instead of sqrt check, use AABB-overlap style like your original
+		if (mobj.x + r) < (tx - tr) then continue end
+		if (mobj.x - r) > (tx + tr) then continue end
+		if (mobj.y + r) < (ty - tr) then continue end
+		if (mobj.y - r) > (ty + tr) then continue end
+
+		-- Z overlap check
+		local mbot = mobj.z
+		local mtop = mobj.z + (mobj.height or 0)
+
+		-- If they don't overlap vertically, skip
+		if (mtop <= tbot) or (mbot >= ttop) then
+			print("FAIL: VERT CHECK!")
+			continue
+		end
+
+		-- Passed all checks, add to list
+		results[#results + 1] = mobj
+	end
+
+	return results
+end
+
 addHook("PlayerThink", function(player)
 	if (player.mo.flags & MF_NOTHINK) then return end
 
@@ -581,33 +678,47 @@ addHook("PlayerThink", function(player)
 	if player.mo.tele then
 		local tel = player.mo.tele
 		P_SetOrigin(player.mo, tel.x, tel.y, tel.z)
+		local victims = getIntersectingObjects(player.mo, true)
+
+		for i = 1, #victims do
+			local target = victims[i]
+			DOOM_DamageMobj(target, player.mo, player.mo, 10000)
+		end
 		player.mo.tele = nil
+		-- fog at destination (20 units in front of exit angle)
+		local destfog = P_SpawnMobj(player.mo.x + 20*cos(player.mo.angle), player.mo.y + 20*sin(player.mo.angle), player.mo.z, MT_DOOM_TELEFOG)
 	end
 
 	if player.mo.z != player.mo.subsector.sector.floorheight then return end
 
 	local funcs = P_GetMethodsForSkin(player)
+	local spec = doom.sectorspecials[player.mo.subsector.sector]
 
-	if doom.sectorspecials[player.mo.subsector.sector] == 16 then
+	if spec == 16 then
 		if not (leveltime & 31) then
-			DOOM_DamageMobj(player.mo, nil, nil, 20)
+			DoomSectorDamage(player, 20, true) -- 20 dmg floor w/burnthrough
 		end
-	elseif doom.sectorspecials[player.mo.subsector.sector] == 5 then
+	elseif spec == 5 then
 		if not (leveltime & 31) then
-			DOOM_DamageMobj(player.mo, nil, nil, 10)
+			DoomSectorDamage(player, 10)
 		end
-	elseif doom.sectorspecials[player.mo.subsector.sector] == 7 then
+	elseif spec == 7 then
 		if not (leveltime & 31) then
-			DOOM_DamageMobj(player.mo, nil, nil, 5)
+			DoomSectorDamage(player, 5)
 		end
-	elseif doom.sectorspecials[player.mo.subsector.sector] == 4 then
+	elseif spec == 4 then
 		if not (leveltime & 31) then
-			DOOM_DamageMobj(player.mo, nil, nil, 20)
+			DoomSectorDamage(player, 20, true) -- 20 dmg floor w/burnthrough
 		end
-	elseif doom.sectorspecials[player.mo.subsector.sector] == 11 then
+	elseif spec == 11 then
+		if not player.doom.powers[pw_invulnerability] then
+			player.pflags = $ & ~PF_GODMODE
+		end
+
 		if not (leveltime & 31) then
 			DOOM_DamageMobj(player.mo, nil, nil, 20, 0, 1)
 		end
+
 		local curHealth = funcs.getHealth(player) or 0
 		if curHealth <= 10 and not DOOM_IsExiting() then
 			DOOM_ExitLevel()
@@ -615,7 +726,7 @@ addHook("PlayerThink", function(player)
 		if curHealth <= 1 then
 			funcs.setHealth(player, 1)
 		end
-	elseif doom.sectorspecials[player.mo.subsector.sector] == 9 then
+	elseif spec == 9 then
 		doom.sectorspecials[player.mo.subsector.sector] = 0
 		doom.secrets = ($ or 0) + 1
 		S_StartSound(nil, sfx_secret)
@@ -633,6 +744,15 @@ addHook("PlayerThink", function(player)
             cnt = bzc
         end
     end
+
+	if player.doom.powers[pw_infrared] then
+		if player.doom.powers[pw_infrared] > 4*32
+			or (player.doom.powers[pw_infrared]&8) then
+			player.doom.fixedcolormap = 1
+		else
+			player.doom.fixedcolormap = 0
+		end
+	end
 
     local paletteType = 0 -- default normal palette
 
@@ -655,6 +775,20 @@ addHook("PlayerThink", function(player)
     if paletteType ~= nil and DOOM_IsPaletteRenderer() then
         P_FlashPal(player, paletteType, 1)
     end
+end)
+
+addHook("PlayerThink", function(player)
+	player.pflags = $ & ~(PF_SPINNING)
+end, MT_PLAYER)
+
+-- TODO: Verify if this is necessary
+addHook("PlayerHeight", function(player)
+	local mobj = player.mo
+	local mdoom = mobj.doom
+	local space = abs(mobj.floorz - mobj.ceilingz)
+	if space < mdoom.height then
+		return max(space, 0)
+	end
 end)
 
 local function deepcopy(orig)
@@ -731,6 +865,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.notrigger = false
 	player.doom.keys = 0
 	player.doom.switchtimer = 128
+	player.doom.wishwep = nil
 
 	DOOM_SetState(player, "raise")
 
@@ -746,33 +881,12 @@ addHook("PlayerSpawn",function(player)
 	saveStatus(player) -- for some fuckass reason I have to save this again RIGHT after the player spawns because srb2 CAN'T comprehend having variables not be a live reference to eachother
 end)
 
-local function ActorCrossedLine(mo, line)
-    local cx, cy = mo.x, mo.y
-    local r = mo.radius + FRACUNIT
-    local sides = {
-        P_PointOnLineSide(cx, cy, line),
-        P_PointOnLineSide(cx + r, cy, line),
-        P_PointOnLineSide(cx - r, cy, line),
-        P_PointOnLineSide(cx, cy + r, line),
-        P_PointOnLineSide(cx, cy - r, line),
-    }
-    local first = sides[1]
-    for i = 2, #sides do
-        if sides[i] ~= first then
-            return true
-        end
-    end
-    return false
-end
-
 
 local typeHandlers = {
 	teleport = function(usedLine, whatIs, plyrmo)
 		if (plyrmo.flags & MF_MISSILE) then return end
 		if plyrmo.reactiontime and plyrmo.reactiontime > 0 then return end
 		if P_PointOnLineSide(plyrmo.x, plyrmo.y, usedLine) == 1 then return end
-		-- Praying to the gods that this works
-		if ActorCrossedLine(plyrmo, usedLine) then return end
 
 		local teletarg
 		for sector in sectors.tagged(usedLine.tag) do
@@ -802,11 +916,6 @@ local typeHandlers = {
 
 		-- fog at source
 		local fog = P_SpawnMobj(oldx, oldy, oldz, MT_DOOM_TELEFOG)
-		S_StartSound(fog, sfx_telept)
-
-		-- fog at destination (20 units in front of exit angle)
-		local destfog = P_SpawnMobj(teletarg.x + 20*cos(teletarg.angle), teletarg.y + 20*sin(teletarg.angle), plyrmo.z, MT_TFOG)
-		S_StartSound(destfog, sfx_telept)
 	end,
 	exit = function(_, whatIs)
 		doom.didSecretExit = whatIs.secret
@@ -815,9 +924,12 @@ local typeHandlers = {
 }
 
 addHook("MobjLineCollide", function(mobj, hit)
+	-- pos + momentum = the direction the player intended to go
+	-- TODO: Add checks for if the movement is available to the player!
+	if P_PointOnLineSide(mobj.x, mobj.y, hit) == P_PointOnLineSide(mobj.x + mobj.momx, mobj.y + mobj.momy, hit) then return end
 	if not (mobj and mobj.player) then return end
+	-- TODO: is this actually required?
 	if mobj.player.doom.notrigger then return end
-    if not mobj.player then return end -- only care about players
     local usedLine = hit
     local lineSpecial = doom.linespecials[usedLine]
     if not lineSpecial then
@@ -828,12 +940,18 @@ addHook("MobjLineCollide", function(mobj, hit)
 		return
 	end
 
+	print("Activating " .. tostring(whatIs.type) .. " thinker with line action " .. tostring(lineSpecial) .. "!")
+
 	if typeHandlers[whatIs.type] then
 		typeHandlers[whatIs.type](usedLine, whatIs, mobj)
 	else
 		for sector in sectors.tagged(usedLine.tag) do
 			DOOM_AddThinker(sector, whatIs)
 		end
+	end
+
+	if not doom.lineActions[lineSpecial].repeatable then
+		doom.linespecials[usedLine] = 0
 	end
 end, MT_PLAYER)
 
