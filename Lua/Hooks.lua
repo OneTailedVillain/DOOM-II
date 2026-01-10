@@ -414,10 +414,19 @@ local function sectorHasUnfittableObject(a, b, c, d)
 				continue
 			end
 
-			if shootables then
-				if not (mobj.flags & MF_SHOOTABLE) then
-					continue
-				end
+			-- ignore corpses
+			if (mobj.doom.flags & DF_CORPSE) then
+				continue
+			end
+
+			-- ignore missiles
+			if (mobj.flags & MF_MISSILE) then
+				continue
+			end
+
+			-- ignore noclip things
+			if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then
+				continue
 			end
 
 			local space = abs(mobj.floorz - mobj.ceilingz)
