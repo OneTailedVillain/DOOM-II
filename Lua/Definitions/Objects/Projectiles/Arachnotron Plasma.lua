@@ -6,14 +6,14 @@ SafeFreeSlot(
     "MT_DOOM_ARCHNOTRONPLASMA"
 )
 
-states[S_DOOM_ARACHPLASMA1] = { sprite=SPR_APLS, frame=A, tics=6, nextstate=S_DOOM_ARACHPLASMA2 }
-states[S_DOOM_ARACHPLASMA2] = { sprite=SPR_APLS, frame=B, tics=6, nextstate=S_DOOM_ARACHPLASMA1 }
+states[S_DOOM_ARACHPLASMA1] = { sprite=SPR_APLS, frame=A|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_ARACHPLASMA2 }
+states[S_DOOM_ARACHPLASMA2] = { sprite=SPR_APLS, frame=B|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_ARACHPLASMA1 }
 
-states[S_DOOM_ARACHPLASMAX1] = { sprite=SPR_APBX, frame=A, tics=4, nextstate=S_DOOM_ARACHPLASMAX2 }
-states[S_DOOM_ARACHPLASMAX2] = { sprite=SPR_APBX, frame=B, tics=4, nextstate=S_DOOM_ARACHPLASMAX3 }
-states[S_DOOM_ARACHPLASMAX3] = { sprite=SPR_APBX, frame=C, tics=4, nextstate=S_DOOM_ARACHPLASMAX4 }
-states[S_DOOM_ARACHPLASMAX4] = { sprite=SPR_APBX, frame=D, tics=4, nextstate=S_DOOM_ARACHPLASMAX5 }
-states[S_DOOM_ARACHPLASMAX5] = { sprite=SPR_APBX, frame=E, tics=4, nextstate=S_NULL }
+states[S_DOOM_ARACHPLASMAX1] = { sprite=SPR_APBX, frame=A|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_ARACHPLASMAX2 }
+states[S_DOOM_ARACHPLASMAX2] = { sprite=SPR_APBX, frame=B|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_ARACHPLASMAX3 }
+states[S_DOOM_ARACHPLASMAX3] = { sprite=SPR_APBX, frame=C|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_ARACHPLASMAX4 }
+states[S_DOOM_ARACHPLASMAX4] = { sprite=SPR_APBX, frame=D|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_ARACHPLASMAX5 }
+states[S_DOOM_ARACHPLASMAX5] = { sprite=SPR_APBX, frame=E|FF_FULLBRIGHT, tics=4, nextstate=S_NULL }
 
 mobjinfo[MT_DOOM_ARCHNOTRONPLASMA] = {
     spawnstate = S_DOOM_ARACHPLASMA1,

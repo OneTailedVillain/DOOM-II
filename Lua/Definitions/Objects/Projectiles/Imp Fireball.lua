@@ -18,9 +18,9 @@ mobjinfo[MT_TROOPSHOT] = {
     flags      = MF_MISSILE|MF_NOGRAVITY,
 }
 
-states[S_DOOM_IMPFIRE1] = { sprite=SPR_BAL1, frame=A, tics=4, nextstate=S_DOOM_IMPFIRE2 }
-states[S_DOOM_IMPFIRE2] = { sprite=SPR_BAL1, frame=B, tics=4, nextstate=S_DOOM_IMPFIRE1 }
+states[S_DOOM_IMPFIRE1] = { sprite=SPR_BAL1, frame=A|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_IMPFIRE2 }
+states[S_DOOM_IMPFIRE2] = { sprite=SPR_BAL1, frame=B|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_IMPFIRE1 }
 
-states[S_DOOM_IMPFIREEXPLODE1] = { sprite=SPR_BAL1, frame=C, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE2 }
-states[S_DOOM_IMPFIREEXPLODE2] = { sprite=SPR_BAL1, frame=D, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE3 }
-states[S_DOOM_IMPFIREEXPLODE3] = { sprite=SPR_BAL1, frame=E, tics=6, nextstate=S_NULL }
+states[S_DOOM_IMPFIREEXPLODE1] = { sprite=SPR_BAL1, frame=C|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE2 }
+states[S_DOOM_IMPFIREEXPLODE2] = { sprite=SPR_BAL1, frame=D|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE3 }
+states[S_DOOM_IMPFIREEXPLODE3] = { sprite=SPR_BAL1, frame=E|FF_FULLBRIGHT, tics=6, nextstate=S_NULL }

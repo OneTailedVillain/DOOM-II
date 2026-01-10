@@ -68,16 +68,16 @@ SafeFreeSlot(
 
 local plasmastates = {
     shot = {
-        {sprite = SPR_PLSS, frame = A, tics = 6},
-        {sprite = SPR_PLSS, frame = B, tics = 6, next = "shot"},
+        {sprite = SPR_PLSS, frame = A|FF_FULLBRIGHT, tics = 6},
+        {sprite = SPR_PLSS, frame = B|FF_FULLBRIGHT, tics = 6, next = "shot"},
     },
 
     explode = {
-        {sprite = SPR_PLSE, frame = A, tics = 4},
-        {sprite = SPR_PLSE, frame = B, tics = 4},
-        {sprite = SPR_PLSE, frame = C, tics = 4},
-        {sprite = SPR_PLSE, frame = D, tics = 4},
-        {sprite = SPR_PLSE, frame = E, tics = 4},
+        {sprite = SPR_PLSE, frame = A|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_PLSE, frame = B|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_PLSE, frame = C|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_PLSE, frame = D|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_PLSE, frame = E|FF_FULLBRIGHT, tics = 4},
     },
 }
 
