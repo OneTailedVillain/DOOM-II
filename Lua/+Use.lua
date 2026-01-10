@@ -190,6 +190,16 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 
 	if whatIs.activationType == "switch" then
 		if whatIs.type == "exit" then
+			if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+				if not doom.cvars.dmExit.value then
+					DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
+					if (gametyperules & GTR_HURTMESSAGES) then
+						print(ray.target.player.name .. " tried to leave.")
+					end
+					return true
+				end
+			end
+
 			doom.didSecretExit = whatIs.secret
 			DOOM_ExitLevel()
 			return true
@@ -243,13 +253,17 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 	end
 
 	if whatIs.activationType != useType then return end
-
-	if not whatIs.repeatable then
-		doom.linespecials[usedLine] = 0
-	end
     
     -- Handle immediate exit special
     if whatIs.type == "exit" then
+		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+			if not doom.cvars.dmExit.value then
+				DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
+				print(ray.target.player.name .. " tried to leave.")
+				return true
+			end
+		end
+
         doom.didSecretExit = whatIs.secret
         DOOM_ExitLevel()
         return true
@@ -350,6 +364,15 @@ for _, mt in ipairs({MT_DOOM_BULLETRAYCAST}) do
     addHook("MobjMoveCollide", BulletHitObject_Simple, mt)
 end
 
+local topslope    =  100*FRACUNIT/160;
+local bottomslope = -100*FRACUNIT/160;
+
+local function Clamp(val, min, max)
+    if val < min then return min end
+    if val > max then return max end
+    return val
+end
+
 rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs, shootmobj, shootflags2, shootfuse, firefunc, hitsound)
     if not (source and source.valid) then return end
 
@@ -407,6 +430,25 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
         -- restore state
         shooter.angle = ogangle
         if player then player.aiming = ogaiming end
+
+		if not player then
+			local dest = source.target
+			local shootz  = source.z + (source.height >> 1) + 8*FRACUNIT
+			local targetz = dest.z + (dest.height >> 1)
+
+			local dist = P_AproxDistance(dest.x - source.x, dest.y - source.y)
+
+			local dz = targetz - shootz
+			local slope = FixedDiv(dz, dist)
+
+			-- Doom autoaim limits
+			local topslope    =  100*FRACUNIT/160
+			local bottomslope = -100*FRACUNIT/160
+
+			slope = Clamp(slope, bottomslope, topslope)
+
+			bullet.momz = FixedMul(slope, mobjinfo[MT_DOOM_BULLETRAYCAST].speed)
+		end
 
         if bullet and bullet.valid then
             local divisor = incs or min

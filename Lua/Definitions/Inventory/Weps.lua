@@ -267,10 +267,6 @@ doom.addWeapon("rocketlauncher", {
 	pellets = 1,
 	firesound = sfx_rlaunc,
 	shootmobj = MT_DOOM_ROCKETPROJ,
-	spread = {
-		horiz = FRACUNIT*59/10,
-		vert = 0,
-	},
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -306,10 +302,7 @@ doom.addWeapon("plasmarifle", {
 	damage = {5, 40},
 	pellets = 1,
 	shootmobj = MT_DOOM_PLASMASHOT,
-	spread = {
-		horiz = FRACUNIT*59/10,
-		vert = 0,
-	},
+	noshareware = true,
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -339,6 +332,7 @@ doom.addWeapon("bfg9000", {
 	damage = {9999, 9999},
 	noinitfirespread = true,
 	noautoswitchfire = true,
+	noshareware = true,
 	pellets = 60,
 	spread = {
 		horiz = FRACUNIT*59/10,

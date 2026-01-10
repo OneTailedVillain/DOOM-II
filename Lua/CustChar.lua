@@ -160,54 +160,71 @@ local baseMethods = {
 
 	giveAmmoFor = function(player, source, dflags)
 		if dflags == nil then dflags = 0 end
-		local tables = {
-			clip           = {"bullets", 10, true},
-			clipbox        = {"bullets", 50},
-			shells         = {"shells", 4, true},
-			shellbox       = {"shells", 20},
-			rocket         = {"rockets", 1, true},
-			rocketbox      = {"rockets", 5},
-			cell           = {"cells", 20, true},
-			cellpack       = {"cells", 100},
-			pistol         = {"bullets", 20, true},
-			chaingun       = {"bullets", 20, true},
-			shotgun        = {"shells", 8, true},
-			supershotgun   = {"shells", 8, true},
-			rocketlauncher = {"rockets", 2, true},
-			plasmarifle    = {"cells", 40, true},
-			bfg9000        = {"cells", 40, true},
-		}
-
 		if not player or not player.doom then return false end
 
-		local entry = tables[source]
+		-- source -> {ammoType, multiplier, isSinglePickup}
+		local sources = {
+			-- Ammo pickups
+			clip      = {"bullets", 1, true},
+			clipbox   = {"bullets", 5},
+			shells    = {"shells", 1, true},
+			shellbox  = {"shells", 5},
+			rocket    = {"rockets", 1, true},
+			rocketbox = {"rockets", 5},
+			cell      = {"cells", 1, true},
+			cellpack  = {"cells", 5},
+
+			-- Weapons
+			pistol         = {"bullets", 2},
+			chaingun       = {"bullets", 2},
+			shotgun        = {"shells", 2},
+			supershotgun   = {"shells", 2},
+			rocketlauncher = {"rockets", 2},
+			plasmarifle    = {"cells", 2},
+			bfg9000        = {"cells", 2},
+		}
+
+		local entry = sources[source]
 		if not entry then return false end
 
+		local aType      = entry[1]
+		local multiplier = entry[2] or 1
+		local isSingle   = entry[3]
+
+		local ammoDef = doom.ammos[aType]
+		if not ammoDef or ammoDef.pickupamount == nil then return false end
+
+		-- Base amount comes from ammo definition
+		local addAmount = ammoDef.pickupamount * multiplier
+
+		-- Skill modifiers (ITYTD / NM)
 		if doom.gameskill == 1 or doom.gameskill == 5 then
-			entry[2] = $ * 2
+			addAmount = $ * 2
 		end
+
+		-- Dropped weapons give half ammo
 		if (dflags & DF_DROPPED) then
-			entry[2] = $ / 2
+			addAmount = $ / 2
 		end
 
-		if gametype == GT_DOOMDM and entry[3] then
-			entry[2] = $ * 5
+		-- Deathmatch single-pickup bonus
+		if gametype == GT_DOOMDM and isSingle then
+			addAmount = $ * 5
 		end
-
-		local aType, addAmount = entry[1], entry[2]
 
 		local curAmmo = player.doom.ammo[aType] or 0
 		local maxAmmo = P_GetMethodsForSkin(player).getMaxFor(player, aType)
+		if maxAmmo == nil then return false end
 
 		player.doom.ammo[aType] = min(curAmmo + addAmount, maxAmmo)
 
+		-- Auto-switch logic
 		local weapon = DOOM_GetWeaponDef(player)
 		if weapon.wimpyweapon then
-			// If non zero ammo, 
-			// don't change up weapons,
-			// player was lower on purpose.
-			if curAmmo then return curAmmo ~= player.doom.ammo[aType] end
-			DOOM_DoAutoSwitch(player, true, entry[1])
+			if curAmmo then
+				return curAmmo ~= player.doom.ammo[aType]
+			end
+			DOOM_DoAutoSwitch(player, true, aType)
 		end
 
 		return curAmmo ~= player.doom.ammo[aType]
@@ -529,271 +546,6 @@ end
 
 -- Build doom.charSupport using baseMethods and per-char overrides
 doom.charSupport = {
-	doomguy = {
-		noWeapons = true,
-		noHUD = true,
-		customDamage = true,
-		methods = {
-			getHealth = function(player)
-				if not player or not player.mo then return nil end
-				local doom = DoomGuy.GetData(player)
-				local curHealth = doom and doom.health
-				if curHealth == nil then return nil end
-				return curHealth / FRACUNIT
-			end,
-
-			setHealth = function(player, health)
-				if not player or not player.mo then return false end
-				local doom = DoomGuy.GetData(player)
-				if player.mo.doom then
-					doom.health = health * FRACUNIT
-					return true
-				end
-				return false
-			end,
-
-			getMaxHealth = function(player)
-				if not player or not player.mo then return nil end
-				local curHealth = player.mo.doom and player.mo.doom.maxhealth
-				if curHealth == nil then return nil end
-				return curHealth
-			end,
-
-			getArmor = function(player)
-				if not player or not player.mo then return nil end
-				local doom = DoomGuy.GetData(player)
-				local curHealth = doom and doom.armor
-				if curHealth == nil then return nil end
-				return curHealth / FRACUNIT
-			end,
-
-			setArmor = function(player, armor, efficiency)
-				if not player or not player.mo then return false end
-
-				local doom = DoomGuy.GetData(player)
-				local prevArmor = (doom.armor / FRACUNIT) or 0
-
-				doom.armor = armor * FRACUNIT
-
-				local function ConvertEfficiency(eff)
-					return FixedMul(eff, 100 * FRACUNIT)
-				end
-
-				-- If efficiency was explicitly passed, use it
-				if efficiency ~= nil then
-					doom.armor_efficiency = ConvertEfficiency(efficiency)
-				-- If armor was raised from 0 → >0 and efficiency wasn't passed, default it
-				elseif prevArmor <= 0 and armor > 0 then
-					doom.armor_efficiency = ConvertEfficiency(FRACUNIT/3)
-				end
-
-				return true
-			end,
-
-			getMaxArmor = function(player)
-				if not player or not player.mo then return nil end
-				if player.mo.doom and player.mo.doom.maxarmor ~= nil then
-					return player.mo.doom.maxarmor
-				end
-				return nil
-			end,
-
-			getCurAmmo = function(player)
-				if not player then return nil end
-				local doom = DoomGuy.GetData(player)
-				local wpn = DoomGuy.GetCurrentPlayerWeapon(player)
-				if (wpn.ammo_type ~= nil) and (doom.ammo[wpn.ammo_type] ~= nil) then
-					return doom.ammo[wpn.ammo_type]
-				end
-				return false
-			end,
-
-			getCurAmmoType = function(player)
-				if not player then return nil end
-				local wpn = DoomGuy.GetCurrentPlayerWeapon(player)
-				return wpn.ammo_type
-			end,
-
-			getAmmoFor = function(player, aType)
-				if not player or not player.doom or not aType then return false end
-				local doom = DoomGuy.GetData(player)
-				local translationTable = {
-					bullets = "clip",
-					shells = "shell",
-					rockets = "rocket",
-					cells = "cell"
-				}
-				local toIndex = translationTable[aType]
-				return doom.ammo and doom.ammo[toIndex] or 0
-			end,
-
-			setAmmoFor = function(player, aType, amount)
-				if not player or not player.doom or not aType then return false end
-				player.doom.ammo[aType] = amount
-				return true
-			end,
-
-			getMaxFor = function(player, aType)
-				if not player or not aType then return nil end
-				if player.doom then
-					if player.doom.backpack and doom.ammos[aType] then
-						return doom.ammos[aType].backpackmax
-					elseif doom.ammos[aType] then
-						return doom.ammos[aType].max
-					end
-				end
-				return nil
-			end,
-
-			giveWeapon = function(player, weapon, doomflags)
-				local weaponMap = {
-					chainsaw = 1,
-					brassknuckles = 1,
-					pistol = 2,
-					shotgun = 3,
-					supershotgun = 3,
-					chaingun = 4,
-					rocketlauncher = 5,
-					plasmarifle = 6,
-					bfg9000 = 7,
-				}
-				local methods = P_GetMethodsForSkin(player)
-				local ammoGiven = false
-				if methods and methods.giveAmmoFor then
-					local ammoResult = methods.giveAmmoFor(player, weapon, doomflags)
-					if ammoResult then
-						ammoGiven = true
-					end
-				end
-				local weaponGiven = DoomGuy.GivePlayerWeapon(player, weaponMap[weapon], weapon, false)
-				return ammoGiven or weaponGiven
-			end,
-
-			hasWeapon = function(player, weapon)
-				if not player or not player.doom or not weapon then return false end
-				local doom = DoomGuy.GetData(player)
-				return doom.weapons[weapon]
-			end,
-
-			doBackpack = function(player)
-				local doom = DoomGuy.GetData(player)
-				for index, ammo in pairs(DoomGuy.Ammos) do
-					if not doom.backpack then
-						doom.ammo_max[index] = ammo.max_amount * 2
-					end
-					DoomGuy.GivePlayerAmmo(player, index, ammo.give_amount)
-				end
-				doom.backpack = true
-			end,
-
-			giveAmmoFor = function(player, source, dflags)
-				if dflags == nil then dflags = 0 end
-				if not player or not player.doom then return false end
-
-				local doom = DoomGuy.GetData(player)
-
-				-- source -> { ammo_type(expected by DoomGuy), base_amount, is_basic_pickup }
-				local tables = {
-					clip           = {"clip",   10, true},
-					clipbox        = {"clip",   50},
-					shells         = {"shell",   4, true},
-					shellbox       = {"shell",  20},
-					rocket         = {"rocket",  1, true},
-					rocketbox      = {"rocket",  5},
-					cell           = {"cell",   20, true},
-					cellpack       = {"cell",  100},
-					pistol         = {"clip",   20, true},
-					chaingun       = {"clip",   20, true},
-					shotgun        = {"shell",   8, true},
-					supershotgun   = {"shell",   8, true},
-					rocketlauncher = {"rocket",  2, true},
-					plasmarifle    = {"cell",   40, true},
-					bfg9000        = {"cell",   40, true},
-				}
-
-				local entry = tables[source]
-				if not entry then return false end
-
-				local ammo_type = entry[1]
-				local amount    = entry[2]
-
-				-- Skill 1 / 5 doubles ammo
-				if doom.gameskill == 1 or doom.gameskill == 5 then
-					amount = $ * 2
-				end
-
-				-- Dropped items give half
-				if (dflags & DF_DROPPED) then
-					amount = $ / 2
-				end
-
-				-- Doom DM gives 5× on basic pickups
-				if gametype == GT_DOOMDM and entry[3] then
-					amount = $ * 5
-				end
-
-				-- Track before amount
-				local before = doom.ammo[ammo_type] or 0
-
-				-- Let Doomguy API handle clamping / validity
-				DoomGuy.GivePlayerAmmo(player, ammo_type, amount)
-
-				local after = doom.ammo[ammo_type] or 0
-
-				-- Weapon autoswitch logic (matches vanilla Doom skin behaviour)
-				local weapon = DOOM_GetWeaponDef(player)
-				if weapon.wimpyweapon then
-					-- If player already had *some* ammo, don't force switch
-					if before then return before ~= after end
-					DOOM_DoAutoSwitch(player, true, ammo_type)
-				end
-
-				return before ~= after
-			end,
-
-			damage = function(player, damage, attacker, proj, damageType, minhealth)
-				player = player.player
-				if not player then return end
-				local currentDamage = damage * FU
-				local doom = DoomGuy.GetData(player)
-				print(userdataType(player))
-				if not doom then print(doom, "WARNING: NO DOOMGUY STRUCT IN PLAYER!") return false end
-				if (doom.armor > 0) then
-					local base_efficiency = max(0, min(doom.armor_efficiency, 100 * FU))
-					local actual_efficiency = FixedDiv(base_efficiency, 100 * FU)
-					local absorbed_damage = FixedMul(currentDamage, actual_efficiency)
-					if (doom.armor <= absorbed_damage) then
-						absorbed_damage = doom.armor
-						doom.armor_efficiency = 0
-					end
-					doom.armor = $ - absorbed_damage
-					currentDamage = $ - absorbed_damage
-				end
-				player.tossdelay = TR
-				P_PlayerFlagBurst(player, true)
-				P_PlayerEmeraldBurst(player, true)
-				doom.health = $ - max(currentDamage, 0)
-				if minhealth and doom.health < (minhealth * FRACUNIT) then
-					doom.health = (minhealth * FRACUNIT)
-				end
-				DoomGuy.DropBlood(player.realmo.x, player.realmo.y, player.realmo.z + FixedMul(player.realmo.height / 2, player.realmo.scale), currentDamage)
-				if (doom.health <= 0) then
-					P_KillMobj(player.mo, inflictor, source, damagetype)
-					return true
-				end
-
-				player.realmo.state = S_PLAY_PAIN
-				player.panim = PA_PAIN
-				doom.attacker = source
-				doom.attacker_time = TR
-				doom.hurted_flash = min(FixedInt(currentDamage), 100)
-				doom.hurted_anim = 12
-				S_StartSound(target, sfx_plpain, nil)
-				return true
-			end,
-		}
-	},
-
 	bj = {
 		noWeapons = true,
 		noHUD = true,
@@ -877,7 +629,6 @@ doom.charSupport = {
 	kombifreeman = {
 		noWeapons = true, -- Disable the DOOM port's weapons
 		noHUD = true, -- Get rid of the DOOM port's HUD
-		dontSetRings = true, -- Don't set player.rings
 		customDamage = true, -- If this skin also uses MobjDamage
 		-- TODO: Re-make this! Slowpoke.
 		methods = {

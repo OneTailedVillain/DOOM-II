@@ -12,50 +12,6 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-local name = "Corpse"
-
-
-local object = {
-	radius = 16,
-	height = 20,
-	doomednum = 15,
-	sprite = SPR_PLAY,
-}
-
-local states = {
-	{frame = N, tics = INT32_MAX},
-}
-
-DefineDoomDeco(name, object, states, onPickup)
-
-local name = "BloodyMess"
-
-
-local object = {
-	radius = 12,
-	height = 20,
-	doomednum = 10,
-	sprite = SPR_PLAY,
-}
-
-local states = {
-	{frame = W, tics = INT32_MAX},
-}
-
-DefineDoomDeco(name, object, states, onPickup)
-
-local name = "BloodyMessExtra"
-
--- for some reason DOOM does this. so freeslot it again for DEHACKED
-local object = {
-	radius = 12,
-	height = 20,
-	doomednum = 12,
-	sprite = SPR_PLAY,
-}
-
-DefineDoomDeco(name, object, states, onPickup)
-
 SafeFreeSlot("SPR_COLU")
 local name = "FloorLamp"
 
@@ -665,6 +621,127 @@ local object = {
 	doomednum = 24,
 	sprite = SPR_POL5,
 	flags = MF_NOBLOCKMAP|MF_NOGRAVITY|MF_NOCLIPTHING
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL1")
+local name = "DeadStick"
+
+local object = {
+	radius = 16,
+	height = 64,
+	doomednum = 25,
+	sprite = SPR_POL1,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL6")
+local name = "LiveStick"
+
+local object = {
+	radius = 16,
+	height = 64,
+	doomednum = 26,
+	sprite = SPR_POL6,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = 6},
+    {frame = B, tics = 8},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL4")
+local name = "HeadOnAStick"
+
+local object = {
+	radius = 16,
+	height = 56,
+	doomednum = 27,
+	sprite = SPR_POL4,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL2")
+local name = "HeadsOnAStick"
+
+local object = {
+	radius = 16,
+	height = 64,
+	doomednum = 28,
+	sprite = SPR_POL2,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_POL3")
+local name = "HeadCandles"
+
+local object = {
+	radius = 16,
+	height = 42,
+	doomednum = 29,
+	sprite = SPR_POL3,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = 6},
+    {frame = B|FF_FULLBRIGHT, tics = 6},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_COL1")
+local name = "TallGreenColumn"
+
+local object = {
+	radius = 16,
+	height = 52,
+	doomednum = 30,
+	sprite = SPR_COL1,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_COL3")
+local name = "TallRedColumn"
+
+local object = {
+	radius = 16,
+	height = 52,
+	doomednum = 32,
+	sprite = SPR_COL3,
+	flags = MF_SOLID
 }
 
 local states = {

@@ -28,7 +28,7 @@ local object = {
 	painsound = sfx_popain,
 	deathsound = sfx_bgdth1,
 	sprite = SPR_SKUL,
-	doomflags = DF_COUNTKILL
+	doomflags = 0
 }
 
 local states = {
@@ -38,7 +38,7 @@ local states = {
 	},
 	chase = {
 		{action = A_DoomChase, frame = A, tics = 6},
-		{action = A_DoomChase, frame = B, tics = 6, next = "chase,"},
+		{action = A_DoomChase, frame = B, tics = 6, next = "chase"},
 	},
 	missile = {
 		{action = A_DoomFaceTarget, frame = E, tics = 8},
@@ -54,6 +54,7 @@ local states = {
 		{action = A_DoomScream, frame = J, tics = 8},
 		{action = nil, frame = K, tics = 6},
 		{action = A_DoomFall, frame = L, tics = 6},
+		{action = nil, frame = M, tics = -1},
 		{action = nil, frame = M, tics = -1},
 	},
 }

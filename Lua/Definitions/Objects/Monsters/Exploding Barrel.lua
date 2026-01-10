@@ -24,6 +24,7 @@ local object = {
 	painchance = 200,
 	doomednum = 2035,
 	deathsound = sfx_barexp,
+	flags = MF_SHOOTABLE|MF_SOLID,
 }
 
 local states = {

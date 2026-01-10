@@ -85,12 +85,12 @@ end
 -- Power-up cheat handler
 local function handlePowerupCheat(buffer, player)
     local powerups = {
-        i = "give invulnerability",
-        r = "give radsuit",
-        s = "give berserk",
-        v = "give invisibility",
-        a = "give automap",
-        l = "give lightamp"
+        i = "idbehold invulnerability",
+        r = "idbehold radsuit",
+        s = "idbehold berserk",
+        v = "idbehold invisibility",
+        a = "idbehold automap",
+        l = "idbehold lightamp"
     }
     
     local cmd = powerups[buffer:lower()]
@@ -107,18 +107,27 @@ local cheats = {
     fixedCheat("idfa", "idfa"),
     fixedCheat("idclip", "idclip"),
     
-    -- Pattern-based cheats
-	cheat("idclev", handleWarpCheat,
+	cheat("idclev",
+		function(buf, player)
+			COM_BufInsertText(player, "idclev " .. buf)
+			return true
+		end,
 		function(buf)
 			local n = tonumber(buf)
 			return n and #buf <= 2
-		end, 8, 8),
+		end,
+		8, 8),
 
-	cheat("idmus", handleMusicCheat,
+	cheat("idmus",
+		function(buf, player)
+			COM_BufInsertText(player, "idmus " .. buf)
+			return true
+		end,
 		function(buf)
 			local n = tonumber(buf)
 			return n and #buf <= 2
-		end, 7, 7),
+		end,
+		7, 7),
     
     cheat("idbehold", handlePowerupCheat,
         function(buf)

@@ -33,14 +33,35 @@ local states = {
 		{frame = B, tics = 6},
 }
 
+local function GiveHealthCompat(funcs, player, heal, clampMax)
+	-- Prefer skin-provided giveHealth if available
+	if funcs.giveHealth then
+		-- expectedMaxHealth is used for clamping inside giveHealth
+		return funcs.giveHealth(player, heal, clampMax)
+	end
+
+	-- Fallback: manual get/set
+	local health = funcs.getHealth(player)
+	local newhealth = min(health + heal, clampMax)
+
+	if newhealth <= health then
+		return false
+	end
+
+	funcs.setHealth(player, newhealth)
+	return true
+end
+
 local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
+	if not mobj.player then return true end
+
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local health = funcs.getHealth(player)
+
 	local maxhealth = funcs.getMaxHealth(player)
-	
-	funcs.setHealth(player, min(health + 1, maxhealth * 2))
+	local clampMax = maxhealth * 2
+
+	GiveHealthCompat(funcs, player, 1, clampMax)
 	DOOM_DoMessage(player, "$GOTHTHBONUS")
 end
 
@@ -63,18 +84,24 @@ local states = {
 }
 
 local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
+	if not mobj.player then return true end
+
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
+
 	local health = funcs.getHealth(player)
 	local maxhealth = funcs.getMaxHealth(player)
+
 	if health >= maxhealth then return true end
-	
-	funcs.setHealth(player, min(health + 25, maxhealth))
-	if health < 25 then
-		DOOM_DoMessage(player, "$GOTMEDINEED")
-	else
-		DOOM_DoMessage(player, "$GOTMEDIKIT")
+
+	local gained = GiveHealthCompat(funcs, player, 25, maxhealth)
+
+	if gained then
+		if health < 25 then
+			DOOM_DoMessage(player, "$GOTMEDINEED")
+		else
+			DOOM_DoMessage(player, "$GOTMEDIKIT")
+		end
 	end
 end
 
@@ -97,15 +124,19 @@ local states = {
 }
 
 local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
+	if not mobj.player then return true end
+
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
+
 	local health = funcs.getHealth(player)
 	local maxhealth = funcs.getMaxHealth(player)
+
 	if health >= maxhealth then return true end
-	
-	funcs.setHealth(player, min(health + 10, maxhealth))
-	DOOM_DoMessage(player, "$GOTSTIM")
+
+	if GiveHealthCompat(funcs, player, 10, maxhealth) then
+		DOOM_DoMessage(player, "$GOTSTIM")
+	end
 end
 
 DefineDoomItem(name, object, states, onPickup)

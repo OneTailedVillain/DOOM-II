@@ -43,8 +43,6 @@ local function FreeDoomStates(name, stateDefs)
 				nextslot = slots[nextName]
 			end
 
-			print(thisName .. " NEXT SLOT: " .. tostring(nextslot))
-
 			f.nextstate = nextslot or S_NULL
 
 			states[ slots[thisName] ] = {
@@ -60,9 +58,12 @@ local function FreeDoomStates(name, stateDefs)
     end
 end
 
-SafeFreeSlot("SPR2_DYIN", "SPR2_GIBN", "SPR2_GIBD")
+SafeFreeSlot("SPR2_DYIN", "SPR2_FLSH", "SPR2_GIBN", "SPR2_GIBD")
 
 local playerstates = {
+	stand = {
+		{sprite = SPR_PLAY, frame = SPR2_STND, tics = -1},
+	},
 	move = {
 		{sprite = SPR_PLAY, frame = SPR2_WALK, tics = 4},
 		{sprite = SPR_PLAY, frame = SPR2_WALK, tics = 4},
@@ -70,12 +71,14 @@ local playerstates = {
 		{sprite = SPR_PLAY, frame = SPR2_WALK, tics = 4, next = "move"},
 	},
 	attack = {
-		{sprite = SPR_PLAY, frame = SPR2_FIRE, tics = 12},
-		{sprite = SPR_PLAY, frame = SPR2_FIRE|FF_FULLBRIGHT, tics = 6, next = S_PLAY_STND},
+		{sprite = SPR_PLAY, frame = SPR2_FIRE, tics = 12, next = "stand"},
+	},
+	flash = {
+		{sprite = SPR_PLAY, frame = SPR2_FLSH|FF_FULLBRIGHT, tics = 6, next = "attack"},
 	},
 	pain = {
 		{sprite = SPR_PLAY, frame = SPR2_PAIN, tics = 6},
-		{sprite = SPR_PLAY, frame = SPR2_PAIN, tics = 6, action = A_DoomPain, next = S_PLAY_STND},
+		{sprite = SPR_PLAY, frame = SPR2_PAIN, tics = 6, action = A_DoomPain, next = "stand"},
 	},
 	die = {
 		{sprite = SPR_PLAY, frame = SPR2_DYIN, tics = 10},
@@ -95,7 +98,7 @@ local playerstates = {
 		{sprite = SPR_PLAY, frame = SPR2_GIBN, tics = 5},
 		{sprite = SPR_PLAY, frame = SPR2_GIBN, tics = 5},
 		{sprite = SPR_PLAY, frame = SPR2_GIBN, tics = 5},
-		{sprite = SPR_PLAY, frame = SPR2_GIBN, tics = -1},
+		{sprite = SPR_PLAY, frame = SPR2_GIBD, tics = -1},
 	},
 }
 

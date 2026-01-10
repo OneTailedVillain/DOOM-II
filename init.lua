@@ -38,6 +38,7 @@ dofile("Definitions/Objects/Keycards/Red Skull Key.lua")
 dofile("Definitions/Objects/Monsters/Commander Keen.lua")
 dofile("Definitions/Objects/Monsters/Cacodemon.lua")
 dofile("Definitions/Objects/Monsters/Cyberdemon.lua")
+dofile("Definitions/Objects/Monsters/Spider Mastermind.lua")
 dofile("Definitions/Objects/Monsters/Imp.lua")
 dofile("Definitions/Objects/Monsters/Zombieman.lua")
 dofile("Definitions/Objects/Monsters/Shotgunner.lua")
@@ -57,8 +58,10 @@ dofile("Definitions/Objects/Projectiles/Imp Fireball.lua")
 dofile("Definitions/Objects/Projectiles/Mancubus Fireball.lua")
 dofile("Definitions/Objects/Projectiles/Plasma.lua")
 dofile("Definitions/Objects/Projectiles/Arachnotron Plasma.lua")
+dofile("Definitions/Objects/Projectiles/BOH Fireball.lua")
 dofile("Definitions/Objects/Effects/Telefog.lua")
 dofile("Definitions/States/Player.lua")
+dofile("Definitions/Objects/MiscDeco.lua")
 dofile("HUD/HUDLib.lua")
 dofile("HUD/HUD.lua")
 dofile("HUD/Inter.lua")
@@ -96,17 +99,17 @@ dofile("DEH Pointers.lua")
 ---| "rocketbox"      -- Source: Rocket Box (ammo box).
 ---| "cell"           -- Source: Cell Pack (pickup).
 ---| "cellpack"       -- Source: Cell Pack (large pack).
----| "pistol"         -- Source: Pistol weapon (extensible; not used by engine).
----| "chaingun"       -- Source: Chaingun weapon (extensible; not used by engine).
----| "shotgun"        -- Source: Shotgun weapon (extensible; not used by engine).
----| "supershotgun"   -- Source: Super Shotgun weapon (extensible; not used by engine).
----| "rocketlauncher" -- Source: Rocket Launcher weapon (extensible; not used by engine).
----| "plasmarifle"    -- Source: Plasma Rifle weapon (extensible; not used by engine).
----| "bfg9000"        -- Source: BFG 9000 weapon (extensible; not used by engine).
+---| "pistol"         -- Source: Pistol weapon (extensible; not explicitly called by pick-ups).
+---| "chaingun"       -- Source: Chaingun weapon (extensible; not explicitly called by pick-ups).
+---| "shotgun"        -- Source: Shotgun weapon (extensible; not explicitly called by pick-ups).
+---| "supershotgun"   -- Source: Super Shotgun weapon (extensible; not explicitly called by pick-ups).
+---| "rocketlauncher" -- Source: Rocket Launcher weapon (extensible; not explicitly called by pick-ups).
+---| "plasmarifle"    -- Source: Plasma Rifle weapon (extensible; not explicitly called by pick-ups).
+---| "bfg9000"        -- Source: BFG 9000 weapon (extensible; not explicitly called by pick-ups).
 
 -- Engine default behavior for ammo gifts:
 --   When the engine gives ammo automatically, it uses doom.ammoTypeGifts[ammoType].
---   *Single pickups* use doom.ammoTypeGifts[...] and *box/pack* variants normally multiply by 5.
+--   *Single pickups* use doom.ammos[...].pickupamount and *box/pack* variants normally multiply by 5.
 --   Weapon-based defaults often multiply that value (e.g. chaingun: *2).  
 --   These defaults do NOT account for dropped weapons, Deathmatch, or skill modifiers;
 --   giveAmmoFor should be used to implement any such special logic or to override defaults.
@@ -118,12 +121,32 @@ dofile("DEH Pointers.lua")
 	doomflags & DF_DROPPED divides the ammo amount by 2.
 */
 
+---@alias validcheat
+---| "idkfa"  Give all keys, weapons, ammo, and armor
+---| "idfa"   Give all weapons, ammo, and armor
+---| "idclip" Toggle noclip
+---| "idclev" Change level/map
+---| "idmus"  Play level music
 
 ---@alias poweruptype  Non-class. Denotes what power-up types doPowerUp expects.
 ---| "berserk"         Berserk pack.    Usually does NOT have a duration.
 ---| "invisibility"    Invisibility.    Lasts 60 seconds.
 ---| "invulnerability" Invulnerability. Lasts 30 seconds.
 ---| "ironfeet"        Radiation suit.  Lasts 60 seconds.
+
+---@class expectedValues Values expected for the saveState method.
+---@field health integer
+---@field armor integer
+---@field currentWeapon string
+---@field weapons table<string, boolean>
+---@field oldweapons table<string, boolean>
+---@field curwep string
+---@field curwepslot integer
+---@field curwepcat integer
+---@field ammo table<string, integer>
+---@field position vector3_t
+---@field momentum vector3_t
+---@field map integer
 
 ---@class doommethods_t List of Doom-specific methods for handling between different weapon/health/ammo systems.
 ---@field getHealth fun(player: player_t): integer|nil Returns the player's current health as an integer or nil if unavailable
@@ -143,12 +166,28 @@ dofile("DEH Pointers.lua")
 ---@field damage fun(player: mobj_t, damage: integer, attacker: player_t|mobj_t|nil, proj: mobj_t|nil, damageType: integer|nil, minhealth: integer|nil): boolean|nil Applies damage to the player using doom-style armor efficiency. Returns true if damage was applied. (Due to a bug, the player argument is not actually of type player_t)
 ---@field doBackpack fun(player: player_t): nil Gives the player a backpack and maximum ammo
 ---@field doPowerUp fun(player: player_t, powerType: poweruptype): boolean Gives a power-up to the player. Returns true if successful.
+---@field shouldDealDamage fun(player: player_t, inflictor: mobj_t|nil, source: mobj_t|nil, damage: integer, damageType: integer|nil, minhealth: integer|nil): boolean|nil Optional. If present, called before applying damage to allow the skin/system to veto damage handling. Return truthy (true or any non-zero number) to allow damage to proceed; return falsy (false, nil or zero) to prevent damage. Parameters match those passed to the "damage" method. Due to intended behavior, the "player" argument is actually of player_t.
+---@field hasPowerup fun(player: player_t, powerType: poweruptype): boolean Returns true if the player currently has the specified power-up active, or false otherwise.
+---@field onIntermission fun(player: player_t): nil? Optional. Hook called when the intermission screen starts.
+---@field onNowEntering fun(player: player_t): nil? Optional. Hook called when the Intermission Screen enters the "Now Entering" state.
+---@field onSoulsphere fun(player: player_t): nil? Optional. Hook called when the player picks up a Soulsphere.
+---@field onKill fun(player: player_t, victim: mobj_t): nil? Optional. Hook called when the player is credited with killing an enemy.
+---@field shouldDoCheat fun(player: player_t, validcheat: string, arg: string|number|nil): boolean|nil Optional. Called before a cheat command runs (e.g. `"idkfa"`, `"idclev"`, `"idmus"`, etc.). If this function returns a truthy value the cheat will be cancelled/aborted; return falsy (nil/false) to allow the cheat to proceed. `arg` is present for cheats that accept an argument (like `idclev` / `idmus`).
+---@field onCheat fun(player: player_t, validcheat: string, arg: string|number|nil): nil Optional. Hook called after a cheat command has executed. Useful for logging or additional side-effects. The return value is ignored.
+---@field giveHealth fun(player: player_t, healAmount: integer, expectedMaxHealth: integer|nil): boolean|nil Gives health to the player. expectedMaxHealth is the caller-provided expected maximum used for clamping (often derived from getMaxHealth). Returns true if health was increased, false or nil if no change or unavailable.
+---@field giveArmor fun(player: player_t, armorAmount: integer, efficiency: number|fixed_t|nil, expectedMaxArmor: integer|nil): boolean|nil Gives armor to the player using the given efficiency. expectedMaxArmor is the caller-provided expected maximum used for clamping (often derived from getMaxArmor). Returns true if armor was increased, false or nil if no change or unavailable.
+---@field saveState fun(player: player_t, expectedValues: expectedValues): nil Attempt to save the player's current state. expectedValues mostly takes from existing "getSomething" methods and may not be correct for weapons and ammo.
+
+---@class validsoundentries Non-class
+---@field noway integer Sound played when you try to interact with a non-interactible line
+---@field oof integer Sound played when you land from a big fall
 
 ---@class doomcharsupport_t Character support definition
 ---@field noWeapons boolean If true, disable Doom weapon system. Nil = default behavior (uses Doom system)
 ---@field noHUD boolean If true, disable Doom HUD. Nil = default behavior (uses Doom HUD)
----@field customDamage boolean (TODO: Unhackify this???) Set this to true if the character uses P_DamageMobj in their damage method. This WILL cause a stack overflow otherwise!!
----@field dontSetRings boolean (TODO: Remove this!) If true, prevents ring count from being set based on current ammo. Nil = default behavior
+---@field customDamage boolean @deprecated Unnecessary to set since v0.99-3. Used to be a hack to circumnavigate a stack overflow when a damage method used P_DamageMobj.
+---@field soundTable table Table of sound effects that can be replaced. Empty entries will use their default sound effects.
+---@field intermusic string The music lump played when you go the intermission while playing as this character. Overrides both DOOM II and DOOM 1 intermission songs.
 ---@field methods doommethods_t The methods table for this character
 
 ---@class dehackedpointers Semi-class, holds arrays of Dehacked-related pointers
@@ -162,6 +201,13 @@ dofile("DEH Pointers.lua")
 ---@class endoom_t The current ENDOOM screen data, populated by the conversion script.
 ---@field colors table A 2D table of color values for the current ENDOOM screen. Entries use RLE of format {attribute, count}.
 ---@field text table A 2D table of strings used in the current ENDOOM screen.
+
+---@class doomimmunityconfig
+---@field excludedSourceTypes table<number, boolean> source types that bypass infighting checks
+---@field pairImmunities table<number, table<number, boolean>> specific A->B immunity pairs
+---@field ignoreSameType boolean whether to ignore same-type attacks by default
+---@field noRetaliateAgainst table<number, boolean> monster types that should not be retaliated against
+---@field noExplosionDamage table<number, boolean> monster types that are immune to explosion damage
 
 ---@class doomglobal_t Global Doom-specific variables and functions
 ---@field isdoom1 boolean Denotes if the IWAD loaded was based on the Doom 1 engine
@@ -240,6 +286,15 @@ dofile("DEH Pointers.lua")
 ---@field oolors table A list of custom skincolors used for DOOM team colors and more. Yes, the name was misspelled.
 ---@field predefinedWeapons table<number, weapondef_t> Predefined weapon definitions for enemies
 ---@field didSecretExit boolean If the player exited via a secret exit
+---@field immunity doomimmunityconfig immunity configuration for infighting and damage handling
+---@field mthingReplacements table<number, number> mapping of Doom mobj types to Lua mobj types
+---@field setIgnoreSameType fun(enabled: boolean) set whether to ignore same-type attacks
+---@field addExcludedSourceType fun(t: number) add a source type that bypasses infighting checks
+---@field addNoExplosionDamageType fun(t: number) add a type that is immune to explosion damage
+---@field removeExcludedSourceType fun(t: number) remove a source type from bypassing infighting checks
+---@field addPairImmunity fun(attackerType: number, targetType: number) add a specific A->B immunity pair
+---@field removePairImmunity fun(attackerType: number, targetType: number) remove a specific A->B immunity pair
+---@field setNoRetaliateAgainst fun(monsterType: number, enabled: boolean) set whether a monster type should not be retaliated against
 
 ---@class doomspread_t
 ---@field horiz fixed_t

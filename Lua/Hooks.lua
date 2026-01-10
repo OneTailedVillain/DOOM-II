@@ -25,35 +25,35 @@ local function stop_plats_by_tag(tag)
 	for sec, v in pairs(doom.thinkers) do
 		if type(v) == "table" and (v.action == "oscillate" or v.action == "oscillate_stop" or v.isPlatLike) then
 			if v.tag and v.tag == tag then
-				doom.thinkers[sec] = nil
+				DOOM_StopThinker(sec)
 			end
 		end
 	end
 end
 
 local function getNextSector(line, sector)
-    -- check front/back sector relation
-    if line.frontsector == sector then
-        return line.backsector
-    elseif line.backsector == sector then
-        return line.frontsector
-    end
-    return nil
+	-- check front/back sector relation
+	if line.frontsector == sector then
+		return line.backsector
+	elseif line.backsector == sector then
+		return line.frontsector
+	end
+	return nil
 end
 
 local function P_FindMinSurroundingLight(sector, max)
-    local min = max
+	local min = max
 
-    for i = 0, #sector.lines-1 do
-        local line = sector.lines[i]
-        local check = getNextSector(line, sector)
+	for i = 0, #sector.lines-1 do
+		local line = sector.lines[i]
+		local check = getNextSector(line, sector)
 
-        if check and check.lightlevel < min then
-            min = check.lightlevel
-        end
-    end
+		if check and check.lightlevel < min then
+			min = check.lightlevel
+		end
+	end
 
-    return min
+	return min
 end
 
 local GLOWSPEED = 8
@@ -62,56 +62,56 @@ local FASTDARK = 15
 local SLOWDARK = 35
 
 local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
-    local flash = {
-        type = "strobe",
-        sector = sector,
-        darktime = fastOrSlow,
-        brighttime = STROBEBRIGHT,
-        maxlight = sector.lightlevel,
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        count = 0
-    }
-    
-    -- Adjust minlight if necessary
-    if (flash.minlight == flash.maxlight) then
-        flash.minlight = 0
-    end
-    
-    -- Set initial count based on sync
-    if (not inSync) then
-        flash.count = (DOOM_Random() & 7) + 1
-    else
-        flash.count = 1
-    end
-    
-    -- Add to thinker system
-    doom.subthinkers[sector] = flash
+	local flash = {
+		type = "strobe",
+		sector = sector,
+		darktime = fastOrSlow,
+		brighttime = STROBEBRIGHT,
+		maxlight = sector.lightlevel,
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		count = 0
+	}
+	
+	-- Adjust minlight if necessary
+	if (flash.minlight == flash.maxlight) then
+		flash.minlight = 0
+	end
+	
+	-- Set initial count based on sync
+	if (not inSync) then
+		flash.count = (DOOM_Random() & 7) + 1
+	else
+		flash.count = 1
+	end
+	
+	-- Add to thinker system
+	doom.subthinkers[sector] = flash
 end
 
 local function P_SpawnGlowingLight(sector)
-    local glow = {
-        type = "glow",
-        sector = sector,
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        maxlight = sector.lightlevel,
-        direction = -1
-    }
+	local glow = {
+		type = "glow",
+		sector = sector,
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		maxlight = sector.lightlevel,
+		direction = -1
+	}
 
-    doom.subthinkers[sector] = glow
+	doom.subthinkers[sector] = glow
 end
 
 local function P_SpawnLightFlash(sector)
-    local flash = {
-        type = "flash",
-        sector = sector,
-        maxlight = sector.lightlevel,
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        maxtime = 64,
-        mintime = 7,
-        count   = (DOOM_Random() & 64) + 1,
-    }
+	local flash = {
+		type = "flash",
+		sector = sector,
+		maxlight = sector.lightlevel,
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		maxtime = 64,
+		mintime = 7,
+		count   = (DOOM_Random() & 64) + 1,
+	}
 
-    doom.subthinkers[sector] = flash
+	doom.subthinkers[sector] = flash
 end
 
 local function SkillMaskFor(skill)
@@ -138,7 +138,7 @@ addHook("MapLoad", function(mapid)
 		if not mthing then
 			continue
 		end
-		if (mthing.z & 1) then
+		if (mthing.z & 1) and not multiplayer then
 			P_RemoveMobj(mobj)
 			continue
 		end
@@ -159,7 +159,8 @@ addHook("MapLoad", function(mapid)
 	-- Call everything off! We won't need these in whatever map we're jumping to
 	doom.linespecials = {}
 	doom.linebackups = {}
-	doom.thinkers = {}
+	doom.thinkerlist = {}
+	doom.thinkermap = {}
 	doom.torespawn = {}
 	doom.sectorspecials = {}
 	doom.sectorbackups = {}
@@ -243,10 +244,15 @@ addHook("MapLoad", function(mapid)
 		player.doom.killcount = 0
 		player.doom.intstate = -1
 		player.doom.notrigger = 0
+		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+			player.doom.keys = UINT32_MAX
+		else
+			player.doom.keys = 0
+		end
 	end
 
 	for mthing in mapthings.iterate do
-		if (mthing.z & 1) then
+		if (mthing.z & 1) and not multiplayer then
 			continue
 		end
 
@@ -256,6 +262,13 @@ addHook("MapLoad", function(mapid)
 		end
 
 		if doom.mthingReplacements[mthing.type] then
+			if not (gametyperules & GTR_SPAWNENEMIES) then
+				local objinfo = mobjinfo[doom.mthingReplacements[mthing.type]]
+				if (objinfo.flags & MF_ENEMY) then
+					continue
+				end
+			end
+
 			local x = mthing.x*FRACUNIT
 			local y = mthing.y*FRACUNIT
 			local z
@@ -303,6 +316,30 @@ Type	Class	Effect
 17	Light	Flickers randomly
 */
 
+addHook("NetVars", function(net)
+	doom.linespecials = net($)
+	doom.prndindex = net($)
+	doom.sectorbackups = net($)
+	doom.gamemode = net($)
+	doom.torespawn = net($)
+	doom.intermission = net($)
+	doom.kills = net($)
+	doom.killcount = net($)
+	doom.items = net($)
+	doom.itemcount = net($)
+	doom.secrets = net($)
+	doom.secretcount = net($)
+	doom.textscreen = net($)
+	doom.thinkerlist = net($)
+	doom.thinkermap = net($)
+	doom.thinkers = net($)
+	doom.defaultgravity = net($)
+	doom.isdoom1 = net($)
+	doom.numswitches = net($)
+	doom.gameskill = net($)
+	doom.switches = net($)
+end)
+
 local expectedUserdatas = {
 	switch = "line_t",
 	door = "sector_t",
@@ -318,7 +355,7 @@ local expectedUserdatas = {
 	stair = "sector_t",
 }
 
-local function sectorHasUnfittableObject(a, b, c, d, shootables)
+local function sectorHasUnfittableObject(a, b, c, d)
 	-- resolve args to bounds
 	local minx, maxx, miny, maxy
 
@@ -372,8 +409,8 @@ local function sectorHasUnfittableObject(a, b, c, d, shootables)
 		end
 
 		if insideBounds(mobj, minx, maxx, miny, maxy) then
-			-- skip noclip / noclipheight
-			if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then
+			-- must be shootable (players + monsters)
+			if not (mobj.flags & MF_SHOOTABLE) then
 				continue
 			end
 
@@ -400,94 +437,94 @@ end
 -- speed: floor move speed for each created thinker
 -- RETURNS: table { created = <count>, sectors = { <sector>, ... } }
 local function BuildStairs(startsec, stairsize, speed)
-    if not startsec then return { created = 0, sectors = {} } end
+	if not startsec then return { created = 0, sectors = {} } end
 
-    local queue = {}
-    local head, tail = 1, 1
-    -- queue entries are { sec = <sector>, step = <int> }
-    queue[tail] = { sec = startsec, step = 1 }
+	local queue = {}
+	local head, tail = 1, 1
+	-- queue entries are { sec = <sector>, step = <int> }
+	queue[tail] = { sec = startsec, step = 1 }
 
-    -- visited keyed by sector object to avoid duplicates
-    local visited = {}
-    visited[startsec] = true
+	-- visited keyed by sector object to avoid duplicates
+	local visited = {}
+	visited[startsec] = true
 
-    local newt = {
-        type = "floor",
-        speed = speed,
-        target = startsec.floorheight + stairsize,
-        -- any stair-only fields you want
-    }
+	local newt = {
+		type = "floor",
+		speed = speed,
+		target = startsec.floorheight + stairsize,
+		-- any stair-only fields you want
+	}
 	doom.thinkers[startsec] = newt
 
-    local created = 0
-    local created_list = {}
+	local created = 0
+	local created_list = {}
 
-    local base_height = startsec.floorheight or 0
+	local base_height = startsec.floorheight or 0
 
-    local MAX_ENQUEUED = 20000 -- safety cap (tweak or remove if you want)
-    while head <= tail do
-        if (tail - head) > MAX_ENQUEUED then
-            -- safety bail-out to avoid pathological levels
-            break
-        end
+	local MAX_ENQUEUED = 20000 -- safety cap (tweak or remove if you want)
+	while head <= tail do
+		if (tail - head) > MAX_ENQUEUED then
+			-- safety bail-out to avoid pathological levels
+			break
+		end
 
-        local entry = queue[head]; head = head + 1
-        local sec = entry.sec
-        local step = entry.step
-        local dest = base_height + (step * stairsize)
+		local entry = queue[head]; head = head + 1
+		local sec = entry.sec
+		local step = entry.step
+		local dest = base_height + (step * stairsize)
 
-        -- If sector already has a thinker, skip creating another; DOOM_AddThinker also checks this,
-        -- but avoiding unnecessary template allocs is nice.
-        if not doom.thinkers[sec] then
-            -- prepare a template for the floor thinker; DOOM_AddThinker will deepcopy it
-            local floorTemplate = {
-                type = "floor",    -- your code expects data.type == "floor"
-                speed = speed,
-                target = dest,     -- your floor thinker reads `data.target`
-                -- you can add any other default fields your thinker needs
-            }
-            DOOM_AddThinker(sec, floorTemplate)
-            created = created + 1
-            created_list[#created_list + 1] = sec
-        end
+		-- If sector already has a thinker, skip creating another; DOOM_AddThinker also checks this,
+		-- but avoiding unnecessary template allocs is nice.
+		if not doom.thinkers[sec] then
+			-- prepare a template for the floor thinker; DOOM_AddThinker will deepcopy it
+			local floorTemplate = {
+				type = "floor",	-- your code expects data.type == "floor"
+				speed = speed,
+				target = dest,	 -- your floor thinker reads `data.target`
+				-- you can add any other default fields your thinker needs
+			}
+			DOOM_AddThinker(sec, floorTemplate)
+			created = created + 1
+			created_list[#created_list + 1] = sec
+		end
 
-        -- iterate lines on this sector and enqueue valid backsides
-        for i = 0, #sec.lines - 1 do
-            local line = sec.lines[i]
-            -- skip one-sided lines
-            if (line.flags & ML_TWOSIDED) == 0 then
-                continue
-            end
+		-- iterate lines on this sector and enqueue valid backsides
+		for i = 0, #sec.lines - 1 do
+			local line = sec.lines[i]
+			-- skip one-sided lines
+			if (line.flags & ML_TWOSIDED) == 0 then
+				continue
+			end
 
-            -- DOOM-style orientation check: current sector must be the frontsector
-            if line.frontsector ~= sec then
-                continue
-            end
+			-- DOOM-style orientation check: current sector must be the frontsector
+			if line.frontsector ~= sec then
+				continue
+			end
 
-            local backsec = line.backsector
-            -- require same floor texture (as in DOOM)
-            if backsec.floorpic ~= sec.floorpic then
-                continue
-            end
+			local backsec = line.backsector
+			-- require same floor texture (as in DOOM)
+			if backsec.floorpic ~= sec.floorpic then
+				continue
+			end
 
-            -- skip if already moving / has thinker
-            if doom.thinkers[backsec] then
-                continue
-            end
+			-- skip if already moving / has thinker
+			if doom.thinkers[backsec] then
+				continue
+			end
 
-            -- skip if we've already enqueued it
-            if visited[backsec] then
-                continue
-            end
+			-- skip if we've already enqueued it
+			if visited[backsec] then
+				continue
+			end
 
-            -- enqueue neighbor with step+1
-            tail = tail + 1
-            queue[tail] = { sec = backsec, step = step + 1 }
-            visited[backsec] = true
-        end
-    end
+			-- enqueue neighbor with step+1
+			tail = tail + 1
+			queue[tail] = { sec = backsec, step = step + 1 }
+			visited[backsec] = true
+		end
+	end
 
-    return { created = created, sectors = created_list }
+	return { created = created, sectors = created_list }
 end
 
 local thinkers = {
@@ -533,20 +570,25 @@ local thinkers = {
 			end
 		end
 
-		local player = data.switcher.player
+		if data.switcher then
+			if data.switcher.valid then
+				local player = data.switcher.player
 
-		if data.lock and not (player.doom.keys & data.lock) then
-			DOOM_DoMessage(player, data.denyMessage or "YOU FORGOT TO SET A MESSAGE FOR THIS!")
-			S_StartSound(data.switcher, sfx_noway)
-			doom.thinkers[line] = nil
-			return
+				if data.lock and not (player.doom.keys & data.lock) then
+					DOOM_DoMessage(player, data.denyMessage or "YOU FORGOT TO SET A MESSAGE FOR THIS!")
+					S_StartSound(data.switcher, sfx_noway)
+					DOOM_StopThinker(line)
+					return
+				end
+			end
+		end
+
+		if not (data.switcher and data.switcher.valid) then
+			print("NOTICE: SWITCHER OBJECT BECAME INVALID! FALLING BACK TO NIL SWITCHER...")
+			data.switcher = nil
 		end
 
 		if not data.started then
-			if data.victimTextureArea then
-				S_StartSound(data.switcher, data.onSound)
-				line.frontside[data.victimTextureArea] = data.onTexture
-			end
 			if not data.owner then
 				for sector in sectors.tagged(data.victimTag) do
 					DOOM_AddThinker(sector, data.victimData)
@@ -555,11 +597,21 @@ local thinkers = {
 				DOOM_AddThinker(data.victimLine.backsector, data.victimData)
 			end
 			data.started = true
+			if data.victimTextureArea then
+				S_StartSound(data.switcher, data.onSound)
+				line.frontside[data.victimTextureArea] = data.onTexture
+			else
+				DOOM_StopThinker(line)
+			end
 		end
 
 		-- if not data.victimData.repeatable...
 		-- Effectively locks out using the switch again
-		if not data.allowOff then return end
+		if not data.allowOff then
+			doom.linespecials[line] = 0
+			DOOM_StopThinker(line)
+			return
+		end
 
 		-- The semi-animation for when the switch is repeatable
 		-- Questionable name? Sure, why the hell not!
@@ -570,7 +622,7 @@ local thinkers = {
 				S_StartSound(data.switcher, data.onSound)
 				line.frontside[data.victimTextureArea] = data.offTexture
 			end
-			doom.thinkers[line] = nil
+			DOOM_StopThinker(line)
 		end
 	end,
 
@@ -632,7 +684,7 @@ local thinkers = {
 				sector.ceilingheight = target
 
 				-- remove thinker
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 
 				-- if repeatable, reset any flags for next trigger
 				if data.repeatable then
@@ -684,7 +736,7 @@ local thinkers = {
 				sector.floorheight = target
 
 				-- remove thinker
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 
 				-- if repeatable, reset any flags for next trigger
 				if data.repeatable then
@@ -808,19 +860,19 @@ local thinkers = {
 	end,
 	
 	strobe = function(sector, data)
-        if (data.count > 0) then
-            data.count = data.count - 1
-            return
-        end
+		if (data.count > 0) then
+			data.count = data.count - 1
+			return
+		end
 
-        if (sector.lightlevel == data.minlight) then
-            sector.lightlevel = data.maxlight
-            data.count = data.brighttime
-        else
-            sector.lightlevel = data.minlight
-            data.count = data.darktime
-        end
-    end,
+		if (sector.lightlevel == data.minlight) then
+			sector.lightlevel = data.maxlight
+			data.count = data.brighttime
+		else
+			sector.lightlevel = data.minlight
+			data.count = data.darktime
+		end
+	end,
 
 	glow = function(sector, data)
 		if data.direction == -1 then
@@ -865,7 +917,7 @@ local thinkers = {
 	floor = function(sector, data)
 		if not (sector and sector.valid) then
 			-- sector went away or invalid: remove thinker
-			doom.thinkers[sector] = nil
+			DOOM_StopThinker(sector)
 			return
 		end
 
@@ -882,7 +934,7 @@ local thinkers = {
 				elseif data.target < sector.floorheight then
 					data.action = "lower"
 				else
-					doom.thinkers[sector] = nil
+					DOOM_StopThinker(sector)
 					return
 				end
 			elseif type(data.target) == "string" then
@@ -895,7 +947,7 @@ local thinkers = {
 				end
 			else
 				print("floor thinker: missing action and target")
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 				return
 			end
 		end
@@ -923,7 +975,7 @@ local thinkers = {
 		if data.action == "oscillate_stop" then
 			stop_plats_by_tag(data.tag)
 			-- remove this stop-thinker immediately (it is a single-shot command)
-			doom.thinkers[sector] = nil
+			DOOM_StopThinker(sector)
 			return
 		end
 
@@ -1040,7 +1092,7 @@ local thinkers = {
 			else
 				-- unknown target
 				print("floor thinker: unknown target '" .. tostring(data.target) .. "'")
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 				return
 			end
 
@@ -1074,7 +1126,7 @@ local thinkers = {
 						sector.special = sector.special or 0
 					end
 					-- remove thinker
-					doom.thinkers[sector] = nil
+					DOOM_StopThinker(sector)
 				end
 			else
 				if sector.floorheight <= target then
@@ -1085,7 +1137,7 @@ local thinkers = {
 						sector.floorpic = data.newfloorpic
 					end
 					S_StartSound(sector, sfx_pstop)
-					doom.thinkers[sector] = nil
+					DOOM_StopThinker(sector)
 				end
 			end
 
@@ -1095,7 +1147,7 @@ local thinkers = {
 		-- LIFT-style wait/return behaviour handled in the lift thinker.
 		-- If we get something we don't recognize, remove the thinker.
 		print("floor thinker: unhandled action '" .. tostring(data.action) .. "'")
-		doom.thinkers[sector] = nil
+		DOOM_StopThinker(sector)
 	end,
 
 	ceiling = function(sector, data)
@@ -1126,7 +1178,7 @@ local thinkers = {
 		if dir >= 1 then
 			if sector.ceilingheight <= target then
 				sector.ceilingheight = target
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 				local newfloor = deepcopy(sector.ceilingheight)
 				doom.sectorbackups[sector].ceil = newfloor
 				S_StartSound(sector, sfx_pstop)
@@ -1134,7 +1186,7 @@ local thinkers = {
 		elseif dir <= -1 then
 			if sector.ceilingheight >= target then
 				sector.ceilingheight = target
-				doom.thinkers[sector] = nil
+				DOOM_StopThinker(sector)
 				local newfloor = deepcopy(sector.ceilingheight)
 				doom.sectorbackups[sector].ceil = newfloor
 				S_StartSound(sector, sfx_pstop)
@@ -1148,12 +1200,12 @@ local thinkers = {
 	
 	light = function(sector, data)
 		sector.lightlevel = data.target or 35
-		doom.thinkers[sector] = nil
+		DOOM_StopThinker(sector)
 	end,
 }
 
 local function thinkFrameIterator(any, data, thinkertable)
-		if not (any and any.valid) then doom[thinkertable][any] = nil return end
+		if not (any and any.valid) then DOOM_StopThinker(any) return end
 		if data == nil then return end
 		local expected = expectedUserdatas[data.type]
 		local actual = userdataType(any)
@@ -1174,15 +1226,34 @@ local function thinkFrameIterator(any, data, thinkertable)
 		fn(any, data)
 end
 
+local function compact_thinkerlist()
+	local newlist = {}
+	local newmap = {}
+	local n = 0
+	for i = 1, #doom.thinkerlist do
+		local entry = doom.thinkerlist[i]
+		if entry and entry.active and entry.key and entry.data then
+			n = n + 1
+			newlist[n] = entry
+			newmap[entry.key] = n
+		end
+	end
+	doom.thinkerlist = newlist
+	doom.thinkermap  = newmap
+end
+
 addHook("ThinkFrame", function()
-	for any, data in pairs(doom.thinkers) do
-		thinkFrameIterator(any, data, "thinkers")
+	for i = 1, #doom.thinkerlist do
+		local entry = doom.thinkerlist[i]
+		if entry and entry.active and entry.key and entry.data then
+			thinkFrameIterator(entry.key, entry.data, "thinkers")
+		end
 	end
 
-	for any, data in pairs(doom.subthinkers) do
-		thinkFrameIterator(any, data, "subthinkers")
-	end
+	compact_thinkerlist()
+end)
 
+addHook("ThinkFrame", function()
 	for mobj, params in pairs(doom.torespawn) do
 		local time = params.time
 		local convar = "respawnitemtime"
@@ -1197,6 +1268,7 @@ end)
 
 addHook("PostThinkFrame", function()
 	for player in players.iterate do
+		if not player.mo then return end
 		if player.mo.doom.flags & DF_SHADOW then
 			player.mo.frame = $ | FF_MODULATE
 		end
@@ -1210,6 +1282,12 @@ addHook("MobjSpawn", function(mobj)
 		mobj.doom.health = 100
 		mobj.doom.flags = mobj.info.doomflags or 0
 	else
+		if mobj.sprite == SPR_PLAY then
+			mobj.skin = "johndoom"
+			if doom.cvars.techniColorCorpses.value then
+				mobj.color = P_RandomKey(#doom.oolors)
+			end
+		end
 		mobj.doom.maxhealth = mobj.info.spawnhealth or 10
 		mobj.doom.health = mobj.doom.maxhealth
 		mobj.doom.flags = mobj.info.doomflags or 0
@@ -1231,27 +1309,43 @@ addHook("MusicChange", function(_, newname, mflags, looping, position, prefade, 
 	end
 end)
 
--- "SIGMA PLAYER: THIS IS MY SIGMA MESSAGE!"
--- force caps lock because its funny
-addHook("PlayerMsg", function(source, type, target, msg)
+local function playChatSound(player)
 	if doom.isdoom1 then
-		S_StartSound(nil, sfx_tink)
+		S_StartSound(nil, sfx_tink, player)
 	else
-		S_StartSound(nil, sfx_radio)
+		S_StartSound(nil, sfx_radio, player)
 	end
-	local baseMessage = source.name .. ":\n" .. msg
-	baseMessage = $:upper()
+end
+
+-- "SIGMA PLAYER: THIS IS MY SIGMA MESSAGE!"
+-- force caps lock because it's funny
+addHook("PlayerMsg", function(source, type, target, msg)
+	-- Play sound depending on Doom version
+
+	-- Construct base message and force uppercase
+	local baseMessage = (source.name .. ": " .. msg):upper()
+
 	if type == 0 then
+		-- Say to all players
 		for player in players.iterate do
-			DOOM_DoMessage(player, baseMessage)
+			playChatSound(player)
+			chatprintf(player, baseMessage)
 		end
 	elseif type == 1 then
+		-- Say to team only
 		for player in players.iterate do
 			if player.ctfteam != source.ctfteam then continue end
-			DOOM_DoMessage(player, "[TEAM] " .. baseMessage)
+			playChatSound(player)
+			chatprintf(player, "[TEAM] " .. baseMessage)
 		end
 	elseif type == 2 then
-		DOOM_DoMessage(player, "[PRIVATE] " .. baseMessage)
+		-- Private message to target
+		if target then
+			playChatSound(target)
+			chatprintf(target, "[PRIVATE] " .. baseMessage)
+		end
+	else
+		return
 	end
 	return true
 end)

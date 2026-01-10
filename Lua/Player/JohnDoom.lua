@@ -123,6 +123,7 @@ end, MT_FREEMCORPSE)
 -- ThinkFrame Hook
 addHook("ThinkFrame", function()
 	for player in players.iterate do
+		if not player.mo then return end
 		if (player.mo.flags & MF_NOTHINK) then player.deadtimer = 0 continue end
 		if not player.mo then continue end
 		if player.mo.skin != "johndoom" then continue end
@@ -177,6 +178,7 @@ addHook("ThinkFrame", function()
 			local attacker = player.attacker
 			if attacker and attacker.valid and attacker ~= mo then
 				-- R_PointToAngle2 returns an engine angle in the same units as mo.angle
+				local mo = player.killcam
 				local badguyangle = R_PointToAngle2(mo.x, mo.y, attacker.x, attacker.y)
 				local delta = badguyangle - player.awayviewmobj.angle
 				local ANG5 = ANG2 + ANG2 + ANG1
@@ -302,6 +304,8 @@ addHook("PostThinkFrame", function()
 	end
 end)
 
+local STOPSPEED = 0x1000
+
 local function P_PlayerMove(player, doRun)
 	if player.mo.reactiontime then return end
 
@@ -321,10 +325,19 @@ local function P_PlayerMove(player, doRun)
 
 	if (cmd.forwardmove or cmd.sidemove) and player.mo.state == S_PLAY_STND then
 		player.mo.state = S_DOOM_PLAYER_MOVE1
+	elseif (player.mo.state >= S_DOOM_PLAYER_MOVE1 and player.mo.state <= S_DOOM_PLAYER_MOVE4)
+		and player.mo.momx > -STOPSPEED
+		and player.mo.momx < STOPSPEED
+		and player.mo.momy > -STOPSPEED
+		and player.mo.momy < STOPSPEED
+		and player.cmd.forwardmove == 0
+		and player.cmd.sidemove == 0 then
+		player.mo.state = S_PLAY_STND
 	end
 end
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if player.mo.skin != "johndoom" then return end
 	local run = CV_FindVar("doom_alwaysrun").value != 0
 	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0
@@ -334,8 +347,12 @@ end)
 
 addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 	local player = target.player
+
+	if player.doom.dealtDamage then
+		return
+	end
+
 	local support = P_GetSupportsForSkin(player)
-	if support.customDamage then return end
 
 	DOOM_DamageMobj(target, inflictor, source, inflictor and inflictor.doom and inflictor.doom.damage or damage, damagetype)
 	return true

@@ -1,3 +1,39 @@
+local function MakeWeaponPickup(def)
+	-- def = {
+	--   weapon = "shotgun",
+	--   message = "$GOTSHOTGUN",
+	--   blockDuplicatesInDM = true/false
+	-- }
+
+	return function(item, mobj)
+		-- Never run vanilla pickup logic
+		if not mobj.player then
+			return true
+		end
+
+		local player = mobj.player
+		local funcs = P_GetMethodsForSkin(player)
+
+		if gametype == GT_DOOMDM then
+			if funcs.hasWeapon(player, def.weapon) then
+				return true
+			end
+		end
+
+		local result = funcs.giveWeapon(player, def.weapon, item.doom.flags)
+		if not result then
+			return true
+		end
+
+		DOOM_DoMessage(player, def.message)
+
+		if gametype == GT_DOOMDM then
+			return true
+		end
+	end
+end
+
+
 local function SafeFreeSlot(...)
     local ret = {}
     for _, name in ipairs({...}) do
@@ -28,17 +64,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "chainsaw", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTCHAINSAW")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "chainsaw",
+		message = "$GOTCHAINSAW",
+	}
+)
 
 SafeFreeSlot("SPR_SHOT", "sfx_wpnup")
 local name = "Shotgun"
@@ -56,17 +87,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "shotgun", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTSHOTGUN")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "shotgun",
+		message = "$GOTSHOTGUN"
+	}
+)
 
 SafeFreeSlot("SPR_SGN2")
 local name = "SuperShotgun"
@@ -84,17 +110,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "supershotgun", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTSHOTGUN2")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "supershotgun",
+		message = "$GOTSHOTGUN2",
+	}
+)
 
 SafeFreeSlot("SPR_LAUN", "sfx_wpnup")
 local name = "RPG"
@@ -112,17 +133,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "rocketlauncher", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTLAUNCHER")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "rocketlauncher",
+		message = "$GOTLAUNCHER",
+	}
+)
 
 SafeFreeSlot("SPR_MGUN", "sfx_wpnup")
 local name = "Chaingun"
@@ -140,17 +156,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "chaingun", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTCHAINGUN")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "chaingun",
+		message = "$GOTCHAINGUN",
+	}
+)
 
 SafeFreeSlot("SPR_PLAS", "sfx_wpnup")
 local name = "PlasmaRifle"
@@ -168,17 +179,12 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "plasmarifle", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTPLASMA")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "plasmarifle",
+		message = "$GOTPLASMA",
+	}
+)
 
 SafeFreeSlot("SPR_BFUG", "sfx_wpnup")
 local name = "BFG9000"
@@ -196,14 +202,9 @@ local states = {
 	{frame = A, tics = 6},
 }
 
-local function onPickup(item, mobj)
-	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveWeapon(player, "bfg9000", item.doom.flags)
-	if not result then return true end
-	
-	DOOM_DoMessage(player, "$GOTBFG9000")
-end
-
-DefineDoomItem(name, object, states, onPickup)
+DefineDoomItem(name, object, states,
+	MakeWeaponPickup{
+		weapon = "bfg9000",
+		message = "$GOTBFG9000",
+	}
+)

@@ -69,7 +69,6 @@ local EndoomRegistry = {
 		"",
 		"",
 		"",
-		"",
 	}),
 	ultdoom = hashEndoom({
 		"       " .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223) .. string.char(223),
@@ -295,6 +294,23 @@ local function weaponStateHandler(pointers, number, data, path)
 	state.frame = data.spritesubnumber or state.frame
 end
 
+local function printTable(data, prefix)
+	prefix = prefix or ""
+	if type(data) == "table"
+		for k, v in pairs(data or {}) do
+			local key = prefix .. k
+			if type(v) == "table" then
+				print("key " .. key .. " = a table:")
+				printTable(v, key .. ".")
+			else
+				print("key " .. key .. " = " .. tostring(v))
+			end
+		end
+	else
+		print(data)
+	end
+end
+
 -- "This sink is so hard to clean, if only there was an easier way!"
 local function doDehacked()
 	if doom and doom.dehacked then
@@ -302,17 +318,20 @@ local function doDehacked()
 		local deh = doom.dehacked
 		local pointers = doom.dehackedpointers
 		if deh.ammo then
-			if deh.ammo[0] then
-				doom.ammos["bullets"].max = deh.ammo[0].maxammo or doom.ammos["bullets"].max
-			end
-			if deh.ammo[1] then
-				doom.ammos["shells"].max = deh.ammo[1].maxammo or doom.ammos["shells"].max
-			end
-			if deh.ammo[2] then
-				doom.ammos["cells"].max = deh.ammo[2].maxammo or doom.ammos["cells"].max
-			end
-			if deh.ammo[3] then
-				doom.ammos["rockets"].max = deh.ammo[3].maxammo or doom.ammos["rockets"].max
+			local map = {
+				[0] = "bullets",
+				[1] = "shells",
+				[2] = "cells",
+				[3] = "rockets",
+			}
+
+			for i, aType in pairs(map) do
+				local def = deh.ammo[i]
+				local ammo = doom.ammos[aType]
+				if def and ammo then
+					if def.maxammo ~= nil then ammo.max = def.maxammo end
+					if def.perammo ~= nil then ammo.pickupamount = def.perammo end
+				end
 			end
 		end
 		if deh.misc then
@@ -336,6 +355,7 @@ local function doDehacked()
 							print("WARNING: DEHACKED THING # " .. tostring(number) .. " HAS BITS CORRESPONDING TO MF2 FLAGS!")
 						end
 					end
+					printTable(data)
 					info.doomednum = data["id #"] or info.doomednum
 					if info.doomednum <= 32 then
 						doom.mthingReplacements[info.doomednum] = pointers.things[number]
@@ -350,6 +370,7 @@ local function doDehacked()
 					info.mass = data.mass or info.mass
 					info.seesound = pointers.frames[data.alertsound] or info.seesound
 					info.activesound = pointers.frames[data.actionsound] or info.activesound
+					print("Set custom object with doomednum " .. info.doomednum .. "'s hitpoints to " .. tostring(info.spawnhealth))
 				else
 					if mobjtype == nil then
 						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
@@ -392,32 +413,74 @@ local function doDehacked()
 		end
 		if deh.pointers then
 			for number, data in pairs(deh.pointers) do
-				local frameIndex = data.codepframe
-				if frameIndex ~= nil then
-					local stateIndex = pointers.frames[number]
-					if stateIndex ~= nil then
-						local state = states[stateIndex]
-						if state.action ~= nil then
-							-- Apply the new action/code pointer
-							state.action = frameIndex
-						else
-							print("NOTICE: DEHACKED Pointer # " .. tostring(number) ..
-								  " tries to assign an action to a state that doesn't have one!")
-						end
+				-- Source frame (where the action comes from)
+				local srcFrameIndex = pointers.frames[data.codepframe]
+				if srcFrameIndex == nil then
+					if data.codepframe == nil then
+						print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " has no codepframe defined!")
 					else
-						print("NOTICE: DEHACKED Pointer # " .. tostring(number) ..
-							  " doesn't have an associated frame pointer!")
+						print("WARNING: DEHACKED Pointer source frame # " .. tostring(data.codepframe) .. " doesn't exist!")
 					end
-				else
-					print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " has no codepframe defined!")
+					continue
 				end
+
+				local srcState = states[srcFrameIndex]
+				if not srcState or not srcState.action then
+					print("WARNING: DEHACKED Pointer # " .. tostring(number) ..
+						  " is copying from a frame with no action!")
+				end
+
+				-- Case 1: normal frame target
+				local dstFrameIndex = pointers.frames[number]
+				if dstFrameIndex ~= nil then
+					local dstState = states[dstFrameIndex]
+					if dstState then
+						dstState.action = srcState.action
+						dstState.var1   = srcState.var1
+						dstState.var2   = srcState.var2
+					end
+					continue
+				end
+
+				-- Case 2: weapon frame target
+				local wepPath = pointers.frametowepstate[number]
+				if wepPath then
+					local weapon = doom.weapons[wepPath[1]]
+					if not weapon then
+						print("WARNING: INVALID WEAPON NAME '" .. tostring(wepPath[1]) .. "'!")
+						continue
+					end
+
+					local wepStates = weapon.states[wepPath[2]]
+					if not wepStates then
+						print("WARNING: INVALID WEAPON STATE '" .. tostring(wepPath[2]) ..
+							  "' FOR WEAPON '" .. tostring(wepPath[1]) .. "'!")
+						continue
+					end
+
+					local wepState = wepStates[wepPath[3]]
+					if not wepState then
+						print("WARNING: INVALID WEAPON FRAME '" .. tostring(wepPath[3]) ..
+							  "' FOR STATE '" .. tostring(wepPath[2]) ..
+							  "' FOR WEAPON '" .. tostring(wepPath[1]) .. "'!")
+						continue
+					end
+
+					wepState.action = srcState.action
+					wepState.var1   = srcState.var1
+					wepState.var2   = srcState.var2
+					continue
+				end
+
+				print("NOTICE: DEHACKED Pointer # " .. tostring(number) ..
+					  " doesn't map to a normal or weapon frame!")
 			end
 		end
 	end
 end
 
 local function doLoadingShit()
-	print("Checking current add-ons...", doom.basewad)
+	print("Checking current add-ons...")
 	doom.patchesLoaded = false -- We'll have to run this back anyhow...
 
 	if HL then
@@ -536,6 +599,8 @@ local function doLoadingShit()
 		-- Chex Quest (hopefully counts for Chex Quest 2 aswell)
 		doom.gamemode = "registered"
 
+		print("Loaded Chex Quest!")
+
 		-- Load Chex Quest strings
 		doom.loadStrings("chex")
 		
@@ -544,6 +609,7 @@ local function doLoadingShit()
 		doom.dropTable = {}
 		doom.lastmap = 5
 	end
+	print("Matched game ID:" .. tostring(matchedGame), currentHash, EndoomRegistry.chex1)
 end
 
 local function aaa()

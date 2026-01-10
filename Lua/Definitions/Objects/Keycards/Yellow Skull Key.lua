@@ -31,9 +31,10 @@ local states = {
 
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
-	local player = mobj.player
-	player.doom.keys = ($ or 0)|doom.KEY_SKULLYELLOW
-	DOOM_DoMessage(player, "$GOTYELWSKUL")
+	for player in players.iterate do
+		player.doom.keys = ($ or 0)|doom.KEY_SKULLYELLOW
+		DOOM_DoMessage(player, "$GOTYELWSKUL")
+	end
 end
 
 DefineDoomItem(name, object, states, onPickup)

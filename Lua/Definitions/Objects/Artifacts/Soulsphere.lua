@@ -33,13 +33,35 @@ local states = {
 		{frame = B, tics = 6},
 }
 
+local function GiveHealthCompat(funcs, player, heal, clampMax)
+	-- Prefer skin-provided giveHealth if available
+	if funcs.giveHealth then
+		-- expectedMaxHealth is used for clamping inside giveHealth
+		return funcs.giveHealth(player, heal, clampMax)
+	end
+
+	-- Fallback: manual get/set
+	local health = funcs.getHealth(player)
+	local newhealth = min(health + heal, clampMax)
+
+	if newhealth <= health then
+		return false
+	end
+
+	funcs.setHealth(player, newhealth)
+	return true
+end
+
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
 	local health = funcs.getHealth(player)
-	
-	funcs.setHealth(player, min(health + doom.soulspheregrant, doom.maxsoulsphere))
+
+	local maxhealth = funcs.getMaxHealth(player)
+	local clampMax = maxhealth * 2
+
+	GiveHealthCompat(funcs, player, 100, clampMax)
 	if funcs.onSoulsphere then
 		funcs.onSoulsphere(player)
 	end

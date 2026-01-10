@@ -39,7 +39,6 @@ local function onPickup(item, mobj)
 	local maxHealth = funcs.getMaxHealth(player)
 	local armor = funcs.getArmor(player)
 	local maxArmor = funcs.getMaxArmor(player)
-	if health == maxHealth and armor == maxArmor then return true end
 	
 	funcs.setHealth(player, doom.megaspheregrant)
 	funcs.setArmor(player, maxArmor * 2)

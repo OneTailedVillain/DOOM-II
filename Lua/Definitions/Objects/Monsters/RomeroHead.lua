@@ -66,7 +66,7 @@ local states = {
 	},
 	chase = {
 		{action = A_BrainAwake, frame = A, tics = 181},
-		{action = A_BrainSpit, frame = A, tics = 150, next = "chase"},
+		{action = A_BrainSpit, frame = A, tics = 150, next = "chase", nextframe = 2},
 	},
 }
 

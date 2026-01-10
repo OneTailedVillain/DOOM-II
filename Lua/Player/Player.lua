@@ -200,6 +200,7 @@ local function ST_updateFaceWidget(plyr)
 end
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
 	player.doom = $ or {}
 	ST_updateFaceWidget(player)
@@ -233,12 +234,15 @@ local function printTable(data, prefix)
 end
 
 addHook("PlayerThink", function(player)
-	if (player.mo.flags & MF_NOTHINK) then return end
-	if G_RingSlingerGametype() and not doom.charSupport[player.realmo.skin].dontSetRings then
-		local curAmmo = doom.charSupport[player.realmo.skin].methods.getCurAmmo(player)
-		printTable(curAmmo)
-		player.rings = curAmmo == false and 9999 or curAmmo
+	if player.spectator then
+		player.realmo.flags = $ | (MF_NOCLIPHEIGHT|MF_NOCLIP|MF_NOCLIPTHING)
+		player.realmo.flags2 = $ & ~MF2_OBJECTFLIP
+		player.realmo.eflags = $ & ~MFE_VERTICALFLIP
 	end
+
+	if not player.mo then return end
+
+	if (player.mo.flags & MF_NOTHINK) then return end
 
 	if (player.cmd.buttons & BT_JUMP) then
 		if doom.issrb2 then
@@ -375,6 +379,7 @@ local function updateWeaponState(player, isFlashState)
 end
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
 
 	if (player.mo.eflags & MFE_JUSTHITFLOOR) then
@@ -426,6 +431,7 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
 	local support = P_GetSupportsForSkin(player)
 
@@ -669,6 +675,7 @@ local function getIntersectingObjects(target, shootables)
 end
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
 
 	if doom.issrb2 then
@@ -734,6 +741,7 @@ addHook("PlayerThink", function(player)
 end)
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
     local cnt = player.doom.damagecount or 0
     local bzc = 0
@@ -783,6 +791,7 @@ end, MT_PLAYER)
 
 -- TODO: Verify if this is necessary
 addHook("PlayerHeight", function(player)
+	if not player.mo then return end
 	local mobj = player.mo
 	local mdoom = mobj.doom
 	local space = abs(mobj.floorz - mobj.ceilingz)
@@ -863,7 +872,11 @@ addHook("PlayerSpawn",function(player)
 	player.mo.doom.armorefficiency = choose("armorefficiency")
 	player.doom.oldweapons = choose("oldweapons")
 	player.doom.notrigger = false
-	player.doom.keys = 0
+	if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+		player.doom.keys = UINT32_MAX
+	elseif not multiplayer then
+		player.doom.keys = 0
+	end
 	player.doom.switchtimer = 128
 	player.doom.wishwep = nil
 

@@ -237,7 +237,7 @@ G_AddGametype({
     name = "DOOM",
     identifier = "doom",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_CAMPAIGN|GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_SPAWNENEMIES|GTR_ALLOWEXIT|GTR_NOTITLECARD,
+    rules = GTR_CAMPAIGN|GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_SPAWNENEMIES|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_FRIENDLY,
     intermissiontype = int_none,
     headercolor = 103,
     description = "Play the classic DOOM campaign cooperatively with friends using original netplay rules -- works with any DOOM-compatible IWAD/WAD."
@@ -248,7 +248,7 @@ G_AddGametype({
     name = "Deathmatch (Original)",
     identifier = "doomdm",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
+    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
     intermissiontype = int_none,
     headercolor = 103,
     description = "Classic DOOM deathmatch: competitive free-for-all where pickups do NOT respawn and weapons are grabbable only once per life."
@@ -259,7 +259,7 @@ G_AddGametype({
     name = "Deathmatch 2.0",
     identifier = "doomdmtwo",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
+    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_FRIENDLYFIRE|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
     intermissiontype = int_none,
     headercolor = 103,
     description = "Alternate DOOM deathmatch: competitive free-for-all with delayed item and weapon respawns so pickups return after a short time."

@@ -124,7 +124,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		mobj.movecount = ($ or 0) + 1
 		if mobj.movecount < 12*TICRATE then return end
 		if leveltime & 31 then return end
-		if DOOM_Random() > 4 then print("FAIL: DOOM_Random() > 4") return end
+		if DOOM_Random() > 4 then return end
 		local spawnpoint = mobj.doom.spawnpoint
         local spawnz = P_FloorzAtPos(spawnpoint.x, spawnpoint.y, INT32_MIN, 0)
         local new = P_SpawnMobj(spawnpoint.x, spawnpoint.y, spawnz, mobj.type)
@@ -204,7 +204,7 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 				toucher.player.doom.bonuscount = ($ or 0) + 6
 				if mo.doom.flags & DF_COUNTITEM then
 					if (mo.doom and mo.doom.flags and (mo.doom.flags & DF_DROPPED)) then return res end
-					doom.items = $ + 1
+					doom.items = ($ or 0) + 1
 				end
 			end
 
@@ -385,10 +385,12 @@ rawset(_G, "DOOM_SpawnMissile", function(source, dest, type)
 end)
 
 rawset(_G, "P_GetSupportsForSkin", function(player)
+	if not player.mo then return {} end
 	return doom.charSupport[player.mo.skin]
 end)
 
 rawset(_G, "P_GetMethodsForSkin", function(player)
+	if not player.mo then return {} end
 	local support = P_GetSupportsForSkin(player)
 	return support.methods
 end)
@@ -405,7 +407,7 @@ end)
 rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, minhealth)
     if not target or not target.valid then return end
     damage = inflictor and inflictor.doom.damage or damage
-	
+
     local player = target.player
     
     if player then
@@ -414,13 +416,32 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		if (player.pflags & PF_GODMODE) then return end
 		if player.doom.powers[pw_invulnerability] then return end
         local funcs = P_GetMethodsForSkin(player)
-		if not funcs.getHealth(player) then return end
+		local health = funcs.getHealth(player)
+		if health <= 0 then return end
+		if funcs.shouldDealDamage then
+			local returnVal = funcs.shouldDealDamage(target, inflictor, source, damage, damagetype, minhealth)
+			if returnval != nil and not returnVal then return end
+		end
 
 		if doom.gameskill == 1 then
 			damage = $ / 2
 		end
 
-        funcs.damage(target, damage, source, inflictor, damagetype, minhealth)
+		if player.doom.dealtDamage then
+			return
+		end
+
+		player.doom.dealtDamage = true
+		local ok = false
+		local success, err = pcall(function()
+			ok = funcs.damage(target, damage, source, inflictor, damagetype, minhealth)
+		end)
+		player.doom.dealtDamage = false
+
+		if not success then
+			print("Damage error:", err)
+		end
+
         player.doom.damagecount = (player.doom.damagecount or 0) + damage
         if player.doom.damagecount > 100 then player.doom.damagecount = 100 end
         player.doom.attacker = source
@@ -597,6 +618,7 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	end
 
 	DOOM_SetState(player, "attack", 1)
+	player.mo.state = S_DOOM_PLAYER_ATTACK1
 end)
 
 rawset(_G, "deepcopy", function(orig)
@@ -611,13 +633,75 @@ rawset(_G, "deepcopy", function(orig)
 	return copy
 end)
 
+doom.thinkerlist = doom.thinkerlist or {}
+doom.thinkermap  = doom.thinkermap  or {}
+
+-- Add thinker: append to numeric list and set map
 rawset(_G, "DOOM_AddThinker", function(any, thinkingType)
-    if doom.thinkers[any] ~= nil then return end -- Emulate DOOM disallowing multiple thinkers for one sector
-    if thinkingType == nil then return end
-	-- clone the lineAction data so each sector gets its own independent state
+    if not any or thinkingType == nil then return end
+
+    -- Disallow duplicates (emulate original behavior)
+    if doom.thinkermap[any] then return end
+
     local data = deepcopy(thinkingType)
-    doom.thinkers[any] = data
+    local entry = { key = any, data = data, active = true }
+    local idx = #doom.thinkerlist + 1
+    doom.thinkerlist[idx] = entry
+    doom.thinkermap[any] = idx
 end)
+
+-- Stop thinker: mark inactive and remove mapping
+rawset(_G, "DOOM_StopThinker", function(any)
+    if not any then return end
+    local idx = doom.thinkermap[any]
+    if not idx then return end
+    local entry = doom.thinkerlist[idx]
+    if entry then
+        entry.active = false      -- mark for skipping
+        entry.data   = nil        -- free payload
+        entry.key    = nil
+    end
+end)
+
+-- Compatibility proxy so old code can still do doom.thinkers[any] = nil
+-- and doom.thinkers[any] to read. Important: don't rely on pairs() on this table.
+do
+    local proxy = {}
+    local mt = {}
+
+    mt.__index = function(_, any)
+        local idx = doom.thinkermap[any]
+        if idx then
+            return doom.thinkerlist[idx] and doom.thinkerlist[idx].data or nil
+        end
+        return nil
+    end
+
+    mt.__newindex = function(_, any, val)
+        -- writing nil -> means "stop thinker" (compatibility)
+        if val == nil then
+            DOOM_StopThinker(any)
+            return
+        end
+        -- writing non-nil -> replace/create thinker data (rare for your code; prefer DOOM_AddThinker)
+        local idx = doom.thinkermap[any]
+        if idx then
+            doom.thinkerlist[idx].data = val
+            doom.thinkerlist[idx].active = true
+            doom.thinkermap[any] = idx
+        else
+            -- append as new entry
+            local entry = { key = any, data = deepcopy(val), active = true }
+            local n = #doom.thinkerlist + 1
+            doom.thinkerlist[n] = entry
+            doom.thinkermap[any] = n
+        end
+    end
+
+    -- put proxy into doom.thinkers so existing reads/writes work (but do not pairs() it)
+    doom.thinkers = proxy
+    setmetatable(doom.thinkers, mt)
+end
 
 rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 	if not (player and player.valid) then return end
@@ -654,11 +738,12 @@ rawset(_G, "DOOM_DoAutoSwitch", function(player, force, ammotype)
 	local funcs = P_GetMethodsForSkin(player)
 	local weapon = DOOM_GetWeaponDef(player)
 	local curAmmo = funcs.getCurAmmo(player)
-	print("Calling with ammotype " .. tostring(ammotype) .. "!")
 
 	-- 1) If we have enough ammo for current weapon, do nothing
 	if not force then
 		if type(curAmmo) ~= "boolean" and curAmmo >= (weapon.shotcost or 1) then
+			return true
+		elseif type(curAmmo) == "boolean" and curAmmo == false then
 			return true
 		end
 	end
@@ -705,28 +790,79 @@ local function DOOM_WhatInter()
 end
 
 rawset(_G, "saveStatus", function(player)
-	player.doom = $ or {}
-	player.mo.doom = $ or {}
-	player.doom.laststate = {}
-	player.doom.laststate.ammo = deepcopy(player.doom.ammo)
-	player.doom.laststate.weapons = deepcopy(player.doom.weapons)
-	player.doom.laststate.oldweapons = deepcopy(player.doom.oldweapons)
-	player.doom.laststate.curwep = deepcopy(player.doom.curwep)
-	player.doom.laststate.curwepslot = deepcopy(player.doom.curwepslot)
-	player.doom.laststate.curwepcat = deepcopy(player.doom.curwepcat)
-	player.doom.laststate.health = deepcopy(player.mo.doom.health)
-	player.doom.laststate.armor = deepcopy(player.mo.doom.armor)
-	player.doom.laststate.pos = {
-		x = deepcopy(player.mo.x),
-		y = deepcopy(player.mo.y),
-		z = deepcopy(player.mo.z),
-	}
-	player.doom.laststate.momentum = {
-		x = deepcopy(player.mo.momx),
-		y = deepcopy(player.mo.momy),
-		z = deepcopy(player.mo.momz),
-	}
-	player.doom.laststate.map = deepcopy(gamemap)
+    local funcs = P_GetMethodsForSkin(player)
+
+    player.doom = player.doom or {}
+    player.mo.doom = player.mo.doom or {}
+    player.doom.laststate = {}
+
+    local mo = player.mo
+
+    -- Prepare expected values
+    local expectedValues = {
+        health = funcs.getHealth and funcs.getHealth(player) or 100,
+        armor = funcs.getArmor and funcs.getArmor(player) or 0,
+        currentWeapon = funcs.getCurrentWeapon and funcs.getCurrentWeapon(player),
+        curwep = funcs.getCurrentWeapon and funcs.getCurrentWeapon(player) or player.doom.curwep,
+        curwepslot = player.doom.curwepslot,
+        curwepcat = player.doom.curwepcat,
+        weapons = {},
+        oldweapons = player.doom.oldweapons,
+        ammo = {},
+        position = {x = mo.x, y = mo.y, z = mo.z},
+        momentum = {x = mo.momx, y = mo.momy, z = mo.momz},
+        map = gamemap
+    }
+
+	if doom.cvars.multiDontLowHealth.value then
+		local multiplayerHealthBS = 50 + (player.mo.doom.health / 2)
+		if expectedValues.health < multiplayerHealthBS then
+			expectedValues.health = multiplayerHealthBS
+		end
+	end
+
+    -- Iterate through all known weapons and call their getter
+    if funcs.hasWeapon then
+        for name, _ in pairs(doom.weapons) do
+            local ok, val = pcall(funcs.hasWeapon, player, name)
+            expectedValues.weapons[name] = ok and val or nil
+        end
+    end
+
+    -- Iterate through all known ammo types and call their getter
+    if funcs.getAmmoFor then
+        for name, _ in pairs(doom.ammos) do
+            local ok, val = pcall(funcs.getAmmoFor, player, name)
+            expectedValues.ammo[name] = ok and val or 0
+        end
+    end
+
+    -- Use saveState if it exists; otherwise, copy expectedValues to laststate
+    if funcs.saveState then
+        funcs.saveState(player, expectedValues)
+    else
+        -- Fallback using expectedValues
+        local last = player.doom.laststate
+        last.health = deepcopy(expectedValues.health)
+        last.armor = deepcopy(expectedValues.armor)
+        last.curwep = deepcopy(expectedValues.curwep)
+        last.curwepslot = deepcopy(expectedValues.curwepslot)
+        last.curwepcat = deepcopy(expectedValues.curwepcat)
+        last.weapons = deepcopy(expectedValues.weapons)
+        last.oldweapons = deepcopy(expectedValues.oldweapons)
+        last.ammo = deepcopy(expectedValues.ammo)
+        last.pos = {
+            x = deepcopy(expectedValues.position.x),
+            y = deepcopy(expectedValues.position.y),
+            z = deepcopy(expectedValues.position.z),
+        }
+        last.momentum = {
+            x = deepcopy(expectedValues.momentum.x),
+            y = deepcopy(expectedValues.momentum.y),
+            z = deepcopy(expectedValues.momentum.z),
+        }
+        last.map = deepcopy(expectedValues.map)
+    end
 end)
 
 local function printTable(data, prefix)

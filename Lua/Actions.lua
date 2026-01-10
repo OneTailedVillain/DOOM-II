@@ -71,7 +71,7 @@ function A_DoomLook(actor)
 
 	local gotoseeyou = false
 
-	if targ and (targ.flags & MF_SHOOTABLE) then
+	if (targ and targ.valid) and (targ.flags & MF_SHOOTABLE) then
 		actor.target = targ
 
 		if (actor.flags2 & MF2_AMBUSH) then
@@ -673,11 +673,11 @@ local function P_IterativeSound(start_sec, start_soundblocks, emitter)
     end
 end
 
-local function P_NoiseAlert(target, emitter)
+rawset(_G, "P_NoiseAlert", function(target, emitter)
 	doom.validcount = $ + 1
 	soundblocks = 0
 	P_IterativeSound(emitter.subsector.sector, soundblocks, target)
-end
+end)
 
 function A_ChainSawSound(actor, sfx)
 	local sawsounds = {sfx_sawidl, sfx_sawful, sfx_sawup, sfx_sawhit}
@@ -756,8 +756,6 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 			if curAmmo - weapon.shotcost < 0 then return end
 		end
 
-		actor.state = S_DOOM_PLAYER_ATTACK1
-
 		if weapon.firesound then
 			S_StartSound(actor, weapon.firesound)
 		end
@@ -767,6 +765,7 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 		if not wepProperties.noFlash and weapon.states.flash then
 			player.doom.flashframe = 1
 			player.doom.flashtics = weapon.states.flash[1].tics
+			actor.state = S_DOOM_PLAYER_FLASH1
 			local nextDef = weapon.states.flash[1]
 			if nextDef.action then
 				nextDef.action(player.mo, nextDef.var1, nextDef.var2, DOOM_GetWeaponDef(player))
@@ -797,6 +796,7 @@ function A_DoomGunFlash(actor, var1, var2, weapon)
 	if weapon.states.flash then
 		player.doom.flashframe = 1
 		player.doom.flashtics = weapon.states.flash[1].tics
+		actor.state = S_DOOM_PLAYER_FLASH1
 	end
 end
 
@@ -1141,7 +1141,7 @@ function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 	local curHealth = funcs.getHealth(player)
 
 	if actor.state == S_DOOM_PLAYER_ATTACK1
-	or actor.state == S_DOOM_PLAYER_ATTACK2 then
+	or actor.state == S_DOOM_PLAYER_FLASH1 then
 		actor.state = S_PLAY_STND
 	end
 

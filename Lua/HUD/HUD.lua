@@ -398,6 +398,8 @@ hud.add(function(v, player)
 	end
 	if support.noHUD then DrawFlashes(v, player) return end
 
+	if not player.mo then DrawFlashes(v, player) return end
+
 	local funcs = P_GetMethodsForSkin(player)
 	local myHealth = funcs.getHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
