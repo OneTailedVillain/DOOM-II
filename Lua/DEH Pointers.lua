@@ -18,6 +18,7 @@ end
 local projectiles = {
 	MT_TROOPSHOT,
 	MT_DOOM_MANCUBUSFIREBALL,
+	MT_DOOM_BARONFIREBALL,
 	MT_DOOM_ARCHNOTRONPLASMA,
 }
 
@@ -28,14 +29,32 @@ end
 doom.mthingReplacements = {
 	[5] = MT_DOOM_BLUEKEYCARD,
 	[6] = MT_DOOM_YELLOWKEYCARD,
+	[7] = MT_DOOM_SPIDERMASTERMIND,
 	[8] = MT_DOOM_BACKPACK,
 	[9] = MT_DOOM_SHOTGUNNER,
 	[10] = MT_DOOM_BLOODYMESS,
+	-- 11 used for deathmatch start
+	[12] = MT_DOOM_BLOODYMESSEXTRA,
 	[13] = MT_DOOM_REDKEYCARD,
 	[14] = MT_DOOM_TELETARGET,
 	[15] = MT_DOOM_CORPSE,
 	[16] = MT_DOOM_CYBERDEMON,
+	[17] = MT_DOOM_CELLPACK,
+	[18] = MT_DOOM_DEADZOMBIEMAN,
+	[19] = MT_DOOM_DEADSHOTGUNNER,
+	[20] = MT_DOOM_DEADIMP,
+	[21] = MT_DOOM_DEADDEMON,
+	[22] = MT_DOOM_DEADCACODEMON,
+	[23] = MT_DOOM_DEADLOSTSOUL,
+	[24] = MT_DOOM_CRUSHGIBS,
+	[25] = MT_DOOM_DEADSTICK,
+	[26] = MT_DOOM_LIVESTICK,
+	[27] = MT_DOOM_HEADONASTICK,
+	[28] = MT_DOOM_HEADSONASTICK,
+	[29] = MT_DOOM_HEADCANDLES,
+	[30] = MT_DOOM_TALLGREENCOLUMN,
 	[31] = MT_DOOM_SHORTGREENPILLAR,
+	[32] = MT_DOOM_TALLREDCOLUMN,
 }
 
 doom.immunity = doom.immunity or {}
@@ -63,10 +82,11 @@ function doom.removeExcludedSourceType(t)
 end
 
 -- Add pair immunity: if attackerType attacks targetType, target ignores the attack.
--- This is symmetric if you call both addPairImmunity(a,b) and addPairImmunity(b,a)
 function doom.addPairImmunity(attackerType, targetType)
-    doom.immunity.pairImmunities[attackerType] = doom.immunity.pairImmunities[attackerType] or {}
+    doom.immunity.pairImmunities[attackerType] = $ or {}
     doom.immunity.pairImmunities[attackerType][targetType] = true
+    doom.immunity.pairImmunities[targetType] = $ or {}
+    doom.immunity.pairImmunities[targetType][attackerType] = true
 end
 function doom.removePairImmunity(attackerType, targetType)
     if doom.immunity.pairImmunities[attackerType] then
@@ -87,7 +107,6 @@ doom.addExcludedSourceType(MT_DOOM_BULLETRAYCAST)
 doom.addExcludedSourceType(MT_DOOM_LOSTSOUL)
 
 doom.addPairImmunity(MT_DOOM_HELLKNIGHT, MT_DOOM_BARONOFHELL)
-doom.addPairImmunity(MT_DOOM_BARONOFHELL, MT_DOOM_HELLKNIGHT)
 
 doom.setNoRetaliateAgainst(MT_DOOM_ARCHVILE, true)
 
@@ -146,13 +165,11 @@ doom.bossDeathSpecials = {
 		tag = 666,
 		special = 112,
 	},
-	/*
-	[MT_DOOM_BARONOFHELL] = { -- spiderdemon
-		map = 32,
+	[MT_DOOM_SPIDERMASTERMIND] = { -- spiderdemon
+		map = 36,
 		tag = 666,
 		special = 23,
 	},
-	*/
 	[MT_DOOM_MANCUBUS] = { -- mancubus
 		map = 7,
 		tag = 666,
@@ -317,7 +334,7 @@ doom.dehackedpointers = {
 		nil, -- Revenant Fireball
 		nil, -- Fireball Trail
 		nil, -- Mancubus
-		nil, -- Mancubus Fireball
+		MT_DOOM_MANCUBUSFIREBALL, -- Mancubus Fireball
 		MT_DOOM_CHAINGUNNER,
 		MT_DOOM_IMP,
 		MT_DOOM_DEMON,
@@ -386,7 +403,7 @@ doom.dehackedpointers = {
 	},
 
 	sounds = {
-		nil,
+		0,
 		sfx_pistol,
 		sfx_shotgn,
 		sfx_sgcock,
@@ -594,11 +611,102 @@ doom.dehackedpointers = {
 		[308] = S_DOOM_ARCHVILEFIRE_28,
 		[309] = S_DOOM_ARCHVILEFIRE_29,
 		[310] = S_DOOM_ARCHVILEFIRE_30,
+		[416] = S_DOOM_CHAINGUNNER_MISSILE1,
+		[417] = S_DOOM_CHAINGUNNER_MISSILE2,
+		[418] = S_DOOM_CHAINGUNNER_MISSILE3,
+		[419] = S_DOOM_CHAINGUNNER_MISSILE4,
+		[632] = S_DOOM_ARACHNOTRON_STAND1,
+		[633] = S_DOOM_ARACHNOTRON_STAND2,
+		[634] = S_DOOM_ARACHNOTRON_CHASE1,
+		[635] = S_DOOM_ARACHNOTRON_CHASE2,
+		[636] = S_DOOM_ARACHNOTRON_CHASE3,
+		[637] = S_DOOM_ARACHNOTRON_CHASE4,
+		[638] = S_DOOM_ARACHNOTRON_CHASE5,
+		[639] = S_DOOM_ARACHNOTRON_CHASE6,
+		[640] = S_DOOM_ARACHNOTRON_CHASE7,
+		[641] = S_DOOM_ARACHNOTRON_CHASE8,
+		[642] = S_DOOM_ARACHNOTRON_CHASE9,
+		[643] = S_DOOM_ARACHNOTRON_CHASE10,
+		[644] = S_DOOM_ARACHNOTRON_CHASE11,
+		[645] = S_DOOM_ARACHNOTRON_CHASE12,
+		[646] = S_DOOM_ARACHNOTRON_CHASE13,
+		[647] = S_DOOM_ARACHNOTRON_MISSILE1,
+		[648] = S_DOOM_ARACHNOTRON_MISSILE2,
+		[649] = S_DOOM_ARACHNOTRON_MISSILE3,
+		[650] = S_DOOM_ARACHNOTRON_MISSILE4,
+		[651] = S_DOOM_ARACHNOTRON_PAIN1,
+		[652] = S_DOOM_ARACHNOTRON_PAIN2,
+		[653] = S_DOOM_ARACHNOTRON_DIE1,
+		[654] = S_DOOM_ARACHNOTRON_DIE2,
+		[655] = S_DOOM_ARACHNOTRON_DIE3,
+		[656] = S_DOOM_ARACHNOTRON_DIE4,
+		[657] = S_DOOM_ARACHNOTRON_DIE5,
+		[658] = S_DOOM_ARACHNOTRON_DIE6,
+		[659] = S_DOOM_ARACHNOTRON_DIE7,
+		[660] = S_DOOM_ARACHNOTRON_RAISE1,
+		[661] = S_DOOM_ARACHNOTRON_RAISE2,
+		[662] = S_DOOM_ARACHNOTRON_RAISE3,
+		[663] = S_DOOM_ARACHNOTRON_RAISE4,
+		[664] = S_DOOM_ARACHNOTRON_RAISE5,
+		[665] = S_DOOM_ARACHNOTRON_RAISE6,
+		[666] = S_DOOM_ARACHNOTRON_RAISE7,
 		[667] = S_DOOM_ARACHPLASMA1,
 		[668] = S_DOOM_ARACHPLASMA2,
 		[669] = S_DOOM_ARACHPLASMAX1,
 		[670] = S_DOOM_ARACHPLASMAX2,
 		[671] = S_DOOM_ARACHPLASMAX3,
+		[726] = S_DOOM_SSGUARD_STAND1,
+		[727] = S_DOOM_SSGUARD_STAND2,
+		[728] = S_DOOM_SSGUARD_CHASE1,
+		[729] = S_DOOM_SSGUARD_CHASE2,
+		[730] = S_DOOM_SSGUARD_CHASE3,
+		[731] = S_DOOM_SSGUARD_CHASE4,
+		[732] = S_DOOM_SSGUARD_CHASE5,
+		[733] = S_DOOM_SSGUARD_CHASE6,
+		[734] = S_DOOM_SSGUARD_CHASE7,
+		[735] = S_DOOM_SSGUARD_CHASE8,
+		[736] = S_DOOM_SSGUARD_MISSILE1,
+		[737] = S_DOOM_SSGUARD_MISSILE2,
+		[738] = S_DOOM_SSGUARD_MISSILE3,
+		[739] = S_DOOM_SSGUARD_MISSILE4,
+		[740] = S_DOOM_SSGUARD_MISSILE5,
+		[741] = S_DOOM_SSGUARD_MISSILE6,
+		[742] = S_DOOM_SSGUARD_PAIN1,
+		[743] = S_DOOM_SSGUARD_PAIN2,
+		[744] = S_DOOM_SSGUARD_DIE1,
+		[745] = S_DOOM_SSGUARD_DIE2,
+		[746] = S_DOOM_SSGUARD_DIE3,
+		[747] = S_DOOM_SSGUARD_DIE4,
+		[748] = S_DOOM_SSGUARD_DIE5,
+		[749] = S_DOOM_SSGUARD_GIB1,
+		[750] = S_DOOM_SSGUARD_GIB2,
+		[751] = S_DOOM_SSGUARD_GIB3,
+		[752] = S_DOOM_SSGUARD_GIB4,
+		[753] = S_DOOM_SSGUARD_GIB5,
+		[754] = S_DOOM_SSGUARD_GIB6,
+		[755] = S_DOOM_SSGUARD_GIB7,
+		[756] = S_DOOM_SSGUARD_GIB8,
+		[757] = S_DOOM_SSGUARD_GIB9,
+		[758] = S_DOOM_SSGUARD_RAISE1,
+		[759] = S_DOOM_SSGUARD_RAISE2,
+		[760] = S_DOOM_SSGUARD_RAISE3,
+		[761] = S_DOOM_SSGUARD_RAISE4,
+		[762] = S_DOOM_SSGUARD_RAISE5,
+		[763] = S_DOOM_KEEN_STAND1,
+		[764] = S_DOOM_KEEN_DIE1,
+		[765] = S_DOOM_KEEN_DIE2,
+		[766] = S_DOOM_KEEN_DIE3,
+		[767] = S_DOOM_KEEN_DIE4,
+		[768] = S_DOOM_KEEN_DIE5,
+		[769] = S_DOOM_KEEN_DIE6,
+		[770] = S_DOOM_KEEN_DIE7,
+		[771] = S_DOOM_KEEN_DIE8,
+		[772] = S_DOOM_KEEN_DIE9,
+		[773] = S_DOOM_KEEN_DIE10,
+		[774] = S_DOOM_KEEN_DIE11,
+		[775] = S_DOOM_KEEN_DIE12,
+		[776] = S_DOOM_KEEN_PAIN1,
+		[777] = S_DOOM_KEEN_PAIN2,
 		[795] = S_SPAWNFIRE5,
 		[816] = S_DOOM_HEALTHBONUS_1,
 		[817] = S_DOOM_HEALTHBONUS_2,
