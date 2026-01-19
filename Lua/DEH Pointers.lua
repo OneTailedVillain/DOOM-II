@@ -12,6 +12,7 @@ local function BulletHitObject(tmthing, thing)
 	tmthing.momz = 0
     DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
 	P_KillMobj(tmthing)
+	S_StartSound(tmthing, mobjinfo[tmthing.type].deathsound)
 	return false
 end
 
@@ -21,6 +22,7 @@ local projectiles = {
 	MT_DOOM_MANCUBUSFIREBALL,
 	MT_DOOM_BARONFIREBALL,
 	MT_DOOM_ARCHNOTRONPLASMA,
+	MT_DOOM_ROCKETPROJ,
 }
 
 for _, mt in ipairs(projectiles) do
@@ -56,6 +58,9 @@ doom.mthingReplacements = {
 	[30] = MT_DOOM_TALLGREENCOLUMN,
 	[31] = MT_DOOM_SHORTGREENPILLAR,
 	[32] = MT_DOOM_TALLREDCOLUMN,
+	[33] = MT_DOOM_SHORTREDCOLUMN,
+	[34] = MT_DOOM_CANDLESTICK,
+	[35] = MT_DOOM_CANDELABRA,
 }
 
 doom.immunity = doom.immunity or {}
