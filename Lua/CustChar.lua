@@ -1161,6 +1161,9 @@ for charName, charTable in pairs(doom.charSupport) do
     end
 end
 
+-- In case someone wants to modify the generic methods
+doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
+
 setmetatable(doom.charSupport, {
 	__index = function(t, key) return t.other end
 })
