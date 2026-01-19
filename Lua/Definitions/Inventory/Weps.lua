@@ -164,8 +164,9 @@ doom.addWeapon("supershotgun", {
 			{frame = A, tics = 3, nextstate = "lower"},
 		},
 		flash = {
-			{frame = I|FF_FULLBRIGHT, tics = 4, action = A_DoomLight1},
-			{frame = J|FF_FULLBRIGHT, tics = 3, action = A_DoomLight2},
+			-- Flashframe jank
+			{frame = I|FF_FULLBRIGHT, tics = 5, action = A_DoomLight1},
+			{frame = J|FF_FULLBRIGHT, tics = 4, action = A_DoomLight2},
 			{frame = A, sprite = SPR_NULL, tics = 1, action = A_DoomLight0},
 		}
 	},
