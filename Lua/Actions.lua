@@ -305,7 +305,7 @@ function A_DoomChase(actor)
 	end
 
 	// Turn toward movement direction if not there yet
-	if actor.movedir and actor.movedir < 8 then
+	if actor.movedir < 8 then
 		-- snap angle to nearest 45 sector
 		actor.angle = $ & (7<<29)
 
