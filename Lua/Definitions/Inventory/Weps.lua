@@ -262,7 +262,7 @@ doom.addWeapon("rocketlauncher", {
 	weaponslot = 5,
 	order = 1,
 	priority = 2500,
-	damage = {5, 15},
+	damage = {20, 160},
 	noinitfirespread = true,
 	noautoswitchfire = true,
 	pellets = 1,
