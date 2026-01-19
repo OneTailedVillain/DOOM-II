@@ -667,7 +667,7 @@ addHook("PlayerThink", function(player)
 
 		for i = 1, #victims do
 			local target = victims[i]
-			DOOM_DamageMobj(target, player.mo, player.mo, 10000)
+			DOOM_DamageMobj(target, player.mo, player.mo, 10000, doom.damagetypes.telefrag)
 		end
 		player.mo.tele = nil
 		-- fog at destination (20 units in front of exit angle)
