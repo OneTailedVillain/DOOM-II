@@ -508,7 +508,15 @@ def patch_linedefs_add(wad_obj, add_value=941):
             continue
 
 def normalize_pegging_flags_to_doom(wad_obj):
-    """Normalize pegging flags to canonical DOOM logic."""
+    """
+    Normalize pegging flags for SRB2 renderer compatibility.
+    
+    The pegging semantics differ between one-sided and two-sided linedefs:
+    - One-sided: Lower Unpegged controls top-vs-bottom attachment
+    - Two-sided: Lower Unpegged and Peg Midtexture have specific meanings for each texture layer
+    
+    This function ensures flags are set consistently for proper SRB2 rendering.
+    """
     modified_total = 0
 
     for mapname, mapgroup in list(wad_obj.maps.items()):
@@ -547,8 +555,13 @@ def normalize_pegging_flags_to_doom(wad_obj):
                 two_sided = ((flags & ML_TWOSIDED) != 0) or (right_idx is not None and left_idx is not None)
 
                 new_flags = flags
-                if two_sided and (flags & ML_DONTPEGBOTTOM):
-                    new_flags = new_flags ^ ML_EFFECT3
+                
+                # For two-sided linedefs, pegging flags have specific meanings and should be 
+                # preserved as set by the mapper. Ensure the ML_TWOSIDED flag reflects reality.
+                if two_sided and not (new_flags & ML_TWOSIDED):
+                    new_flags = new_flags | ML_TWOSIDED
+                elif not two_sided and (new_flags & ML_TWOSIDED):
+                    new_flags = new_flags & ~ML_TWOSIDED
 
                 if new_flags != flags:
                     ld_data[flags_off:flags_off+2] = new_flags.to_bytes(2, "little")
