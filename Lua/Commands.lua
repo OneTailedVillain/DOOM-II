@@ -83,6 +83,14 @@ end)
 COM_AddCommand("idclev", function(player, arg)
 	local funcs = P_GetMethodsForSkin(player)
 
+	-- If player is promoted or has the same userdata reference as the server...
+	-- Don't specify "command" vs "cheat" here, as we don't know whether we got here
+	-- via the console or the typed-in cheats,
+	if not IsPlayerAdmin(player) or player == server then
+		DOOM_DoMessage(player, "This is restricted to admins only.")
+		return
+	end
+
 	if funcs.shouldDoCheat then
 		if funcs.shouldDoCheat(player, "idclev", arg) then return end
 	end
