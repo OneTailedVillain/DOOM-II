@@ -130,12 +130,29 @@ dofile("Obituaries.lua")
 ---| "idclip" Toggle noclip
 ---| "idclev" Change level/map
 ---| "idmus"  Play level music
+---| "iddqd"  Toggle godmode
+---| "idbehold" Give power-up (followed by a single letter indicating which one)
+---| "idspispopd" Toggle no clipping (alternate)
+---| "idchoppers" Give chainsaw and full ammo
+---| "idmypos" Show current position and angle
+---| "iddt"    Change map detail
 
----@alias poweruptype  Non-class. Denotes what power-up types doPowerUp expects.
+---@alias poweruptype
 ---| "berserk"         Berserk pack.    Usually does NOT have a duration.
 ---| "invisibility"    Invisibility.    Lasts 60 seconds.
 ---| "invulnerability" Invulnerability. Lasts 30 seconds.
 ---| "ironfeet"        Radiation suit.  Lasts 60 seconds.
+
+---@alias vanillaweps
+---| "brassknuckles"
+---| "chainsaw"
+---| "pistol"
+---| "chaingun"
+---| "shotgun"
+---| "supershotgun"
+---| "rocketlauncher"
+---| "plasmarifle"
+---| "bfg9000"
 
 ---@class expectedValues Values expected for the saveState method.
 ---@field health integer
@@ -180,16 +197,25 @@ dofile("Obituaries.lua")
 ---@field giveHealth fun(player: player_t, healAmount: integer, expectedMaxHealth: integer|nil): boolean|nil Gives health to the player. expectedMaxHealth is the caller-provided expected maximum used for clamping (often derived from getMaxHealth). Returns true if health was increased, false or nil if no change or unavailable.
 ---@field giveArmor fun(player: player_t, armorAmount: integer, efficiency: number|fixed_t|nil, expectedMaxArmor: integer|nil): boolean|nil Gives armor to the player using the given efficiency. expectedMaxArmor is the caller-provided expected maximum used for clamping (often derived from getMaxArmor). Returns true if armor was increased, false or nil if no change or unavailable.
 ---@field saveState fun(player: player_t, expectedValues: expectedValues): nil Attempt to save the player's current state. expectedValues mostly takes from existing "getSomething" methods and may not be correct for weapons and ammo.
+---@field doForcedWeaponSwitch fun(player: player_t, weapon: string): nil Optional. Called when the game forcibly switches the player's weapon (e.g. Berserk Pack autoswitch). "weapon" is the internal weapon name the game is switching to.
+---@field throwOutSaveState fun(player: player_t) Attempt to throw out the player's current saved state. This should clear out *all* state variables.
+---@field getCurWeapon fun(player: player_t): vanillaweps Returns the weapon name the current player is holding.
 
 ---@class validsoundentries Non-class
 ---@field noway integer Sound played when you try to interact with a non-interactible line
 ---@field oof integer Sound played when you land from a big fall
+---@field pldeth integer Sound played when A_PlayerScream gets called while the player had > -50% health.
+---@field pdiehi integer Sound played when A_PlayerScream gets called while the player had < -50% health.
+---@field slop integer Sound played when A_PlayerXDeath gets called.
+---@field itemup integer Sound played when you collect an item.
+---@field wpnup integer Sound played when you collect a weapon.
+---@field getpow integer Sound played when you collect a power-up.
 
 ---@class doomcharsupport_t Character support definition
 ---@field noWeapons boolean If true, disable Doom weapon system. Nil = default behavior (uses Doom system)
 ---@field noHUD boolean If true, disable Doom HUD. Nil = default behavior (uses Doom HUD)
 ---@field customDamage boolean @deprecated Unnecessary to set since v0.99-3. Used to be a hack to circumnavigate a stack overflow when a damage method used P_DamageMobj.
----@field soundTable table Table of sound effects that can be replaced. Empty entries will use their default sound effects.
+---@field soundTable validsoundentries Table of sound effects that can be replaced. Empty entries will use their default sound effects.
 ---@field intermusic string The music lump played when you go the intermission while playing as this character. Overrides both DOOM II and DOOM 1 intermission songs.
 ---@field methods doommethods_t The methods table for this character
 
@@ -223,7 +249,9 @@ dofile("Obituaries.lua")
 ---@field addAmmo function A function to register an ammo definition
 ---@field weapons table<weapondef_t> The registered weapon definitions
 ---@field ammos table<ammodef_t> The registered ammo definitions
----@field thinkers table<any, table> The thinkers in the current map
+---@field thinkers table<any, table> @deprecated Use doom.thinkerlist and doom.thinkermap instead
+---@field thinkerlist table<number, {key: any, data: any, active: boolean}> The list of active thinkers
+---@field thinkermap table<any, number> Mapping of thinker keys to their index in thinkerlist
 ---@field gameskill integer The current skill level of the game
 ---@field showendoom boolean Whether the ENDOOM screen is being shown
 ---@field KEY_RED integer The bitmask value for the red key
@@ -298,6 +326,12 @@ dofile("Obituaries.lua")
 ---@field addPairImmunity fun(attackerType: number, targetType: number) add a specific A->B immunity pair
 ---@field removePairImmunity fun(attackerType: number, targetType: number) remove a specific A->B immunity pair
 ---@field setNoRetaliateAgainst fun(monsterType: number, enabled: boolean) set whether a monster type should not be retaliated against
+---@field damagetypes table<string, integer> A table of damage type constants. OR'ing with doom.damagetypes.instakill will make the damage ignore armor and directly set health to zero.
+---@field spawnpoints table<string, table> The spawnpoints in the current map
+---@field cvars table<string, consvar_t> A table of registered DOOM cvars
+---@field doObituary fun(target: mobj_t, source: mobj_t|nil, inflictor: mobj_t|nil, dtype: integer): nil Function to handle obituaries
+---@field obitStrings table<string, table> Table of obituary strings, where "doom.obitStringsp[gametype]" gets the strings for the current game type
+---@field loadStrings fun(gametype: string): nil Function to load the doom.strings table for the given game type
 
 ---@class doomspread_t
 ---@field horiz fixed_t
@@ -390,6 +424,7 @@ dofile("Obituaries.lua")
 ---@field frags integer Frag count (multiplayer)
 ---@field message string|nil HUD message text
 ---@field messageclock integer|nil Message display timer
+---@field cheats integer Bitmask of active cheats
 
 ---@class doomflags_t Bitmask of doommobj_t flags
 ---@field DF_DROPPED integer If the object was dropped by a monster or player
@@ -411,12 +446,16 @@ dofile("Obituaries.lua")
 ---@field armor integer The armor of the mobj
 ---@field armorefficiency integer The armor efficiency of the mobj's armor
 ---@field flags doomflags_t Bitmask of doommobj_t flags (DF_*)
+---@field damage integer The damage value of the mobj, for projectiles
+---@field hitsound integer The sound to play when the mobj hits something
 
 ---@class mobj_t
 ---@field doom doommobj_t The Doom-specific fields for this object
 ---@field parent mobj_t The "parent" of this object
 ---@field child mobj_t The "child" of this object
 ---@field corpse mobj_t The corpse object of the player
+---@field dist fixed_t Used for raycasting. The distance from the ray origin to this mobj.
+---@field shooter mobj_t The mobj that fired/shot this projectile, if any
 
 ---@class player_t
 ---@field doom doomplayer_t The Doom-specific fields for this player
@@ -425,6 +464,8 @@ dofile("Obituaries.lua")
 
 ---@class mobjinfo_t
 ---@field doomflags doomflags_t Bitmask of doommobj_t flags (DF_*). Auto-copied to mobj_t.doom.flags on spawn.
+---@field doomname string The Name passed to DefineDoomActor
+---@field fastspeed fixed_t The speed used when doom_fastmonsters is enabled
 
 ---@class doomstrings Non-class, holds the IDs of Doom strings
 ---@field GOTARMOR string Message for picking up the CombatArmor.
