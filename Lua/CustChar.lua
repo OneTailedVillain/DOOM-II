@@ -162,34 +162,32 @@ local baseMethods = {
 		if dflags == nil then dflags = 0 end
 		if not player or not player.doom then return false end
 
-		-- source -> {ammoType, multiplier, isSinglePickup}
-		local sources = {
-			-- Ammo pickups
-			clip      = {"bullets", 1, true},
-			clipbox   = {"bullets", 5},
-			shells    = {"shells", 1, true},
-			shellbox  = {"shells", 5},
-			rocket    = {"rockets", 1, true},
-			rocketbox = {"rockets", 5},
-			cell      = {"cells", 1, true},
-			cellpack  = {"cells", 5},
+		local aType, multiplier, isSingle
 
-			-- Weapons
-			pistol         = {"bullets", 2},
-			chaingun       = {"bullets", 2},
-			shotgun        = {"shells", 2},
-			supershotgun   = {"shells", 2},
-			rocketlauncher = {"rockets", 2},
-			plasmarifle    = {"cells", 2},
-			bfg9000        = {"cells", 2},
-		}
+		-- Ammo pickups now come from the refactored lookup table
+		local pickupDef = doom.ammonameToPickupDef[source]
+		if pickupDef then
+			aType      = pickupDef[1]
+			multiplier = pickupDef[2] or 1
+			isSingle   = pickupDef[3]
+		else
+			-- Weapons still grant ammo directly
+			local weaponSources = {
+				pistol         = {"bullets", 2},
+				chaingun       = {"bullets", 2},
+				shotgun        = {"shells", 2},
+				supershotgun   = {"shells", 2},
+				rocketlauncher = {"rockets", 2},
+				plasmarifle    = {"cells", 2},
+				bfg9000        = {"cells", 2},
+			}
 
-		local entry = sources[source]
-		if not entry then return false end
+			local entry = weaponSources[source]
+			if not entry then return false end
 
-		local aType      = entry[1]
-		local multiplier = entry[2] or 1
-		local isSingle   = entry[3]
+			aType      = entry[1]
+			multiplier = entry[2] or 1
+		end
 
 		local ammoDef = doom.ammos[aType]
 		if not ammoDef or ammoDef.pickupamount == nil then return false end
@@ -199,17 +197,17 @@ local baseMethods = {
 
 		-- Skill modifiers (ITYTD / NM)
 		if doom.gameskill == 1 or doom.gameskill == 5 then
-			addAmount = $ * 2
+			addAmount = addAmount * 2
 		end
 
 		-- Dropped weapons give half ammo
 		if (dflags & DF_DROPPED) then
-			addAmount = $ / 2
+			addAmount = addAmount / 2
 		end
 
 		-- Deathmatch single-pickup bonus
 		if gametype == GT_DOOMDM and isSingle then
-			addAmount = $ * 5
+			addAmount = addAmount * 5
 		end
 
 		local curAmmo = player.doom.ammo[aType] or 0

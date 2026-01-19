@@ -37,10 +37,15 @@ local function onPickup(item, mobj)
 		funcs.doBackpack(player)
 	else
 		player.doom.backpack = true
-		funcs.giveAmmoFor(player, "clip", item.doom.flags)
-		funcs.giveAmmoFor(player, "shells", item.doom.flags)
-		funcs.giveAmmoFor(player, "rocket", item.doom.flags)
-		funcs.giveAmmoFor(player, "cell", item.doom.flags)
+
+		-- Give ammo for every registered ammo type
+		for ammoname, _ in pairs(doom.ammos) do
+			-- Use the *small pickup name* if available, otherwise fall back to ammo name
+			local ammoDef = doom.ammos[ammoname]
+			local pickupName = ammoDef.smallpickupName or ammoname
+
+			funcs.giveAmmoFor(player, pickupName, item.doom.flags)
+		end
 	end
 	DOOM_DoMessage(player, "$GOTBACKPACK")
 end

@@ -224,6 +224,20 @@ end
 doom.ammos = {}
 doom.textscreenmaps = {}
 
+---@class doomglobal_t
+---@field annonameToPickupDef table<string, {[1]: string, [2]: integer, [3]: boolean}> Mapping of ammo pickup names to ammo definitions. [1] = ammo type, [2] = amount (multiplied by pickupamount), [3] = isSmallPickup
+
+doom.ammonameToPickupDef = {
+	clip      = {"bullets", 1, true},
+	clipbox   = {"bullets", 5},
+	shells    = {"shells", 1, true},
+	shellbox  = {"shells", 5},
+	rocket    = {"rockets", 1, true},
+	rocketbox = {"rockets", 5},
+	cell      = {"cells", 1, true},
+	cellpack  = {"cells", 5}
+}
+
 local ammoBase = {
     max = 200,
     icon = "SBOAMMO1"
@@ -239,9 +253,31 @@ local mt = {
 
 setmetatable(ammoBase, mt)
 
+local function warn(warning)
+	print("\x82WARNING:\x80 " .. tostring(warning))
+end
+
 function doom.addAmmo(ammoname, properties)
     setmetatable(properties, mt)
     doom.ammos[ammoname] = properties
+
+    if not properties.pickupamount then
+        warn("Ammo '" .. ammoname .. "' is missing pickupamount property! Defaulting to 1...")
+        properties.pickupamount = 1
+    end
+    if properties.smallpickupName then
+        doom.ammonameToPickupDef[properties.smallpickupName] = {ammoname, properties.smallpickupAmount or 1, true}
+    else
+        warn("Ammo '" .. ammoname .. "' is missing smallpickupName property! Defaulting to '" .. ammoname .. "'...")
+        doom.ammonameToPickupDef[ammoname] = {ammoname, properties.smallpickupAmount or 1, true}
+    end
+
+    if properties.bigpickupName then
+        doom.ammonameToPickupDef[properties.bigpickupName] = {ammoname, properties.bigpickupAmount or 5}
+    else
+        warn("Ammo '" .. ammoname .. "' is missing bigpickupName property! Defaulting to '" .. ammoname .. "box'...")
+        doom.ammonameToPickupDef[ammoname .. "box"] = {ammoname, properties.bigpickupAmount or 5}
+    end
 end
 
 doom.textscreen = {
