@@ -517,7 +517,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		if health <= 0 then return end
 		if funcs.shouldDealDamage then
 			local returnVal = funcs.shouldDealDamage(target, inflictor, source, damage, damagetype, minhealth)
-			if returnval != nil and not returnVal then return end
+			if returnVal != nil and not returnVal then return end
 		end
 
 		if doom.gameskill == 1 then
