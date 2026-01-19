@@ -45,7 +45,10 @@
         "source",
         "target",
         "HL",
-        "path"
+        "path",
+        "tth_doombuild",
+        "GT_DOOMDMTWO",
+        "doom"
     ],
     "Lua.diagnostics.disable": [
         "missing-fields",
@@ -55,6 +58,13 @@
         "param-type-mismatch",
         "undefined-field",
         "need-check-nil",
-        "assign-type-mismatch"
+        "assign-type-mismatch",
+        "unknown-symbol",
+        "keyword",
+        "miss-symbol",
+        "missing-parameter",
+        "duplicate-doc-alias",
+        "duplicate-doc-field",
+        "duplicate-set-field"
     ]
 }
