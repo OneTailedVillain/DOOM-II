@@ -162,6 +162,8 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     -- VSCode doesn't seem to realize that field injection is only IMpossible when you do it like the above!!
 ---@diagnostic disable-next-line: inject-field
 	mobjinfo[MT].doomflags = objData.doomflags
+---@diagnostic disable-next-line: inject-field
+	mobjinfo[MT].doomname = name
 
     -- 4) fill states[] the same way
     for stateKey, frames in pairs(stateData) do
@@ -500,7 +502,6 @@ rawset(_G, "DOOM_IsExiting", function()
 	return doom.intermission or doom.textscreen.active
 end)
 
--- TODO: monsters CANNOT in-fight Archviles!
 rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, minhealth)
     if not target or not target.valid then return end
     damage = inflictor and inflictor.doom.damage or damage
