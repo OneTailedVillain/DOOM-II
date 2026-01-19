@@ -2,6 +2,27 @@ local function warn(warning)
 	print("\x82WARNING:\x80 " .. tostring(warning))
 end
 
+rawset(_G, "printTable", function(data, prefix)
+	prefix = prefix or ""
+	if type(data) == "table"
+		if not next(data) then
+			print("[Empty table]")
+		else
+			for k, v in pairs(data or {}) do
+				local key = prefix .. k
+				if type(v) == "table" then
+					print("key " .. key .. " = a table:")
+					printTable(v, key .. ".")
+				else
+					print("key " .. key .. " = " .. tostring(v))
+				end
+			end
+		end
+	else
+		print(data)
+	end
+end)
+
 local function SafeFreeSlot(...)
     local ret = {}
     for _, name in ipairs({...}) do
