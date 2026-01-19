@@ -718,9 +718,7 @@ addHook("PlayerThink", function(player)
 			DoomSectorDamage(player, 20, true) -- 20 dmg floor w/burnthrough
 		end
 	elseif spec == 11 then
-		if not player.doom.powers[pw_invulnerability] then
-			player.pflags = $ & ~PF_GODMODE
-		end
+		player.doom.cheats = player.doom.cheats & ~CF_GODMODE
 
 		if not (leveltime & 31) then
 			DOOM_DamageMobj(player.mo, nil, nil, 20, 0, 1)
@@ -872,6 +870,7 @@ addHook("PlayerSpawn",function(player)
 	player.mo.doom.armorefficiency = choose("armorefficiency")
 	player.doom.oldweapons = choose("oldweapons")
 	player.doom.notrigger = false
+	player.doom.cheats = ($ or 0)
 	if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
 		player.doom.keys = UINT32_MAX
 	elseif not multiplayer then
