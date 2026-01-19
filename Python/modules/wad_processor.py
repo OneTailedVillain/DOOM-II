@@ -721,3 +721,22 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 
     print(f"Created {created_count} player sprite lumps from PLAY lumps")
     return created_count
+
+def append_stcfn_uppercase_to_lowercase(wad):
+    """
+    Append STCFN uppercase letters to the lowercase letters in the WAD.
+    """
+    stcfn_prefix = "STC"
+    uppercase_range = range(65, 91)  # ASCII codes for A-Z
+    lowercase_range = range(97, 123)  # ASCII codes for a-z
+
+    for upper, lower in zip(uppercase_range, lowercase_range):
+        upper_name = f"{stcfn_prefix}{upper:03}"
+        lower_name = f"{stcfn_prefix}{lower:03}"
+
+        if lower_name in wad.graphics and upper_name in wad.graphics:
+            # Append uppercase data to lowercase lump
+            wad.graphics[lower_name].data += wad.graphics[upper_name].data
+            print(f"Appended {upper_name} to {lower_name}")
+        else:
+            print(f"Missing lump: {upper_name} or {lower_name}")
