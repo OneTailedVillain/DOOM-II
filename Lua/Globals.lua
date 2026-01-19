@@ -39,7 +39,7 @@ end
 doom = doom or {}
 
 doom.mapString = "HUSTR_"
-doom.gameskill = 0
+doom.gameskill = 3
 doom.killcount = 0
 doom.kills = 0
 doom.respawnmonsters = false
@@ -69,7 +69,7 @@ doom.sectorbackups = {}
 
 doom.validcount = 0
 doom.sectordata = {}
-doom.gamemode = "shareware"
+doom.gamemode = "commercial" -- Assume Doom II by default
 
 doom.switchTexNames = {
     // Doom shareware episode 1 switches
