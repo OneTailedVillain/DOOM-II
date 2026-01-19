@@ -51,14 +51,14 @@ local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 	
 	if stateType == "weapon" then
 		stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
-		sprite = stateDef.sprite or doom.weapons[player.doom.curwep].sprite
+		sprite = stateDef.sprite == nil and doom.weapons[player.doom.curwep].sprite or stateDef.sprite
 	else -- flash
 		if player.doom.flashframe < 1 then return false end
 		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return false end
 		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe] then return false end
 		
 		stateDef = doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe]
-		sprite = stateDef.sprite or doom.weapons[player.doom.curwep].flashsprite
+		sprite = stateDef.sprite == nil and doom.weapons[player.doom.curwep].flashsprite or stateDef.sprite
 	end
 
 	local whatFrame = stateDef.frame
