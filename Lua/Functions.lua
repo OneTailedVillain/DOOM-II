@@ -998,7 +998,12 @@ rawset(_G, "DOOM_ExitLevel", function()
 	local targetTextScreen = doom.textscreenmaps[gamemap]
 	if doom.textscreenmaps[gamemap] and doom.isdoom1 then
 		for player in players.iterate do
-			player.doom.laststate = {}
+			local funcs = P_GetMethodsForSkin(player)
+			if funcs.throwOutSaveState then
+				funcs.throwOutSaveState(player)
+			else
+				player.doom.laststate = {}
+			end
 		end
 		DOOM_StartTextScreen(targetTextScreen)
 	else
