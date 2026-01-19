@@ -67,13 +67,26 @@ doom.weaponnames = {
 doom.sectorspecials = {}
 doom.sectorbackups = {}
 
-local lastBitFlag = INT32_MAX + 1
+-- local lastBitFlag = INT32_MAX + 1
+
+local lastBitFlag = 1
+
+-- Maybe attempt to get the last bit flag in case of a future move to 64-bit integers? Or maybe if SRB2 moves to 16 bit for some reason
+repeat
+    lastBitFlag = lastBitFlag << 1
+until lastBitFlag <= 0 -- overflowed
+
+lastBitFlag = lastBitFlag >> 1
 
 doom.damagetypes = {
-	explodesplash = 1,
-	telefrag = 2,
-    exit = 3,
-    instakill = lastBitFlag,
+    fall = 1,                  -- Fall damage
+    crush = 2,                 -- Crushing damage
+    explodesplash = 3,         -- Explosion splash damage
+    telefrag = 4,              -- Telefrag damage
+    slime = 5,                 -- Slime/acid damage
+    fire = 6,                  -- Fire damage
+    exit = 7,                  -- "Attempt to leave the level" damage
+    instakill = 0x80000000,    -- Special: direct health zeroing
 }
 
 doom.validcount = 0
@@ -225,18 +238,9 @@ doom.ammos = {}
 doom.textscreenmaps = {}
 
 ---@class doomglobal_t
----@field annonameToPickupDef table<string, {[1]: string, [2]: integer, [3]: boolean}> Mapping of ammo pickup names to ammo definitions. [1] = ammo type, [2] = amount (multiplied by pickupamount), [3] = isSmallPickup
+---@field ammonameToPickupDef table<string, {[1]: string, [2]: integer, [3]: boolean}> Mapping of ammo pickup names to ammo definitions. [1] = ammo type, [2] = amount (multiplied by pickupamount), [3] = isSmallPickup
 
-doom.ammonameToPickupDef = {
-	clip      = {"bullets", 1, true},
-	clipbox   = {"bullets", 5},
-	shells    = {"shells", 1, true},
-	shellbox  = {"shells", 5},
-	rocket    = {"rockets", 1, true},
-	rocketbox = {"rockets", 5},
-	cell      = {"cells", 1, true},
-	cellpack  = {"cells", 5}
-}
+doom.ammonameToPickupDef = {}
 
 local ammoBase = {
     max = 200,
