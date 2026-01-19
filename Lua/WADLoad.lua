@@ -296,7 +296,7 @@ end
 
 local function printTable(data, prefix)
 	prefix = prefix or ""
-	if type(data) == "table"
+	if type(data) == "table" then
 		for k, v in pairs(data or {}) do
 			local key = prefix .. k
 			if type(v) == "table" then
