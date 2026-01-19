@@ -1,3 +1,16 @@
+---@class StateFrame
+---@field sprite integer The sprite ID
+---@field frame string The animation frame (e.g., "A", "B")
+---@field tics integer Duration in tics
+---@field action? fun(actor:mobj_t, var1:integer?, var2:integer?) Optional action function
+---@field var1? integer Optional parameter 1
+---@field var2? integer Optional parameter 2
+---@field next? string|integer|nil Next state name (string), state ID (integer), or nil for auto-chain
+---@field nextframe? integer Frame number for named next state (default 1)
+
+---@class StateDefs
+---@field [string] StateFrame[] Tables of state frames, keyed by state name
+
 local function warn(warning)
 	print("\x82WARNING:\x80 " .. tostring(warning))
 end
