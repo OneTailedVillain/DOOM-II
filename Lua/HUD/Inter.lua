@@ -254,7 +254,7 @@ local function drawIntermission(v, player)
 	local inter = player.doom.intstate
 	local levPatch = doom.isdoom1 and doom1MapToPatch or doom2MapToPatch
 	if inter >= 11 then
-		levPatch = $[gamemap + 1]
+		levPatch = levPatch[gamemap + 1]
 		local levelname = v.cachePatch("WIENTER")
 		local y = WI_TITLEY
 		v.draw((320 - levelname.width)/2, y, levelname)
@@ -263,12 +263,12 @@ local function drawIntermission(v, player)
 		v.draw((320 - finpatch.width)/2, y, finpatch)
 		return
 	end
-	levPatch = $[gamemap]
+	levPatch = levPatch[gamemap]
 	local lh = (3*v.cachePatch("WINUM0").height)/2
 	local levelname = v.cachePatch(levPatch)
 	local y = WI_TITLEY
 	v.draw((320 - levelname.width)/2, y, levelname)
-	y = $ + (5*levelname.height)/4
+	y = y + (5*levelname.height)/4
 	local finpatch = v.cachePatch("WIF")
 	v.draw((320 - finpatch.width)/2, y, finpatch)
 	

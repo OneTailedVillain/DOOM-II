@@ -73,8 +73,8 @@ hud.add(endoom, "title")
 
 addHook("ThinkFrame", function()
 	if not doom.showendoom then return end
-	endmtimer = $ - 1
+	endmtimer = endmtimer - 1
 	if endmtimer <= 0 then
-		COM_BufInsertText(player, "quit")
+		COM_BufInsertText(consoleplayer, "quit")
 	end
 end)
