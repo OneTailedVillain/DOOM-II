@@ -58,8 +58,10 @@ dofile("Definitions/Objects/Projectiles/Imp Fireball.lua")
 dofile("Definitions/Objects/Projectiles/Mancubus Fireball.lua")
 dofile("Definitions/Objects/Projectiles/Plasma.lua")
 dofile("Definitions/Objects/Projectiles/Arachnotron Plasma.lua")
+dofile("Definitions/Objects/Projectiles/Revenant Projectile.lua")
 dofile("Definitions/Objects/Projectiles/BOH Fireball.lua")
 dofile("Definitions/Objects/Effects/Telefog.lua")
+dofile("Definitions/Objects/Effects/Revenant Tracer.lua")
 dofile("Definitions/States/Player.lua")
 dofile("Definitions/Objects/MiscDeco.lua")
 dofile("HUD/HUDLib.lua")
@@ -76,6 +78,7 @@ dofile("Player/KeyBoardCheats.lua")
 dofile("Player/PreThink.lua")
 dofile("Player/PostThink.lua")
 dofile("DEH Pointers.lua")
+dofile("Obituaries.lua")
 
 -- VSCode shit since with the advent of doomgfx it's now somewhat more viable as an option
 

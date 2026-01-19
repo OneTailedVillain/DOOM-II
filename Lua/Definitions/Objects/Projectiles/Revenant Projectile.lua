@@ -1,69 +1,7 @@
-local function FreeDoomStates(name, stateDefs)
-    local up     = name:upper()
-    local prefix = "DOOM_" .. up
-
-    -- Build a list of all state globals to freeslot
-    local needed = {}
-    for stateKey, frames in pairs(stateDefs) do
-        local stU = stateKey:upper()
-        for i = 1, #frames do
-            needed[#needed+1] = string.format("S_%s_%s%d", prefix, stU, i)
-        end
-    end
-
-    -- Freeslot all the state globals
-    local slots = SafeFreeSlot(unpack(needed))
-
-    -- Set up nextstate references properly
-    for stateKey, frames in pairs(stateDefs) do
-        local stU = stateKey:upper()
-        for i, f in ipairs(frames) do
-			local thisName = string.format("S_%s_%s%d", prefix, stU, i)
-
-			local nextslot
-
-			-- If user explicitly sets numeric next (like next = S_PLAY_STND)
-			if type(f.next) == "number" then
-				print("NEXT STATE FOR " .. thisName .. " IS CONSTANT")
-				nextslot = f.next
-
-			-- If user uses named doom-state next (like next = "move")
-			elseif type(f.next) == "string" then
-				local nextName = string.format(
-					"S_%s_%s%d",
-					prefix,
-					f.next:upper(),
-					tonumber(f.nextframe) or 1
-				)
-				nextslot = slots[nextName]
-
-			-- Otherwise: fall back to automatic chaining
-			elseif frames[i+1] then
-				local nextName = string.format("S_%s_%s%d", prefix, stU, i+1)
-				nextslot = slots[nextName]
-			end
-
-			print(thisName .. " NEXT SLOT: " .. tostring(nextslot))
-
-			f.nextstate = nextslot or S_NULL
-
-			states[ slots[thisName] ] = {
-				sprite    = f.sprite or (objData and objData.sprite),
-				frame     = f.frame,
-				tics      = f.tics,
-				action    = f.action,
-				var1      = f.var1,
-				var2      = f.var2,
-				nextstate = f.nextstate
-			}
-        end
-    end
-end
-
 SafeFreeSlot(
     "SPR_PLSS","SPR_PLSE",
     "sfx_plasma","sfx_firxpl",
-    "MT_DOOM_PLASMASHOT"
+    "MT_DOOM_REVENANT_PROJECTILE"
 )
 /*
 void A_Tracer (mobj_t* actor)
@@ -138,16 +76,80 @@ void A_Tracer (mobj_t* actor)
 }
 */
 
-local function A_Tracer(actor)
-	if leveltime & 3 then return end
+-- TRACEANGLE is the angle change per tic for tracking
+local TRACEANGLE = FixedAngle(FRACUNIT*7/2) -- approximately 3.5 degrees
 
-	P_SpawnMobj(actor.x, actor.y, actor.z, MT_NULL)
+---@param actor mobj_t The projectile actor
+local function A_Tracer(actor)
+	-- Only trace every 4 tics (same as DOOM engine behavior)
+	if leveltime & 3 then return end
+	
+	-- Spawn a tracer puff at the projectile's current position
+	local puff = P_SpawnMobj(actor.x, actor.y, actor.z, MT_DOOM_REVENANT_TRACER)
+	
+	-- Ensure target exists and is alive
+	if not actor.tracer or actor.tracer.health <= 0 then
+		return
+	end
+	
+	local dest = actor.tracer
+	
+	-- Calculate the exact angle toward the target
+	local exact = R_PointToAngle2(actor.x, actor.y, dest.x, dest.y)
+	
+	-- Adjust the projectile's angle toward the target gradually
+	if exact ~= actor.angle then
+		local angle_diff = exact - actor.angle
+		
+		-- Handle angle wrapping (angles > 0x80000000 wrap around)
+		if angle_diff > ANGLE_180 then
+			-- Target is "behind" us, turn left
+			actor.angle = actor.angle - TRACEANGLE
+			if (exact - actor.angle) < ANGLE_180 then
+				actor.angle = exact
+			end
+		else
+			-- Target is "ahead", turn right
+			actor.angle = actor.angle + TRACEANGLE
+			if (exact - actor.angle) > ANGLE_180 then
+				actor.angle = exact
+			end
+		end
+	end
+	
+	-- Update the projectile's velocity based on the new angle and speed
+	local speed = actor.info.speed
+	actor.momx = speed * cos(actor.angle)
+	actor.momy = speed * sin(actor.angle)
+	
+	-- Calculate distance to target for slope adjustment
+	local dx = dest.x - actor.x
+	local dy = dest.y - actor.y
+	local dist = P_AproxDistance(dx, dy)
+	
+	-- Normalize distance to speed ratio
+	dist = dist / speed
+	if dist < FRACUNIT then
+		dist = FRACUNIT
+	end
+	
+	-- Calculate slope (z adjustment) toward the target
+	-- Add 40 fracunits to account for head height
+	local slope = (dest.z + 40*FRACUNIT - actor.z) / dist
+	
+	-- Gradually adjust vertical velocity toward the slope
+	if slope < actor.momz then
+		actor.momz = actor.momz - FRACUNIT/8
+	else
+		actor.momz = actor.momz + FRACUNIT/8
+	end
 end
 
+---@type StateDefs
 local plasmastates = {
     shot = {
-        {sprite = SPR_PLSS, frame = A, tics = 6},
-        {sprite = SPR_PLSS, frame = B, tics = 6, next = "shot"},
+        {sprite = SPR_PLSS, frame = A, tics = 6, action = A_Tracer},
+        {sprite = SPR_PLSS, frame = B, tics = 6, action = A_Tracer, next = "shot"},
     },
 
     explode = {
@@ -159,14 +161,13 @@ local plasmastates = {
     },
 }
 
-FreeDoomStates("Plasma", plasmastates)
+FreeDoomStates("RevenantProj", plasmastates)
 
-mobjinfo[MT_DOOM_PLASMASHOT] = {
-    spawnstate = S_DOOM_PLASMA_SHOT1,
+mobjinfo[MT_DOOM_REVENANT_PROJECTILE] = {
+    spawnstate = S_DOOM_REVENANTPROJ_SHOT1,
     seesound   = sfx_plasma,
     deathsound = sfx_firxpl,
-    deathstate = S_DOOM_PLASMA_EXPLODE1,
-
+    deathstate = S_DOOM_REVENANTPROJ_EXPLODE1,
     speed      = 25*FRACUNIT,
     radius     = 13*FRACUNIT,
     height     = 8*FRACUNIT,

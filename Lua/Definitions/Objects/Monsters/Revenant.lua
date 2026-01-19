@@ -75,6 +75,20 @@ void A_SkelMissile (mobj_t* actor)
 }
 */
 
+local function A_SkelMissile(actor)
+	if not actor.target then return end
+
+	A_DoomFaceTarget(actor)
+	actor.z = actor.z + (16 * FRACUNIT) -- so missile spawns higher
+
+	local mo = DOOM_SpawnMissile(actor, actor.target, MT_DOOM_REVENANT_PROJECTILE)
+	actor.z = actor.z - (16 * FRACUNIT) -- back to normal
+
+	-- "'mobj_t' field 'x' should not be set directly. Use 'P_Move', 'P_TryMove', or 'P_SetOrigin', or 'P_MoveOrigin' instead." yeah whatever NERD.
+	P_SetOrigin(mo, mo.x + mo.momx, mo.y + mo.momy, mo.z)
+	mo.tracer = actor.target
+end
+
 local states = {
 	stand = {
 		{action = A_DoomLook, frame = A, tics = 10},
@@ -103,7 +117,7 @@ local states = {
 	missile = {
 		{action = A_DoomFaceTarget, frame = J|FF_FULLBRIGHT, tics = 0},
 		{action = A_DoomFaceTarget, frame = J|FF_FULLBRIGHT, tics = 10, var1 = 0, var2 = 2},
-		{action = A_DoomFaceTarget, frame = K, tics = 8}, -- this should ACTUALLY use A_SkelMissile!
+		{action = A_SkelMissile,    frame = K, tics = 8},
 		{action = A_DoomFaceTarget, frame = K, tics = 8, next = "chase"},
 	},
 	pain = {
