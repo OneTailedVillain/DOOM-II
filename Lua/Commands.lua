@@ -69,7 +69,7 @@ COM_AddCommand("idclip", function(player)
 		local returnVal = funcs.shouldDoCheat(player, "idclip")
 		if returnVal then return end
 	end
-	player.pflags = $ ^^ PF_NOCLIP
+	player.pflags = player.pflags ^^ PF_NOCLIP
 	if (player.pflags & PF_NOCLIP) then
 		DOOM_DoMessage(player, "$STSTR_NCON")
 	else
@@ -172,14 +172,14 @@ local gameSkillStrings = {
 }
 
 COM_AddCommand("doom_skill", function(player, skill)
-	skill = tonumber($)
+	skill = tonumber(skill)
 	if skill < 1 or skill > 5 then
-		CONS_Printf(player "Invalid skill level '" .. skill .. "'!")
+		CONS_Printf(player, "Invalid skill level '" .. skill .. "'!")
 	end
 	if gamestate == GS_LEVEL and skill != doom.gameskill then
-		local curSkillName = DOOM_ResolveString(gameSkillStrings[skill]) or "Unknown skill level '" .. skill .. "'"
+		local curSkillName = DOOM_ResolveString(gameSkillStrings[skill]) or ("Unknown skill level '" .. skill .. "'")
 		local message = "Game skill has been set to '" .. curSkillName .. "'. Changes will apply on the next map."
-		message = $:upper()
+		message = message:upper()
 		print(message)
 		if doom.isdoom1 then
 			S_StartSound(nil, sfx_tink)

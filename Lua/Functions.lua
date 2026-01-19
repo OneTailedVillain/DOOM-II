@@ -424,7 +424,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		end
 
 		if doom.gameskill == 1 then
-			damage = $ / 2
+			damage = damage / 2
 		end
 
 		if player.doom.dealtDamage then
@@ -492,17 +492,16 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             -- Make fall forwards sometimes
             if damage < 40 and damage > target.doom.health and 
                target.z - inflictor.z > 64*FRACUNIT and P_RandomChance(FRACUNIT/2) then
-                ang = $ + ANGLE_180
-                thrust = $ * 4
+                ang = ang + ANGLE_180
+                thrust = thrust * 4
             end
 
-            target.momx = $ + FixedMul(thrust, cos(ang))
-            target.momy = $ + FixedMul(thrust, sin(ang))
+            target.momx = target.momx + FixedMul(thrust, cos(ang))
+            target.momy = target.momy + FixedMul(thrust, sin(ang))
         end
 
         -- Apply damage
-        target.doom.health = $ - damage
-
+        target.doom.health = target.doom.health - damage
         if target.doom.health <= 0 then
             -- Handle death
             target.flags = $ & ~(MF_SHOOTABLE|MF_FLOAT)
@@ -596,11 +595,11 @@ rawset(_G, "DOOM_SetState", function(player, state, frame)
 	player.doom.wepframe = frame
 	local wepDef = DOOM_GetWeaponDef(player)
 	if not wepDef then error("Invalid weapon " .. tostring(player.doom.curwep) .. "!") end
-	wepDef = $.states
+	wepDef = wepDef.states
 	if not wepDef then error("No 'states' table for current weapon!") end
-	wepDef = $[state]
+	wepDef = wepDef[state]
 	if not wepDef then error("Invalid state " .. tostring(state) .. "!") end
-	wepDef = $[frame]
+	wepDef = wepDef[frame]
 	if not wepDef then error("Invalid frame " .. tostring(state) .. " " .. tostring(frame) .. "!") end
 	player.doom.weptics = wepDef.tics
 	if wepDef.action then
@@ -979,7 +978,7 @@ rawset(_G, "DOOM_DoMessage", function(player, string)
 	player.doom.messageclock = TICRATE*5
 	player.doom.message = DOOM_ResolveString(string)
 	if player.doom.message != string then
-		player.doom.message = $:upper()
+		player.doom.message = player.doom.message
 	end
 end)
 
@@ -1006,7 +1005,7 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
 
         if not allaround then
             local an = (R_PointToAngle2(actor.x, actor.y, player.mo.x, player.mo.y) - actor.angle)
-			an = AngleFixed($)
+			an = AngleFixed(an)
 			if an > 90*FRACUNIT and an < 270*FRACUNIT then
 				local dist = R_PointToDist2(player.mo.x, player.mo.y, actor.x, actor.y)
 				if dist > MELEERANGE then
