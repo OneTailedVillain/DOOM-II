@@ -67,6 +67,15 @@ doom.weaponnames = {
 doom.sectorspecials = {}
 doom.sectorbackups = {}
 
+local lastBitFlag = INT32_MAX + 1
+
+doom.damagetypes = {
+	explodesplash = 1,
+	telefrag = 2,
+    exit = 3,
+    instakill = lastBitFlag,
+}
+
 doom.validcount = 0
 doom.sectordata = {}
 doom.gamemode = "commercial" -- Assume Doom II by default
