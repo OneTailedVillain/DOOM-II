@@ -265,6 +265,18 @@ local baseMethods = {
 
 		return false
 	end,
+
+	hasPowerup = function(player, ptype)
+		if ptype == "berserk" then
+			return player.doom.powers[pw_strength]
+		elseif ptype == "invisibility" then
+			return player.doom.powers[pw_invisibility]
+		elseif ptype == "invulnerability" then
+			return player.doom.powers[pw_invulnerability]
+		elseif ptype == "ironfeet" then
+			return player.doom.powers[pw_ironfeet]
+		end
+	end
 }
 
 -- Helper to shallow-merge override table onto base
