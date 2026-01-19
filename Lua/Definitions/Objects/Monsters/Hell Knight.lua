@@ -12,7 +12,7 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_BOS2", "sfx_kmtsit", "sfx_dmact", "sfx_dmpain",
+SafeFreeSlot("SPR_BOS2", "sfx_kntsit", "sfx_dmact", "sfx_dmpain",
 "sfx_kntdth")
 local name = "HellKnight"
 
@@ -24,7 +24,7 @@ local object = {
 	speed = 8,
 	painchance = 50,
 	doomednum = 69,
-	seesound = sfx_kmtsit,
+	seesound = sfx_kntsit,
 	activesound = sfx_dmact,
 	painsound = sfx_dmpain,
 	deathsound = sfx_kntdth,
