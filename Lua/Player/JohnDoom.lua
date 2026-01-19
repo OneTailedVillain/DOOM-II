@@ -214,6 +214,7 @@ COM_AddCommand("kill", function(player, victim)
 	P_PlayerEmeraldBurst(player, false)
 	P_PlayerWeaponAmmoBurst(player)
 	P_PlayerFlagBurst(player, false)
+	doom.doObituary(player.mo, player.mo, player.mo)
 	P_KillMobj(player.mo, player.mo, player.mo, DMG_SPECTATOR|DMG_CANHURTSELF)
 end)
 
