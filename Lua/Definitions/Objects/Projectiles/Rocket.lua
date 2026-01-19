@@ -24,6 +24,7 @@ mobjinfo[MT_DOOM_ROCKETPROJ] = {
 	speed        = 20 * FRACUNIT,
 	radius       = 11 * FRACUNIT,
 	height       = 8 * FRACUNIT,
+	damage       = 20,
 	flags        = MF_MISSILE|MF_NOGRAVITY,
 }
 
