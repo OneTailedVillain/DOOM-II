@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Main script for preparing WADs for use in the SRB2 DOOM port.
+Uses modular components for better organization.
 """
 
 import sys
@@ -10,12 +11,15 @@ from pathlib import Path
 
 # Import modular components
 from modules.utils import *
-from modules.wad_processor import *
+# Stuff like this is getting messy with pyright, so ignore type issues here
+# It's pretty much guaranteed that the modules exist in our modules/ directory
+from modules.wad_processor import * # pyright: ignore[reportGeneralTypeIssues]
 from modules.dehacked_parser import *
 from modules.lua_generator import *
-from modules.midi_converter import *
+from modules.midi_converter import * # pyright: ignore[reportGeneralTypeIssues]
 from modules.pk3_processor import *
 from modules.umapinfo_processor import *
+# Import PC speaker converter
 from modules.pcspeaker_converter import replace_ds_with_dp
 
 # Add UMAPINFO parser import
@@ -124,6 +128,10 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
     if options.get('player_sprites', True):
         print("Creating player sprites from PLAY lumps...")
         sprites_created = create_player_sprites_from_play_lumps(src_wad, out_wad, "johndoom")
+
+    if options.get('stcfn_uppercase_to_lowercase', False):
+        print("Copying STCFN uppercase graphics to lowercase letter codes...")
+        append_stcfn_uppercase_to_lowercase(out_wad)
 
     # MIDI to OGG conversion (optional)
     if options.get('midi_to_ogg', False):

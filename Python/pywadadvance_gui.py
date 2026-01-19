@@ -83,9 +83,8 @@ class WadAdvanceGUI(QMainWindow):
         tabs.addTab(main_tab, "Main Conversion")
         
         # SRB2 Launcher tab
-        # This is fucking stupid. It doesn't work for SOME reason. I can't even test for the "why" it's so random.
-        #launcher_tab = QWidget()
-        #tabs.addTab(launcher_tab, "SRB2 Launcher")
+        launcher_tab = QWidget()
+        tabs.addTab(launcher_tab, "SRB2 Launcher")
         
         # Options tab
         options_tab = QWidget()
@@ -93,7 +92,7 @@ class WadAdvanceGUI(QMainWindow):
         
         # Setup tabs
         self.setup_main_tab(main_tab)
-        #self.setup_launcher_tab(launcher_tab)
+        self.setup_launcher_tab(launcher_tab)
         self.setup_options_tab(options_tab)
         
         # Status bar (using a simple label instead of QStatusBar)
@@ -227,8 +226,8 @@ class WadAdvanceGUI(QMainWindow):
         iwad_layout.addLayout(iwad_file_layout)
         layout.addWidget(iwad_group)
         
-        # Additional files group (order matters)
-        files_group = QGroupBox("Additional Files (Order Matters)")
+        # Additional files group
+        files_group = QGroupBox("Additional Files")
         files_layout = QVBoxLayout(files_group)
         
         self.files_list = QListWidget()
@@ -342,6 +341,10 @@ class WadAdvanceGUI(QMainWindow):
         self.auto_pk3_cb = QCheckBox("Auto-detect and process nested WADs in PK3")
         self.auto_pk3_cb.setChecked(True)
         pk3_layout.addWidget(self.auto_pk3_cb)
+        
+        self.stcfn_uppercase_to_lowercase_cb = QCheckBox("Copy STCFN uppercase graphics to lowercase letter codes")
+        self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
+        pk3_layout.addWidget(self.stcfn_uppercase_to_lowercase_cb)
         
         layout.addWidget(pk3_group)
         
@@ -492,17 +495,26 @@ class WadAdvanceGUI(QMainWindow):
         # Build the command
         command_parts = [f'"{exe_path}"']
         
-        # Add engine file if specified
-        if engine_path:
-            command_parts.append(f'-file "{engine_path}"')
+        # Collect all files that should go after -file flag
+        files_to_load = []
         
-        # Add IWAD if specified
+        if engine_path:
+            files_to_load.append(engine_path)
+        
         if iwad_path:
-            command_parts.append(f'"{iwad_path}"')
+            files_to_load.append(iwad_path)
         
         # Add additional files in order
-        for file_path in self.launch_files:
-            command_parts.append(f'-file "{file_path}"')
+        files_to_load.extend(self.launch_files)
+        
+        # Add all files with single -file flag
+        if files_to_load:
+            file_args = ' '.join(f'"{f}"' for f in files_to_load)
+            command_parts.append(f'-file {file_args}')
+
+        # Append "+skin johndoom" since that's the intended experience
+        # (Would just be overriden by user if they go into multiplayer/SRB2 Menu/console/whatever thefuck anyway)
+        command_parts.append("+skin johndoom")
         
         command = " ".join(command_parts)
         self.command_preview.setText(command)
@@ -529,14 +541,11 @@ class WadAdvanceGUI(QMainWindow):
             # Launch SRB2
             self.status_label.setText("Launching SRB2...")
             
-            # Use subprocess to launch the game
-            # We need to handle the command properly, especially on Windows
-            if sys.platform == "win32":
-                # On Windows, we might need to use the full path directly
-                subprocess.Popen(command, shell=True)
-            else:
-                # On other platforms, we can use the command as is
-                subprocess.Popen(command, shell=True)
+            # Set working directory to the directory containing the executable
+            exe_dir = os.path.dirname(os.path.abspath(exe_path))
+            
+            # Use subprocess to launch the game with proper working directory
+            subprocess.Popen(command, shell=True, cwd=exe_dir)
             
             self.status_label.setText("SRB2 launched successfully")
             
@@ -559,6 +568,7 @@ class WadAdvanceGUI(QMainWindow):
         #memory_text = self.memory_combo.currentText()
         #memory_kb = int(memory_text.split()[0])
         
+        # TODO: How does the DMXGUS drum patch remappings work?
         return {
             'midi_to_ogg': self.midi_to_ogg_cb.isChecked(),
             #'use_dmxgus': self.use_dmxgus_cb.isChecked(),
@@ -567,7 +577,8 @@ class WadAdvanceGUI(QMainWindow):
             'normalize_pegging': self.normalize_pegging_cb.isChecked(),
             'player_sprites': self.player_sprites_cb.isChecked(),
             'use_pcspeaker': self.use_pcspeaker_cb.isChecked(),
-            'auto_pk3': self.auto_pk3_cb.isChecked()
+            'auto_pk3': self.auto_pk3_cb.isChecked(),
+            'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked()
         }
     
     def reset_options(self):
@@ -579,7 +590,8 @@ class WadAdvanceGUI(QMainWindow):
         self.player_sprites_cb.setChecked(True)
         self.use_pcspeaker_cb.setChecked(False)
         self.auto_pk3_cb.setChecked(True)
-    
+        self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
+
     def start_conversion(self):
         if not CORE_AVAILABLE:
             QMessageBox.critical(self, "Error", "Core conversion module not available. Please ensure pywadadvance_core.py is in the same directory.")
