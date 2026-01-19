@@ -193,9 +193,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 			if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
 				if not doom.cvars.dmExit.value then
 					DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
-					if (gametyperules & GTR_HURTMESSAGES) then
-						print(ray.target.player.name .. " tried to leave.")
-					end
+                    doom.doObituary(ray.target, ray.target, ray.target, doom.damage.exit)
 					return true
 				end
 			end
@@ -264,7 +262,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
 			if not doom.cvars.dmExit.value then
 				DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
-				print(ray.target.player.name .. " tried to leave.")
+                doom.doObituary(ray.target, ray.target, ray.target, doom.damage.exit)
 				return true
 			end
 		end
