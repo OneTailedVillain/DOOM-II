@@ -167,6 +167,11 @@ addHook("MapLoad", function(mapid)
 	doom.sectordata = {}
 	doom.switches = {}
 
+	doom.spawnpoints = {
+		player = {[1]={}, [2]={}, [3]={}, [4]={}},
+		deathmatch = {}
+	}
+
 	-- Determine episode based on game mode
 	local episode = 1
 	if doom.gamemode == "registered" then
@@ -239,18 +244,6 @@ addHook("MapLoad", function(mapid)
 
 	gravity = prefGravity
 
-	for player in players.iterate do
-		player.doom = $ or {}
-		player.doom.killcount = 0
-		player.doom.intstate = -1
-		player.doom.notrigger = 0
-		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
-			player.doom.keys = UINT32_MAX
-		else
-			player.doom.keys = 0
-		end
-	end
-
 	for mthing in mapthings.iterate do
 		if (mthing.z & 1) and not multiplayer then
 			continue
@@ -259,6 +252,16 @@ addHook("MapLoad", function(mapid)
 		local needed = SkillMaskFor(doom.gameskill)
 		if not (mthing.options & needed) then
 			continue
+		end
+
+		-- "unfortunately the game is an asshole and sets"
+		-- "[the multiplayer] spawnpoint mapthing IDs to zero, ambiguating them"
+		-- There is literally no way to know exactly what mapthing ID is what,
+		-- So they're all mapthing 33 now :3
+		if not tth_doombuild then
+			if mthing.type == 0 then
+				mthing.type = 33
+			end
 		end
 
 		if doom.mthingReplacements[mthing.type] then
@@ -286,11 +289,42 @@ addHook("MapLoad", function(mapid)
 				doom.itemcount = ($ or 0) + 1
 			end
 		end
+
+		-- Player starts (1->4)
+		if mthing.type >= 1 and mthing.type <= 4 then
+			table.insert(doom.spawnpoints.player[mthing.type], {
+				x = mthing.x * FRACUNIT,
+				y = mthing.y * FRACUNIT,
+				angle = FixedAngle(mthing.angle * FRACUNIT),
+				mthing = mthing
+			})
+		-- Deathmatch starts (11)
+		elseif mthing.type == 11 then
+			table.insert(doom.spawnpoints.deathmatch, {
+				x = mthing.x * FRACUNIT,
+				y = mthing.y * FRACUNIT,
+				angle = FixedAngle(mthing.angle * FRACUNIT),
+				mthing = mthing
+			})
+		end
+
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTKILL) then
 			doom.killcount = ($ or 0) + 1
 		end
 		if mthing.mobj and ((mthing.mobj.info.doomflags or 0) & DF_COUNTITEM) then
 			doom.itemcount = ($ or 0) + 1
+		end
+	end
+
+	for player in players.iterate do
+		player.doom = $ or {}
+		player.doom.killcount = 0
+		player.doom.intstate = -1
+		player.doom.notrigger = 0
+		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+			player.doom.keys = UINT32_MAX
+		else
+			player.doom.keys = 0
 		end
 	end
 end)
