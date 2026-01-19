@@ -1,3 +1,15 @@
+-- Some cache stuff so that SRB2 doesn't immediately forget what we just cachePatch'ed
+local cacheShit = {
+	colormaps = {},
+	patches = {},
+	fonts = {},
+	lastwarned = {
+		flag = {
+			typemismatch = {}
+		}
+	}
+}
+
 local TEXTSPEED = 3
 local TEXTWAIT = 250
 local function drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
