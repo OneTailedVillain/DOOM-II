@@ -749,3 +749,54 @@ local states = {
 }
 
 DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_COL4")
+local name = "ShortRedColumn"
+
+local object = {
+	radius = 16,
+	height = 40,
+	doomednum = 33,
+	sprite = SPR_COL4,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_CAND")
+local name = "Candlestick"
+
+local object = {
+	radius = 20,
+	height = 14,
+	doomednum = 34,
+	sprite = SPR_CAND,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_CBRA")
+local name = "Candelabra"
+
+local object = {
+	radius = 20,
+	height = 60,
+	doomednum = 35,
+	sprite = SPR_CBRA,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
