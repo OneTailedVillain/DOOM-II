@@ -146,6 +146,23 @@ COM_AddCommand("idmus", function(player, arg)
 	end
 end)
 
+COM_AddCommand("iddqd", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	if funcs.shouldDoCheat then
+		local returnVal = funcs.shouldDoCheat(player, "iddqd")
+		if returnVal then return end
+	end
+	player.doom.cheats = player.doom.cheats ^^ CF_GODMODE
+	if player.doom.cheats & CF_GODMODE then
+		DOOM_DoMessage(player, "$STSTR_DQDON")
+	else
+		DOOM_DoMessage(player, "$STSTR_DQDOFF")
+	end
+	if funcs.onCheat then
+		local returnVal = funcs.onCheat(player, "iddqd")
+	end
+end)
+
 local gameSkillStrings = {
 	"$SKILL_BABY",
 	"$SKILL_EASY",

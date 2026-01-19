@@ -106,6 +106,7 @@ local cheats = {
     fixedCheat("idkfa", "idkfa"),
     fixedCheat("idfa", "idfa"),
     fixedCheat("idclip", "idclip"),
+    fixedCheat("iddqd", "iddqd"),
     
 	cheat("idclev",
 		function(buf, player)
