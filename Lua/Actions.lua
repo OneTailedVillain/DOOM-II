@@ -1188,13 +1188,14 @@ function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 	local bobAngleY = ((128 * leveltime) & 4095) << 19
 	-- ALTBOB 1:
 	-- local bobAngleY = ((256 * leveltime) & 8191) << 19
+	-- (also halve the sin() call for this)
 	player.doom.bobx = FixedMul(player.hl1wepbob or 0, cos(bobAngleX))
 	player.doom.boby = FixedMul(player.hl1wepbob or 0, sin(bobAngleY))
 end
 
 function A_DoomCheckReload(actor, var1, var2, weapon)
     -- Determine if this is a player or enemy
-    local isPlayerActor = isPlayer or (actor.player ~= nil)
+    local isPlayerActor = actor.player ~= nil
     local player = actor.player
 
 	local funcs = P_GetMethodsForSkin(player)
