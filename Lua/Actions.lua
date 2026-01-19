@@ -261,34 +261,31 @@ local function DOOM_CheckMissileRange(actor)
 		end
 	end
 	
-/*
-    if (actor->type == MT_UNDEAD)
+    if (actor.type == MT_DOOM_ARCHVILE)
 		if (dist < 196)	
 			return false;	// close for fist attack
 		end
-		dist >>= 1;
+		dist = $ >> 1;
     end
 
-    if (actor->type == MT_CYBORG
-	|| actor->type == MT_SPIDER
-	|| actor->type == MT_SKULL)
-    {
-	dist >>= 1;
-    }
-*/  
+    if actor.type == MT_DOOM_CYBERDEMON
+	or actor.type == MT_DOOM_SPIDERMASTERMIND
+	or actor.type == MT_DOOM_LOSTSOUL then
+		dist = $ >> 1;
+    end
     if (dist > 200)
 	dist = 200;
 	end
-/*
-    if (actor.type == MT_CYBORG && dist > 160)
-	dist = 160;
-	end
-*/
-if (DOOM_Random() < dist)
-	return false;
-	end
-    return true;
 
+    if (actor.type == MT_DOOM_CYBERDEMON and dist > 160) then
+		dist = 160;
+	end
+
+	if (DOOM_Random() < dist) then
+		return false;
+	end
+
+    return true;
 end
 
 function A_DoomChase(actor)
