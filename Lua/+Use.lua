@@ -434,8 +434,8 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
 		end
 
         -- restore state
-        shooter.angle = ogangle
-        if player then player.aiming = ogaiming end
+        shooter.angle = $ - FixedAngle(hspr)
+        if player and vspr then player.aiming = $ - FixedAngle(vspr) end
 
 		if not player then
 			local dest = source.target
