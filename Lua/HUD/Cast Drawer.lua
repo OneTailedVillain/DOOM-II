@@ -19,13 +19,13 @@ local castorder = {
     {name = "$CC_ARACH", type = MT_DOOM_ARACHNOTRON},
 	/*
     {name = "$CC_PAIN", type = MT_DOOM_PAINELEMENTAL},
-    {name = "$CC_REVEN", type = MT_DOOM_REVENANT},
 	*/
+    {name = "$CC_REVEN", type = MT_DOOM_REVENANT},
     {name = "$CC_MANCU", type = MT_DOOM_MANCUBUS},
 	/*
     {name = "$CC_ARCH", type = MT_DOOM_ARCHVILE},
-    {name = "$CC_SPIDER", type = MT_DOOM_SPIDERMASTERMIND},
 	*/
+    {name = "$CC_SPIDER", type = MT_DOOM_SPIDERMASTERMIND},
     {name = "$CC_CYBER", type = MT_DOOM_CYBERDEMON},
     {name = "$CC_HERO", type = MT_PLAYER},
 }
@@ -109,7 +109,7 @@ local function CastSoundHack(st)
 	-- Archvile
 	elseif st == S_DOOM_ARCHVILE_MISSILE2 then
 		sfx = sfx_vilatk
-
+*/
 	-- Revenant melee / missile
 	elseif st == S_DOOM_REVENANT_MELEE2 then
 		sfx = sfx_skeswg
@@ -117,7 +117,7 @@ local function CastSoundHack(st)
 		sfx = sfx_skepch
 	elseif st == S_DOOM_REVENANT_MISSILE2 then
 		sfx = sfx_skeatk
-*/
+
 	-- Mancubus triple fire
 	elseif st == S_DOOM_MANCUBUS_MISSILE2
 	   or st == S_DOOM_MANCUBUS_MISSILE5
@@ -148,12 +148,12 @@ local function CastSoundHack(st)
 	-- Lost soul charge
 	elseif st == S_DOOM_LOSTSOUL_MISSILE2 then
 		sfx = sfx_sklatk
-
-	-- Spider Mastermind volley
-	elseif st == S_DOOM_SPIDER_MISSILE2
-	   or st == S_DOOM_SPIDER_MISSILE3 then
-		sfx = sfx_shotgn
 */
+	-- Spider Mastermind volley
+	elseif st == S_DOOM_SPIDERMASTERMIND_MISSILE2
+	   or st == S_DOOM_SPIDERMASTERMIND_MISSILE3 then
+		sfx = sfx_shotgn
+
 	-- Arachnotron plasma
 	elseif st == S_DOOM_ARACHNOTRON_MISSILE2 then
 		sfx = sfx_plasma
