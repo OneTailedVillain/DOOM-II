@@ -367,9 +367,9 @@ dofile("Obituaries.lua")
 
 ---@class ammodef_t Definition of a Doom ammo type
 ---@field max integer The maximum amount of this ammo the player can carry
----@field backpackmax integer The maximum amount of this ammo the player can carry when they have twoxammo active
+---@field backpackmax integer The maximum amount of this ammo the player can carry when they have the backpack
 ---@field icon string (Unused) The icon representing this ammo type
----@field backpackicon string (Unused) The icon representing this ammo type when they have twoxammo active
+---@field backpackicon string (Unused) The icon representing this ammo type when they have the backpack
 
 ---@class doompowers_t Powerup timers
 ---@field pw_strength integer Timer for the Berserk power-up. Counts up if non-zero.
@@ -410,7 +410,6 @@ dofile("Obituaries.lua")
 ---@field attacker any Last attacker (mobj or nil), gets reset when damagecount is zero
 ---@field deadtimer integer Death animation timer
 ---@field killcam any Kill camera object (mobj or nil)
----@field twoxammo boolean|integer 2x ammo flag/counter
 ---@field notrigger boolean Whether walkover triggers are disabled for this player
 ---@field keys integer Bitmask of keys/skull keys the player has
 ---@field laststate laststate_t Saved state snapshot (pos, momentum, ammo, etc.)
