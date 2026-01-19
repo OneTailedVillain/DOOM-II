@@ -212,27 +212,6 @@ addHook("PlayerThink", function(player)
 	end
 end)
 
-local function printTable(data, prefix)
-	prefix = prefix or ""
-	if type(data) == "table"
-		if not next(data) then
-			print("[Empty table]")
-		else
-			for k, v in pairs(data or {}) do
-				local key = prefix .. k
-				if type(v) == "table" then
-					print("key " .. key .. " = a table:")
-					printTable(v, key .. ".")
-				else
-					print("key " .. key .. " = " .. tostring(v))
-				end
-			end
-		end
-	else
-		print(data)
-	end
-end
-
 addHook("PlayerThink", function(player)
 	if player.spectator then
 		player.realmo.flags = $ | (MF_NOCLIPHEIGHT|MF_NOCLIP|MF_NOCLIPTHING)
