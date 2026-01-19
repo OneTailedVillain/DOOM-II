@@ -40,7 +40,8 @@ local function A_SkullAttack(actor)
 	if not actor.target then return end
 
 	local dest = actor.target
-	actor.flags2 = actor.flags2 | MF2_SKULLFLY
+	-- Utterly UGLY hack since MF2_SKULLFLY will cause Lost Souls to stop one tic before hitting the player
+	actor.doom.flags = actor.doom.flags | DF_SKULLFLY
 
 	S_StartSound(actor, actor.info.attacksound)
 	A_DoomFaceTarget(actor)
@@ -92,7 +93,7 @@ local function LostSoul_MobjLineCollide(mo, line)
         return
     end
 
-    DOOM_UseRaycastInteractionChecks(mo, line, "gunshot", true, true)
+    DOOM_UseRaycastInteractionChecks(mo, line, "walk", true, true)
 end
 
 local function LostSoul_EnemyMobjCollide(thing, tmthing)
@@ -102,8 +103,10 @@ local function LostSoul_EnemyMobjCollide(thing, tmthing)
     
     if tmthing.z + tmthing.momz <= thing.z + thing.height
     or thing.z <= tmthing.z + tmthing.height + tmthing.momz then
-		print("Successfully hit something!")
-		DOOM_DamageMobj(tmthing, thing, tmthing, (DOOM_Random() % 8 + 1) * thing.info.damage)
+		if tmthing.doom.flags & DF_SKULLFLY ~= 0 then
+			print("Successfully hit something!")
+			DOOM_DamageMobj(tmthing, thing, tmthing, (DOOM_Random() % 8 + 1) * thing.info.damage)
+		end
     end
 end
 

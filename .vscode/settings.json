@@ -48,7 +48,8 @@
         "path",
         "tth_doombuild",
         "GT_DOOMDMTWO",
-        "doom"
+        "doom",
+        "DF_SKULLFLY"
     ],
     "Lua.diagnostics.disable": [
         "missing-fields",

@@ -97,10 +97,40 @@ def main():
     # Do this so I don't FORGET next time I post to the Message Board. GOD
     print("[1/3] Processing pre-packaged WAD...")
     base_wad_file = next(base_wad_dir.glob("*.wad"), None)
-    
+
     if not base_wad_file:
         print(f"ERROR: No WAD file found in {base_wad_dir}")
         return 1
+
+    # Check dependencies for WAD processing
+    wad_dependencies = [
+        python_dir,                    # Python converter scripts
+        base_wad_file,                 # The source WAD file itself
+    ]
+
+    # Check if rebuild needed (unless --force)
+    if not args.force and not needs_rebuild(output_wad, wad_dependencies):
+        print("✓ Skipped (output is up-to-date)\n")
+    else:
+        try:
+            # Also consider if the base WAD itself changed
+            if base_wad_file.stat().st_mtime > output_wad.stat().st_mtime:
+                print(f"  Source WAD modified: {base_wad_file.name}")
+            
+            result = subprocess.run(
+                [args.python_exe, str(python_dir / "pywadadvance_core.py"), 
+                str(base_wad_file), str(output_wad)],
+                cwd=script_dir,
+                check=True,
+                capture_output=False
+            )
+            print("WAD processing complete\n")
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: pywadadvance_core.py failed: {e}")
+            return 1
+        except Exception as e:
+            print(f"ERROR: Failed to run pywadadvance_core.py: {e}")
+            return 1
     
     # Check if rebuild needed (unless --force)
     # Check the **PYTHON DIR** instead of the base WAD dir,

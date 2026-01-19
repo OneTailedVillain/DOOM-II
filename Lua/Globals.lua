@@ -12,6 +12,7 @@ local toDeclare = {
 	DF_DM2RESPAWN = 1024,
 	DF_INFLOAT = 2048,
 	DF_TELEPORT = 4096,
+	DF_SKULLFLY = 8192,
 	pw_strength = 1,
 	pw_ironfeet = 2,
 	pw_invisibility = 3,
@@ -366,3 +367,15 @@ doom.rndtable = {
     120, 163, 236, 249
 }
 doom.prndindex = 0
+
+rawset(_G, "deepcopy", function(orig)
+	local orig_type = type(orig)
+	if orig_type ~= 'table' then
+		return orig
+	end
+	local copy = {}
+	for k, v in next, orig, nil do
+		copy[deepcopy(k)] = deepcopy(v)
+	end
+	return copy
+end)
