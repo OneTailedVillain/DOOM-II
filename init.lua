@@ -439,6 +439,7 @@ dofile("Obituaries.lua")
 ---@field DF_DM2RESPAWN integer If the object should be able to respawn in deathmatch 2.0
 ---@field DF_INFLOAT integer If the object is in a floating state
 ---@field DF_TELEPORT integer If the object was teleported this tic
+---@field DF_SKULLFLY integer If the object is in skull fly mode (Lost Souls)
 
 ---@class doommobj_t Doom-specific mobj fields
 ---@field health integer The health of the mobj
