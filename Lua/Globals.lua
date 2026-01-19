@@ -25,6 +25,7 @@ local toDeclare = {
 	DML_SOUNDBLOCK = 64,
 	DML_DONTDRAW = 128,
 	DML_MAPPED = 256,
+    CF_GODMODE = 1,
 }
 
 for k, v in pairs(toDeclare) do
