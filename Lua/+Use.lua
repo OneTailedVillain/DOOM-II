@@ -228,7 +228,12 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 	return false
 end)
 
-rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, silent)
+---@param ray mobj_t
+---@param usedLine line_t
+---@param useType string
+---@param silent boolean|nil
+---@param dontkill boolean|nil
+rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, silent, dontkill)
     local lineSpecial = doom.linespecials[usedLine]
 	if not lineSpecial then
 		if not (usedLine.flags & ML_TWOSIDED) or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
@@ -286,7 +291,10 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
     }
 
 	DOOM_AddThinker(usedLine, switchThinker)
-    P_KillMobj(ray)
+    print("Use function called (with " .. useType .. ") with dont kill set to " .. dontkill)
+    if not dontkill then
+        P_KillMobj(ray)
+    end
     return true
 end)
 
