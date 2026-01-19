@@ -152,7 +152,7 @@ doom.lineActions = {
 	},
 	[112] = {
 		type = "door", kind = "open", stay = true,
-		fastdoor = true, repeatable = false, activationType = "walk"
+		fastdoor = true, repeatable = false, activationType = "switch"
 	},
 	[115] = {
 		type = "door", kind = "open", stay = true,
