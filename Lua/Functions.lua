@@ -535,6 +535,12 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		end)
 		player.doom.dealtDamage = false
 
+		local health = funcs.getHealth(player)
+
+		if health <= 0 then
+			doom.doObituary(target, source, inflictor, damagetype)
+		end
+
 		if not success then
 			print("Damage error:", err)
 		end
