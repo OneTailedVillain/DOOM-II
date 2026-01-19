@@ -961,23 +961,6 @@ rawset(_G, "saveStatus", function(player)
     end
 end)
 
-local function printTable(data, prefix)
-	prefix = prefix or ""
-	if type(data) == "table"
-		for k, v in pairs(data or {}) do
-			local key = prefix .. k
-			if type(v) == "table" then
-				CONS_Printf(server, "key " .. key .. " = a table:")
-				printTable(v, key .. ".")
-			else
-				CONS_Printf(server, "key " .. key .. " = " .. tostring(v))
-			end
-		end
-	else
-		CONS_Printf(server, data)
-	end
-end
-
 rawset(_G, "DOOM_StartTextScreen", function(text)
     -- Input validation
     if type(text) ~= "table" then
