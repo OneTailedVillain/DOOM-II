@@ -663,7 +663,6 @@ local function getIntersectingObjects(target, shootables)
 
 		-- If they don't overlap vertically, skip
 		if (mtop <= tbot) or (mbot >= ttop) then
-			print("FAIL: VERT CHECK!")
 			continue
 		end
 
@@ -951,8 +950,6 @@ addHook("MobjLineCollide", function(mobj, hit)
     if not whatIs or whatIs.activationType ~= "walk" then
 		return
 	end
-
-	print("Activating " .. tostring(whatIs.type) .. " thinker with line action " .. tostring(lineSpecial) .. "!")
 
 	if typeHandlers[whatIs.type] then
 		typeHandlers[whatIs.type](usedLine, whatIs, mobj)
