@@ -201,11 +201,20 @@ end
 
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
+	local funcs = P_GetMethodsForSkin(player)
+
 	if (player.mo.flags & MF_NOTHINK) then return end
 	player.doom = $ or {}
 	ST_updateFaceWidget(player)
-	
-	if player.doom.powers[pw_invisibility] then
+
+	local hasPInvis = false
+	if funcs.hasPowerup(player, "invisibility") then
+		hasPInvis = true
+	else
+		hasPInvis = player.doom.powers[pw_invisibility] > 0
+	end
+
+	if hasPInvis then
 		player.mo.doom.flags = $ | DF_SHADOW
 	else
 		player.mo.doom.flags = $ & ~DF_SHADOW
