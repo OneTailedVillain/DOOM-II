@@ -1103,7 +1103,14 @@ local thinkers = {
 				target = P_FindHighestFloorSurrounding(sector) + (8 * FRACUNIT)
 				dir = "down"
 			elseif data.target == "lowestceiling" then
+				-- Also consider current ceiling height
+				-- TODO: Does the source code actually do this?
+				local curSecCeil = sector.ceilingheight
 				target = P_FindLowestCeilingSurrounding(sector)
+				if curSecCeil < target then
+					target = curSecCeil
+				end
+				dir = "up"
 			elseif data.target == "8belowceiling" then
 				target = P_FindLowestCeilingSurrounding(sector) - (8 * FRACUNIT)
 			elseif data.target == "lowest" then
