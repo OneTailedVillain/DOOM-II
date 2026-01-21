@@ -289,7 +289,6 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
     }
 
 	DOOM_AddThinker(usedLine, switchThinker)
-    print("Use function called (with " .. useType .. ") with dont kill set to " .. dontkill)
     if not dontkill then
         P_KillMobj(ray)
     end

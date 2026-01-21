@@ -724,18 +724,6 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	player.mo.state = S_DOOM_PLAYER_ATTACK1
 end)
 
-rawset(_G, "deepcopy", function(orig)
-	local orig_type = type(orig)
-	if orig_type ~= 'table' then
-		return orig
-	end
-	local copy = {}
-	for k, v in next, orig, nil do
-		copy[deepcopy(k)] = deepcopy(v)
-	end
-	return copy
-end)
-
 doom.thinkerlist = doom.thinkerlist or {}
 doom.thinkermap  = doom.thinkermap  or {}
 
