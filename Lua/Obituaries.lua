@@ -267,7 +267,12 @@ function doom.doObituary(target, source, inflictor, dtype)
 		end
 	elseif type(source) == "userdata" and userdataType(source) == "mobj_t" then
 			local funcs = P_GetMethodsForSkin(vplayer)
-			local hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
+			local hasInvuln
+			if funcs.hasPowerup then
+				hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
+			else
+				hasInvuln = vplayer.doom.powers[pw_invulnerability] > 0
+			end
 		if dtype == doom.damagetypes.telefrag then
 			if hasInvuln then
 				printOutObituary("invuln_telefrag", target.player, source.player)
