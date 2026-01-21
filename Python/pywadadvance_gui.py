@@ -346,6 +346,10 @@ class WadAdvanceGUI(QMainWindow):
         self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
         pk3_layout.addWidget(self.stcfn_uppercase_to_lowercase_cb)
         
+        self.suppress_pskin_errors_cb = QCheckBox("Suppress errors in player sprite creation")
+        self.suppress_pskin_errors_cb.setChecked(False)
+        pk3_layout.addWidget(self.suppress_pskin_errors_cb)
+        
         layout.addWidget(pk3_group)
         
         layout.addStretch()
@@ -578,7 +582,8 @@ class WadAdvanceGUI(QMainWindow):
             'player_sprites': self.player_sprites_cb.isChecked(),
             'use_pcspeaker': self.use_pcspeaker_cb.isChecked(),
             'auto_pk3': self.auto_pk3_cb.isChecked(),
-            'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked()
+            'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked(),
+            'suppress_pskin_errors': self.suppress_pskin_errors_cb.isChecked()
         }
     
     def reset_options(self):
@@ -591,6 +596,7 @@ class WadAdvanceGUI(QMainWindow):
         self.use_pcspeaker_cb.setChecked(False)
         self.auto_pk3_cb.setChecked(True)
         self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
+        self.suppress_pskin_errors_cb.setChecked(False)
 
     def start_conversion(self):
         if not CORE_AVAILABLE:

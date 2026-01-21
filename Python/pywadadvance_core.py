@@ -129,7 +129,7 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
         print("Creating player sprites from PLAY lumps...")
         sprites_created = create_player_sprites_from_play_lumps(src_wad, out_wad, "johndoom")
 
-    if options.get('stcfn_uppercase_to_lowercase', False):
+    if options.get('stcfn_uppercase_to_lowercase', True):
         print("Copying STCFN uppercase graphics to lowercase letter codes...")
         append_stcfn_uppercase_to_lowercase(out_wad)
 
