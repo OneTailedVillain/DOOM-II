@@ -36,6 +36,55 @@ try:
 except Exception as e:
     raise SystemExit("Please install omgifol (pip install omgifol). Import error: %s" % e)
 
+def create_deh_only_wad(deh_files, out_path):
+    """
+    Create a WAD containing only a LUA_DEH lump from external DEH/BEX files.
+    
+    Args:
+        deh_files: List of (name, data) tuples from external DEH/BEX files
+        out_path: Output WAD path
+    """
+    print(f"Creating DEH-only WAD from {len(deh_files)} external files")
+    
+    out_wad = WAD()
+    
+    # Process all external DEH/BEX files
+    for name, data in deh_files:
+        try:
+            # Try to parse as structured DEHACKED
+            structured_deh = parse_dehacked_structured(data)
+            if structured_deh:
+                lua_deh = build_structured_lua_deh(structured_deh)
+                out_wad.data["LUA_DEH"] = Lump(lua_deh)
+                print(f"Wrote structured LUA_DEH from external {name}")
+            else:
+                # structured parser found nothing meaningful — try flat/key=value parser
+                m = parse_key_value_pairs_from_text(data)
+                if m:
+                    lua_deh = build_lua_deh_table(m)
+                    out_wad.data["LUA_DEH"] = Lump(lua_deh)
+                    print(f"Wrote flat LUA_DEH from external {name} (fallback)")
+                else:
+                    print(f"No DEHACKED data found in external {name}")
+        except Exception as e:
+            # If structured parsing throws, attempt the flat parser as a fallback
+            print(f"Failed to parse external {name} as structured DEHACKED: {e}")
+            try:
+                m = parse_key_value_pairs_from_text(data)
+                lua_deh = build_lua_deh_table(m)
+                out_wad.data["LUA_DEH"] = Lump(lua_deh)
+                print(f"Wrote flat LUA_DEH from external {name} (exception fallback)")
+            except Exception as e2:
+                print(f"Failed to parse external {name} as flat DEHACKED: {e2}")
+    
+    # Write the output WAD
+    if "LUA_DEH" in out_wad.data:
+        out_wad.to_file(out_path)
+        print(f"Created DEH-only WAD: {out_path}")
+    else:
+        print("No DEHACKED data found in any external files, creating empty WAD")
+        out_wad.to_file(out_path)
+
 def main(src_path: str, out_path: str, deh_files=None, options=None):
     """
     Main function with support for external DEH/BEX files and options.
@@ -52,9 +101,8 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
     print("Loading:", src_path)
     
     # Handle DEH-only case (no WAD, just DEH/BEX files)
-    if deh_files and not os.path.exists(src_path) and src_path.lower().endswith(('.deh', '.bex')):
-        # Treat all arguments as DEH/BEX files going to output WAD
-        all_deh_files = [(src_path, open(src_path, 'rb').read())]
+    if os.path.isfile(src_path) and src_path.lower().endswith(('.deh', '.bex')):
+        all_deh_files = [(os.path.basename(src_path), open(src_path, 'rb').read())]
         if deh_files:
             all_deh_files.extend(deh_files)
         create_deh_only_wad(all_deh_files, out_path)

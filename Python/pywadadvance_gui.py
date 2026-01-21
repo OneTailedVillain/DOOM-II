@@ -20,6 +20,34 @@ except ImportError as e:
     print(f"Core module import failed: {e}")
     CORE_AVAILABLE = False
 
+import io
+import sys
+import traceback
+from PyQt5.QtCore import pyqtSignal, QThread
+
+class StreamToSignal(io.StringIO):
+    """Custom stream that emits signals when written to"""
+    def __init__(self, signal_callback):
+        super().__init__()
+        self.signal_callback = signal_callback
+        
+    def write(self, text):
+        super().write(text)
+        # Flush on newline to send complete lines
+        if '\n' in text:
+            self.flush()
+            
+    def flush(self):
+        text = self.getvalue()
+        if text:
+            # Send each line as a separate signal
+            lines = text.strip('\n').split('\n')
+            for line in lines:
+                if line.strip():
+                    self.signal_callback(line.strip())
+            self.truncate(0)
+            self.seek(0)
+
 class ConversionThread(QThread):
     """Thread for running the WAD conversion to prevent GUI freezing"""
     progress_signal = pyqtSignal(str)
@@ -31,9 +59,22 @@ class ConversionThread(QThread):
         self.out_path = out_path
         self.deh_files = deh_files
         self.options = options
+        
+    def _emit_progress(self, text):
+        """Helper method to emit progress signal from any thread"""
+        self.progress_signal.emit(text)
     
     def run(self):
+        # Capture stdout to redirect print statements
+        old_stdout = sys.stdout
+        
         try:
+            # Create custom stream that emits signals
+            stream_to_signal = StreamToSignal(self._emit_progress)
+            
+            # Redirect stdout to capture print statements
+            sys.stdout = stream_to_signal
+            
             # Prepare DEH files data
             deh_data = []
             for deh_file in self.deh_files:
@@ -44,16 +85,31 @@ class ConversionThread(QThread):
                 except Exception as e:
                     self.progress_signal.emit(f"Error loading {deh_file}: {e}")
             
-            # Call the core main function
+            # For pure DEH conversion, we need to handle the case where src_path is a DEH file
+            # The core script will handle this specially
             self.progress_signal.emit("Starting conversion...")
+            
+            # Run the core main function
             core_main(self.src_path, self.out_path, deh_data, self.options)
+            
+            # Force flush any remaining output
+            stream_to_signal.flush()
+            
             self.progress_signal.emit("Conversion completed successfully!")
             self.finished_signal.emit(True, "Conversion completed successfully!")
             
         except Exception as e:
+            # Force flush any captured output
+            if 'stream_to_signal' in locals():
+                stream_to_signal.flush()
+            
             error_msg = f"Conversion failed: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
             self.progress_signal.emit(error_msg)
             self.finished_signal.emit(False, error_msg)
+            
+        finally:
+            # Restore original stdout
+            sys.stdout = old_stdout
 
 class WadAdvanceGUI(QMainWindow):
     def __init__(self):
@@ -102,8 +158,8 @@ class WadAdvanceGUI(QMainWindow):
     def setup_main_tab(self, tab):
         layout = QVBoxLayout(tab)
         
-        # Source file selection
-        src_group = QGroupBox("Source WAD/PK3")
+        # Source file selection (optional for pure DEH/BEX)
+        src_group = QGroupBox("Source WAD/PK3/DEH/BEX")
         src_layout = QVBoxLayout(src_group)
         
         src_file_layout = QHBoxLayout()
@@ -119,7 +175,7 @@ class WadAdvanceGUI(QMainWindow):
         layout.addWidget(src_group)
         
         # DEH/BEX files
-        deh_group = QGroupBox("DEHACKED/BEX Files (Optional)")
+        deh_group = QGroupBox("DEHACKED/BEX Files (Required for pure DEH conversion)")
         deh_layout = QVBoxLayout(deh_group)
         
         self.deh_list = QListWidget()
@@ -137,6 +193,8 @@ class WadAdvanceGUI(QMainWindow):
         
         deh_layout.addLayout(deh_buttons_layout)
         layout.addWidget(deh_group)
+        
+        # ... rest of the setup_main_tab method remains the same ...
         
         # Output file
         out_group = QGroupBox("Output")
@@ -362,19 +420,28 @@ class WadAdvanceGUI(QMainWindow):
     def browse_src_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
-            "Select Source WAD or PK3", 
+            "Select Source WAD, PK3, or DEH/BEX", 
             "", 
-            "WAD/PK3 Files (*.wad *.WAD *.pk3 *.PK3);;All Files (*)"
+            "All Files (*.wad *.WAD *.pk3 *.PK3 *.deh *.DEH *.bex *.BEX);;WAD/PK3 Files (*.wad *.WAD *.pk3 *.PK3);;DEHACKED Files (*.deh *.DEH *.bex *.BEX);;All Files (*)"
         )
         if file_path:
             self.src_file = file_path
             self.src_file_label.setText(file_path)
             
-            # Auto-generate output filename
-            if not self.out_file_edit.text():
-                base_name = Path(file_path).stem
-                output_path = str(Path(file_path).parent / f"{base_name}.pk3")
-                self.out_file_edit.setText(output_path)
+        # Auto-generate output filename
+        if not self.out_file_edit.text():
+            path = Path(file_path)
+            base_name = path.stem
+            ext = path.suffix.lower().lstrip('.')  # "deh" or "bex"
+
+            # For DEH/BEX files, include the extension in the output name
+            if ext in ('deh', 'bex'):
+                output_name = f"{base_name}_{ext}.pk3"
+            else:
+                output_name = f"{base_name}.pk3"
+
+            output_path = str(path.parent / output_name)
+            self.out_file_edit.setText(output_path)
     
     def browse_out_file(self):
         file_path, _ = QFileDialog.getSaveFileName(
@@ -588,8 +655,8 @@ class WadAdvanceGUI(QMainWindow):
     
     def reset_options(self):
         self.midi_to_ogg_cb.setChecked(False)
-        self.use_dmxgus_cb.setChecked(False)
-        self.memory_combo.setCurrentIndex(1)  # 512KB
+        #self.use_dmxgus_cb.setChecked(False)
+        #self.memory_combo.setCurrentIndex(1)  # 512KB
         self.fallback_edit.clear()
         self.normalize_pegging_cb.setChecked(True)
         self.player_sprites_cb.setChecked(True)
@@ -603,9 +670,23 @@ class WadAdvanceGUI(QMainWindow):
             QMessageBox.critical(self, "Error", "Core conversion module not available. Please ensure pywadadvance_core.py is in the same directory.")
             return
         
-        if not self.src_file:
-            QMessageBox.warning(self, "Warning", "Please select a source WAD/PK3 file.")
+        # Check if we have DEH/BEX files but no source WAD (pure DEH conversion)
+        has_deh_files = bool(self.deh_files)
+        has_src_file = bool(self.src_file)
+        
+        # For pure DEH conversion, we need at least one DEH/BEX file
+        if not has_src_file and not has_deh_files:
+            QMessageBox.warning(self, "Warning", "Please select either a source WAD/PK3 file or add DEH/BEX files.")
             return
+        
+        # For pure DEH conversion, the first DEH file will be used as the "source" path
+        # The core script handles this case specially
+        if not has_src_file and has_deh_files:
+            # Use the first DEH file as the source path
+            # This triggers the DEH-only case in the core script
+            src_path = self.deh_files[0]
+        else:
+            src_path = self.src_file
         
         if not self.out_file_edit.text():
             QMessageBox.warning(self, "Warning", "Please specify an output file path.")
@@ -618,7 +699,7 @@ class WadAdvanceGUI(QMainWindow):
         
         # Start conversion thread
         self.conversion_thread = ConversionThread(
-            self.src_file,
+            src_path,  # Use src_path which could be a DEH file
             self.out_file_edit.text(),
             self.deh_files,
             self.get_options()
