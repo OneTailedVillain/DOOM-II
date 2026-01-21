@@ -42,7 +42,11 @@ local function onPickup(item, mobj)
 			funcs.setHealth(player, 100)
 		end
 		player.doom.powers[pw_strength] = 1
-		DOOM_SwitchWeapon(player, "brassknuckles")
+		if funcs.doForcedWeaponSwitch then
+			funcs.doForcedWeaponSwitch(player, "brassknuckles")
+		else
+			DOOM_SwitchWeapon(player, "brassknuckles")
+		end
 	end
 	
 	DOOM_DoMessage(player, "$GOTBERSERK")
