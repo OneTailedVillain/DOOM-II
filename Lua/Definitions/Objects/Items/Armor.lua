@@ -47,14 +47,32 @@ local states = {
 		{frame = B, tics = 6},
 }
 
+local function GiveArmorCompat(funcs, player, heal, clampMax)
+	-- Prefer skin-provided giveArmor if available
+	if funcs.giveArmor then
+		-- expectedMaxArmor is used for clamping inside giveArmor
+		return funcs.giveArmor(player, heal, clampMax)
+	end
+
+	-- Fallback: manual get/set
+	local health = funcs.getArmor(player)
+	local newhealth = min(health + heal, clampMax)
+
+	if newhealth <= health then
+		return false
+	end
+
+	funcs.setArmor(player, newhealth)
+	return true
+end
+
 local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local health = funcs.getArmor(player)
 	local maxhealth = funcs.getMaxArmor(player)
-	
-	funcs.setArmor(player, min(health + 1, maxhealth * 2))
+
+	GiveArmorCompat(funcs, player, 1, maxhealth * 2)
 	DOOM_DoMessage(player, "$GOTARMBONUS")
 end
 
