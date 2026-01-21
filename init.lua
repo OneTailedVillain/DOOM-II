@@ -217,6 +217,7 @@ dofile("Obituaries.lua")
 ---@field customDamage boolean @deprecated Unnecessary to set since v0.99-3. Used to be a hack to circumnavigate a stack overflow when a damage method used P_DamageMobj.
 ---@field soundTable? validsoundentries Table of sound effects that can be replaced. Empty entries will use their default sound effects.
 ---@field intermusic? string The music lump played when you go the intermission while playing as this character. Overrides both DOOM II and DOOM 1 intermission songs.
+---@field noPartialInvisEffect? boolean Optional. If true, disables the partial invisibility effect that the engine provides by default.
 ---@field methods doommethods_t The methods table for this character
 
 ---@class dehackedpointers Semi-class, holds arrays of Dehacked-related pointers

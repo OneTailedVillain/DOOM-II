@@ -1342,7 +1342,9 @@ addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if not player.mo then return end
 		if player.mo.doom.flags & DF_SHADOW then
-			player.mo.frame = $ | FF_MODULATE
+            if not P_GetSupportsForSkin(player).noPartialInvisEffect then
+				player.mo.frame = $ | FF_MODULATE
+			end
 		end
 	end
 end)
