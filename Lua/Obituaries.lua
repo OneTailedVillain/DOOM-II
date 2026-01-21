@@ -247,6 +247,7 @@ function doom.doObituary(target, source, inflictor, dtype)
 
 	if not source then
 		doSourcelessObituary(vplayer, source, inflictor, dtype)
+		return
 	end
 
 	if source.player then

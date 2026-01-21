@@ -1,9 +1,9 @@
 /*
-x1 = Once
-xR = Repeatable
-S = Switch/Use
-W = Walk Over
-G = Gunshot/Hit
+x1 = Once (repeatable = false)
+xR = Repeatable (repeatable = true)
+S = Switch/Use ("switch")
+W = Walk Over ("walk")
+G = Gunshot/Hit ("gunshot")
 */
 
 /*
@@ -563,6 +563,15 @@ doom.lineActions = {
 	[84] = {
 		type = "floor", action = "lower", target = "lowest",
 		changes = true, repeatable = true, activationType = "walk"
+	},
+
+	[24] = {
+		type = "floor", action = "lower", target = "lowestceiling",
+		repeatable = false, activationType = "gunshot"
+	},
+	[64] = {
+		type = "floor", action = "lower", target = "lowestceiling",
+		repeatable = true, activationType = "switch"
 	},
 
 	-- SRB2 March 2000-specific
