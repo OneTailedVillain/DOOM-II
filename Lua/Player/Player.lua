@@ -211,7 +211,7 @@ addHook("PlayerThink", function(player)
 	if funcs.hasPowerup(player, "invisibility") then
 		hasPInvis = true
 	else
-		hasPInvis = player.doom.powers[pw_invisibility] > 0
+		hasPInvis = (player.doom.powers[pw_invisibility] or 0) > 0
 	end
 
 	if hasPInvis then
