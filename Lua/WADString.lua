@@ -259,7 +259,12 @@ doom.obitStrings = {
 		hellknight = "%o was splayed by a Hell Knight.",
 		spidermastermind = "%o stood in awe of the spider demon.",
 		arachnotron = "%o let an arachnotron get them.",
-		cyberdemon = "%o was splattered by a cyberdemon.",
+		cyberdemon = {
+			"%o was splattered by a cyberdemon.",
+			"%o shot the cyberdemon until they died.",
+			"%o misunderstood who was meant to die first.",
+			"%o discovered the cyberdemon's counterattack.",
+		},
 		ssguard = "%o met a Nazi.",
 		painelemental = {
 			"%o achieved the impossible.",
@@ -346,11 +351,8 @@ doom.obitStrings = {
 		-- What's worse is the fact that even the map recommends using the Rocket Launcher against it
 		-- When it has a hardcoded check to NOT take splash damage
 		cyberdemon_rocketlauncher = {
-			"%o shot the cyberdemon until they died.",
-			"%o misunderstood who was meant to die first.",
 			"%o learned the cyberdemon shoots back.",
 			"%o found out rockets aren't one-sided.",
-			"%o discovered the cyberdemon's counterattack.",
 		},
 
 		cyberdemon_pistol = {
