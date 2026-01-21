@@ -157,9 +157,13 @@ local function maybeDoSpecialObits(vplayer, source, inflictor)
 	local isBullet = inflictor.type == MT_DOOM_BULLETRAYCAST
 	if isBullet then isProjectile = false end
 
+	print(hasPartialInvis)
+
 	if hasPartialInvis then
 		if isProjectile then
 			local assailantName = getName(source)
+			assailantName = assailantName:lower()
+			print(assailantName)
 			if assailantName == "mancubus" then
 				printOutObituary("pinv_mancubus", vplayer)
 			elseif assailantName == "revenant" then
@@ -168,8 +172,9 @@ local function maybeDoSpecialObits(vplayer, source, inflictor)
 				printOutObituary("pinv_projectile", vplayer)
 			end
 		else
-				printOutObituary("pinv_default", vplayer)
+			printOutObituary("pinv_default", vplayer)
 		end
+		return true
 	end
 end
 
