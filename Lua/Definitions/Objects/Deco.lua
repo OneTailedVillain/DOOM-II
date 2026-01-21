@@ -27,7 +27,7 @@ local states = {
 		{frame = A, tics = INT32_MAX},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TLP2")
 local name = "ShortTechnoFloorLamp"
@@ -48,7 +48,7 @@ local states = {
 	{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_ELEC")
 local name = "TallTechnoColumn"
@@ -66,7 +66,7 @@ local states = {
 	{frame = A, tics = INT32_MAX},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TLMP")
 local name = "TallTechnoFloorLamp"
@@ -87,7 +87,7 @@ local states = {
 	{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TGRN")
 local name = "GreenTorch"
@@ -108,7 +108,7 @@ local states = {
 	{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TBLU")
 local name = "BlueTorch"
@@ -129,7 +129,7 @@ local states = {
 	{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TRE2")
 local name = "BigTree"
@@ -147,7 +147,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_HDB5")
 local name = "HangTLookingUp"
@@ -165,7 +165,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_HDB2")
 local name = "HangTLookingUpA"
@@ -183,7 +183,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR4")
 local name = "Meat4"
@@ -201,7 +201,7 @@ local states = {
 	{frame = A|FF_FULLBRIGHT, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 local name = "NonsolidMeat4"
 
@@ -214,7 +214,7 @@ local object = {
 	flags = MF_NOGRAVITY|MF_SPAWNCEILING,
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR5")
 local name = "Meat5"
@@ -232,7 +232,7 @@ local states = {
 	{frame = A|FF_FULLBRIGHT, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 local name = "NonsolidMeat5"
 
@@ -245,7 +245,7 @@ local object = {
 	flags = MF_NOGRAVITY|MF_FLOAT|MF_SPAWNCEILING,
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR3")
 local name = "Meat3"
@@ -263,7 +263,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 local name = "NonsolidMeat3"
 
@@ -276,7 +276,7 @@ local object = {
 	flags = MF_NOGRAVITY|MF_SPAWNCEILING,
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR2")
 local name = "Meat2"
@@ -294,7 +294,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 local name = "NonsolidMeat2"
 
@@ -307,7 +307,7 @@ local object = {
 	flags = MF_NOGRAVITY|MF_SPAWNCEILING,
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TLMP")
 local name = "TechLamp"
@@ -327,7 +327,7 @@ local states = {
 	{frame = D, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POB2")
 local name = "SmallBloodPool"
@@ -344,7 +344,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL6")
 local name = "RedPillarWithSkull"
@@ -361,7 +361,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TRE1")
 local name = "BurntTree"
@@ -378,7 +378,7 @@ local states = {
 	{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR1")
 local name = "BloodyTwitching"
@@ -399,7 +399,7 @@ local states = {
 	{frame = B, tics = 6},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL2")
 local name = "ShortGreenPillar"
@@ -416,7 +416,7 @@ local states = {
 		{frame = A, tics = INT32_MAX},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL5")
 local name = "HeartColumn"
@@ -434,7 +434,7 @@ local states = {
 		{frame = B, tics = 14},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_SMIT")
 local name = "Stalagmite"
@@ -451,7 +451,7 @@ local states = {
 		{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POB1")
 local name = "PoolOfBlood"
@@ -467,7 +467,7 @@ local states = {
 		{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POB2")
 local name = "SmallBloodPool"
@@ -483,7 +483,7 @@ local states = {
 		{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_BRS1")
 local name = "BrainStem"
@@ -499,7 +499,7 @@ local states = {
 		{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_SMGT")
 local name = "ShortGreenTorch"
@@ -518,7 +518,7 @@ local states = {
 		{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_FSKU")
 local name = "FloatingSkull"
@@ -536,7 +536,7 @@ local states = {
 		{frame = C|FF_FULLBRIGHT, tics = 6},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_SMIT")
 local name = "Stalagtite"
@@ -552,7 +552,7 @@ local states = {
 		{frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TRED")
 local name = "RedTorch"
@@ -571,7 +571,7 @@ local states = {
 		{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_SMRT")
 local name = "ShortRedTorch"
@@ -590,7 +590,7 @@ local states = {
 		{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_NULL")
 local name = "BossTarget"
@@ -610,7 +610,7 @@ local states = {
 		{frame = D|FF_FULLBRIGHT, tics = 4},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL5")
 local name = "CrushGibs"
@@ -627,7 +627,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL1")
 local name = "DeadStick"
@@ -644,7 +644,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL6")
 local name = "LiveStick"
@@ -662,7 +662,7 @@ local states = {
     {frame = B, tics = 8},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL4")
 local name = "HeadOnAStick"
@@ -679,7 +679,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL2")
 local name = "HeadsOnAStick"
@@ -696,7 +696,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_POL3")
 local name = "HeadCandles"
@@ -714,7 +714,7 @@ local states = {
     {frame = B|FF_FULLBRIGHT, tics = 6},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL1")
 local name = "TallGreenColumn"
@@ -731,7 +731,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL3")
 local name = "TallRedColumn"
@@ -748,7 +748,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_COL4")
 local name = "ShortRedColumn"
@@ -765,7 +765,7 @@ local states = {
     {frame = A, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_CAND")
 local name = "Candlestick"
@@ -782,7 +782,7 @@ local states = {
     {frame = A|FF_FULLBRIGHT, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_CBRA")
 local name = "Candelabra"
@@ -799,4 +799,24 @@ local states = {
     {frame = A|FF_FULLBRIGHT, tics = -1},
 }
 
-DefineDoomDeco(name, object, states, onPickup)
+DefineDoomDeco(name, object, states)
+
+SafeFreeSlot("SPR_CEYE")
+local name = "EvilEye"
+
+local object = {
+	radius = 16,
+	height = 54,
+	doomednum = 41,
+	sprite = SPR_CEYE,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = 6},
+    {frame = B|FF_FULLBRIGHT, tics = 6},
+    {frame = C|FF_FULLBRIGHT, tics = 6},
+    {frame = B|FF_FULLBRIGHT, tics = 6},
+}
+
+DefineDoomDeco(name, object, states)
