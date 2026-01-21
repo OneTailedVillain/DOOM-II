@@ -224,13 +224,29 @@ local function doSelfObituary(vplayer, source, inflictor, dtype)
 	end
 end
 
+local function doSourcelessObituary(vplayer, _, _, dtype)
+	if dtype == doom.damagetypes.fall then
+		printOutObituary("fall", vplayer)
+	elseif dtype == doom.damagetypes.crush then
+		printOutObituary("crush", vplayer)
+	elseif dtype == doom.damagetypes.slime then
+		printOutObituary("slime", vplayer)
+	elseif dtype == doom.damagetypes.fire then
+		printOutObituary("fire", vplayer)
+	elseif dtype == doom.damagetypes.exit then
+		printOutObituary("exit", vplayer)
+	else
+		printOutObituary("generic", vplayer)
+	end
+end
+
 function doom.doObituary(target, source, inflictor, dtype)
 	if not target.player then return end
 
 	local vplayer = target.player
 
 	if not source then
-		-- TODO: Sourceless obituaries!
+		doSourcelessObituary(vplayer, source, inflictor, dtype)
 	end
 
 	if source.player then
