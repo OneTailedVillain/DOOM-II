@@ -158,7 +158,7 @@ class WadAdvanceGUI(QMainWindow):
     def setup_main_tab(self, tab):
         layout = QVBoxLayout(tab)
         
-        # Source file selection (optional for pure DEH/BEX)
+        # Source file selection
         src_group = QGroupBox("Source WAD/PK3/DEH/BEX")
         src_layout = QVBoxLayout(src_group)
         
@@ -175,7 +175,7 @@ class WadAdvanceGUI(QMainWindow):
         layout.addWidget(src_group)
         
         # DEH/BEX files
-        deh_group = QGroupBox("DEHACKED/BEX Files (Required for pure DEH conversion)")
+        deh_group = QGroupBox("DEHACKED/BEX Files")
         deh_layout = QVBoxLayout(deh_group)
         
         self.deh_list = QListWidget()
