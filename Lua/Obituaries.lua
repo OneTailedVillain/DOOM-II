@@ -262,7 +262,6 @@ function doom.doObituary(target, source, inflictor, dtype)
 		elseif source.player == target.player then
 			doSelfObituary(target.player, source, inflictor, dtype)
 		else
-			print("Attempting PVP Obit")
 			doPVPObituary(target.player, source.player, inflictor, dtype)
 		end
 	elseif type(source) == "userdata" and userdataType(source) == "mobj_t" then
