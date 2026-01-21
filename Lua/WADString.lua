@@ -347,7 +347,7 @@ doom.obitStrings = {
 		-- When it has a hardcoded check to NOT take splash damage
 		cyberdemon_rocketlauncher = {
 			"%o shot the cyberdemon until they died.",
-			"%o forgot who was meant to die first.",
+			"%o misunderstood who was meant to die first.",
 			"%o learned the cyberdemon shoots back.",
 			"%o found out rockets aren't one-sided.",
 			"%o discovered the cyberdemon's counterattack.",
@@ -410,6 +410,7 @@ doom.obitStrings = {
 			"%o discovered brass knuckles are useless against %k's chainsaw.",
 			"%o brought brass knuckles to a chainsaw fight.",
 			"%o tried to box with a chainsaw-wielding %k.",
+			"%o brought knuckles to a chainsaw fight.",
 		},
 
 		-- When the opposite of the above happens :kappa:

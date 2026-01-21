@@ -243,7 +243,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 			return
 		end
 	end
-    local whatIs = doom.lineActions[lineSpecial]
+    local whatIs = deepcopy(doom.lineActions[lineSpecial])
 
     if not whatIs then
 		if lineSpecial != 0 then
@@ -256,7 +256,15 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 	end
 
 	if whatIs.activationType != useType then return end
-    
+
+    local targSide = usedLine.sidenum[0]
+    if sides[targSide] then
+        local sector = sides[targSide].sector
+        whatIs.newfloorpic = sector.floorpic
+        whatIs.newceilpic  = sector.ceilpic
+        whatIs.newSectorSpecial = sector.special
+    end
+
     -- Handle immediate exit special
     if whatIs.type == "exit" then
 		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
@@ -291,6 +299,9 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 	DOOM_AddThinker(usedLine, switchThinker)
     if not dontkill then
         P_KillMobj(ray)
+    else
+        -- missile hack
+        return false
     end
     return true
 end)
@@ -302,7 +313,8 @@ end, MT_DOOM_USERAYCAST)
 
 addHook("MobjLineCollide", function(ray, usedLine)
     if not (ray and ray.valid) then return end
-	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "gunshot", true) then return true else return end
+    -- I'm like 99% sure the gunshot use type doesn't cancel the "raycast" if it ever executes a line action
+	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "gunshot", true, true) then return true else return end
 end, MT_DOOM_BULLETRAYCAST)
 
 local function MaybeHitFloor_Simple(bullet)

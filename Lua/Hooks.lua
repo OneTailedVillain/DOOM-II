@@ -570,6 +570,22 @@ local function BuildStairs(startsec, stairsize, speed)
 	return { created = created, sectors = created_list }
 end
 
+-- This function is bullshit. P_FindNextHighestFloor should ALWAYS be checking sectors sharing a tag.
+local P_FindNextHighestFloorAmongTagged = function(targetSector, highest)
+	for sector in sectors.tagged(targetSector.tag) do
+		-- TODO: Is blocking non-same-floorpic sectors right?
+		if sector.floorpic ~= targetSector.floorpic then
+			continue
+		end
+		local floorHeight = P_FindNextHighestFloor(sector)
+		if floorHeight > highest then
+			highest = floorHeight
+		end
+	end
+
+	return highest
+end
+
 local thinkers = {
 	switch = function(line, data)
 		-- Infer switch textures if not already set (for switches activated via interact raycast)
@@ -1096,7 +1112,7 @@ local thinkers = {
 			if type(data.target) == "number" then
 				target = data.target
 			elseif data.target == "nextfloor" then
-				target = P_FindNextHighestFloor(sector, sector.floorheight)
+				target = P_FindNextHighestFloorAmongTagged(sector, sector.floorheight)
 			elseif data.target == "highest" then
 				target = P_FindHighestFloorSurrounding(sector); dir = "down"
 			elseif data.target == "8abovehighest" then
@@ -1165,8 +1181,14 @@ local thinkers = {
 					local newfloor = deepcopy(sector.floorheight)
 					doom.sectorbackups[sector].floor = newfloor
 					-- handle "changes" (texture change) if caller provided newfloorpic
-					if data.changes and data.newfloorpic then
-						sector.floorpic = data.newfloorpic
+					if data.changes then
+						if data.newfloorpic then
+							sector.floorpic = data.newfloorpic
+						end
+						-- Can potentially be 0
+						if data.newSectorSpecial != nil then
+							sector.special = data.newSectorSpecial
+						end
 					end
 					-- play stop sound
 					S_StartSound(sector, sfx_pstop)
