@@ -570,20 +570,24 @@ local function BuildStairs(startsec, stairsize, speed)
 	return { created = created, sectors = created_list }
 end
 
--- This function is bullshit. P_FindNextHighestFloor should ALWAYS be checking sectors sharing a tag.
-local P_FindNextHighestFloorAmongTagged = function(targetSector, highest)
-	for sector in sectors.tagged(targetSector.tag) do
-		-- TODO: Is blocking non-same-floorpic sectors right?
-		if sector.floorpic ~= targetSector.floorpic then
-			continue
-		end
-		local floorHeight = P_FindNextHighestFloor(sector)
-		if floorHeight > highest then
-			highest = floorHeight
-		end
-	end
+local function FindNextHighestFromBackups(sec, curHeight)
+    local best = curHeight
 
-	return highest
+    for i = 0, #sec.lines-1 do
+        local other = getNextSector(sec.lines[i], sec)
+        if other then
+            local h = doom.sectorbackups[other].lastTicFloorHeight
+			if h == nil then
+				h = other.floorheight
+			end
+			print("Considering floorheight " .. h/FRACUNIT .. " compared to " .. best/FRACUNIT .. "...")
+            if h > best then
+                best = h
+            end
+        end
+    end
+
+    return best
 end
 
 local thinkers = {
@@ -1058,6 +1062,7 @@ local thinkers = {
 
 			-- status: up / down / waiting
 			if data.status == "up" then
+				doom.sectorbackups[sector].lastTicFloorHeight = sector.floorheight
 				sector.floorheight = sector.floorheight + platspd
 				if sector.floorheight >= data.high then
 					sector.floorheight = data.high
@@ -1112,7 +1117,7 @@ local thinkers = {
 			if type(data.target) == "number" then
 				target = data.target
 			elseif data.target == "nextfloor" then
-				target = P_FindNextHighestFloorAmongTagged(sector, sector.floorheight)
+				target = FindNextHighestFromBackups(sector, sector.floorheight)
 			elseif data.target == "highest" then
 				target = P_FindHighestFloorSurrounding(sector); dir = "down"
 			elseif data.target == "8abovehighest" then
@@ -1227,7 +1232,7 @@ local thinkers = {
 		local dir = 1
 		local FLOORSPEED = 2*FRACUNIT
 		if data.target == "nextfloor" then
-			target = P_FindNextHighestFloor(sector, sector.ceilingheight)
+			target = FindNextHighestFromBackups(sector, sector.ceilingheight)
 		elseif data.target == "lowestceiling" then
 			target = P_FindLowestCeilingSurrounding(sector)
 		elseif data.target == "highest" then
