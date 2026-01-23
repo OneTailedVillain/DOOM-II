@@ -581,11 +581,9 @@ addHook("PlayerThink", function(player)
 end)
 
 local function DoomSectorDamage(player, amount, burnthrough)
+	local funcs = P_GetMethodsForSkin(player)
 	-- If they have ironfeet, normally ignore damage
-	if player
-	and player.doom
-	and player.doom.powers
-	and player.doom.powers[pw_ironfeet]
+	if funcs.hasPowerup(player, "ironfeet")
 	then
 		-- burnthrough ONLY applies to 20 dmg floors
 		if not burnthrough then
@@ -730,17 +728,33 @@ addHook("PlayerThink", function(player)
 	if (player.mo.flags & MF_NOTHINK) then return end
     local cnt = player.doom.damagecount or 0
     local bzc = 0
+	local funcs = P_GetMethodsForSkin(player)
+	local berserkTime = 0
+	local infraredTime = 0
+	local ironfeetTime = 0
 
-    if player.doom.powers[pw_strength] and player.doom.powers[pw_strength] > 0 then
-        bzc = 12 - (player.doom.powers[pw_strength] >> 6)
+    if funcs.getPowerupTime then
+		berserkTime = funcs.getPowerupTime(player, "berserk")
+	else
+		berserkTime = player.doom.powers[pw_strength]
+    end
+
+	if berserkTime then
+    	bzc = 12 - (player.doom.powers[pw_strength] >> 6)
         if bzc > cnt then
             cnt = bzc
         end
-    end
+	end
 
-	if player.doom.powers[pw_infrared] then
-		if player.doom.powers[pw_infrared] > 4*32
-			or (player.doom.powers[pw_infrared]&8) then
+	if funcs.getPowerupTime then
+		infraredTime = funcs.getPowerupTime(player, "infrared")
+	else
+		infraredTime = player.doom.powers[pw_infrared]
+	end
+
+	if infraredTime then
+		if infraredTime > 4*32
+			or (infraredTime&8) then
 			player.doom.fixedcolormap = 1
 		else
 			player.doom.fixedcolormap = 0
@@ -748,6 +762,12 @@ addHook("PlayerThink", function(player)
 	end
 
     local paletteType = 0 -- default normal palette
+
+	if funcs.getPowerupTime then
+		ironfeetTime = funcs.getPowerupTime(player, "ironfeet")
+	else
+		ironfeetTime = player.doom.powers[pw_ironfeet]
+	end
 
     if cnt > 0 then
         -- red palette for damage/berserk
@@ -761,7 +781,7 @@ addHook("PlayerThink", function(player)
         if bonusPal >= NUMBONUSPALS then bonusPal = NUMBONUSPALS - 1 end
         paletteType = STARTBONUSPALS + bonusPal
 
-    elseif player.doom.powers[pw_ironfeet] and (player.doom.powers[pw_ironfeet] > 4*32 or (player.doom.powers[pw_ironfeet] & 8) ~= 0) then
+    elseif ironfeetTime and (ironfeetTime > 4*32 or (ironfeetTime & 8) ~= 0) then
         paletteType = RADIATIONPAL
     end
 
