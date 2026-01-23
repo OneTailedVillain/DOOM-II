@@ -8,9 +8,6 @@
 ---@field next? string|integer|nil Next state name (string), state ID (integer), or nil for auto-chain
 ---@field nextframe? integer Frame number for named next state (default 1)
 
----@class StateDefs
----@field [string] StateFrame[] Tables of state frames, keyed by state name
-
 local function warn(warning)
 	print("\x82WARNING:\x80 " .. tostring(warning))
 end
@@ -51,7 +48,7 @@ local function SafeFreeSlot(...)
 end
 
 ---@param name string The object name (e.g., "Plasma")
----@param stateDefs StateDefs Table of state definitions
+---@param stateDefs table<string, StateFrame> Table of state definitions
 ---@return nil
 rawset(_G, "FreeDoomStates", function(name, stateDefs)
     local up     = name:upper()
@@ -288,9 +285,10 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
         seestate     = objData.seestate,
         seesound     = objData.seesound,
         reactiontime = objData.reactiontime,
+        doomflags = objData.doomflags,
+        doomname = name,
+        fastspeed = objData.fastspeed or objData.speed or 0,
     }
-
-    mobjinfo[MT].doomflags = objData.doomflags
 
 	if onPickup then
 		addHook("TouchSpecial", function(mo, toucher)
@@ -328,6 +326,9 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
             frame     = (type(frame) == "table" and frame.frame) and tonumber(frame.frame),
             tics      = (type(frame) == "table" and frame.tics) and tonumber(frame.tics),
             nextstate = nextSlot or S_NULL,
+            action = nil,
+            var1 = nil,
+            var2 = nil,
         }
     end
 end)
@@ -362,9 +363,10 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
         painsound   = objData.painsound,
         deathsound  = objData.deathsound,
         sprite      = objData.sprite,
+        doomflags = objData.doomflags,
+        doomname = name,
+        fastspeed = objData.fastspeed or objData.speed or 0,
     }
-
-    mobjinfo[MT].doomflags = objData.doomflags
 
     -- fill states and make them loop (last -> first)
     for i, frame in ipairs(stateFrames) do
