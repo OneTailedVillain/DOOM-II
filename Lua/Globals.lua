@@ -27,6 +27,7 @@ local toDeclare = {
 	DML_DONTDRAW = 128,
 	DML_MAPPED = 256,
     CF_GODMODE = 1,
+    CF_NOMOMENTUM = 2,
 }
 
 for k, v in pairs(toDeclare) do

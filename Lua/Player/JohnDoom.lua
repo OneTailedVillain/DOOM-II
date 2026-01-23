@@ -246,16 +246,14 @@ local function DOOM_CalcHeight(player)
 		player.bob = MAXBOB
 	end
 
-	/*
-		-- ???
-		if (player.doom.cheats & CF_NOMOMENTUM) or onground then
-			player.viewz = player.mo.z + VIEWHEIGHT
-			if player.viewz > player.mo.ceilingz - 4*FRACUNIT
-				player.viewz = player.mo.ceilingz - 4*FRACUNIT
-			end
-			player.viewz = player.mo.z + player.viewheight
+	-- ???
+	if (player.doom.cheats & CF_NOMOMENTUM) or onground then
+		player.viewz = player.mo.z + VIEWHEIGHT
+		if player.viewz > player.mo.ceilingz - 4*FRACUNIT
+			player.viewz = player.mo.ceilingz - 4*FRACUNIT
 		end
-	*/
+		player.viewz = player.mo.z + player.viewheight
+	end
 
 	local angle = (FINEANGLES/20*leveltime)&FINEMASK
 	local bob = FixedMul(player.bob/2, sin(angle << FINEANGLESHIFT))
@@ -344,6 +342,13 @@ addHook("PlayerThink", function(player)
 	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0
 	local doRun = run != usingSPIN
 	P_PlayerMove(player, doRun)
+
+	-- Probably inaccurate... who cares!
+	-- (me :SquidwardBawling:)
+	if player.doom and (player.doom.cheats & CF_NOMOMENTUM) ~= 0 then
+		player.mo.momx = 0
+		player.mo.momy = 0
+	end
 end)
 
 addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
