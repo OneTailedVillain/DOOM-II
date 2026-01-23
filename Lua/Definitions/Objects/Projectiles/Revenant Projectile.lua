@@ -145,7 +145,6 @@ local function A_Tracer(actor)
 	end
 end
 
----@type StateDefs
 local plasmastates = {
     shot = {
         {sprite = SPR_PLSS, frame = A, tics = 6, action = A_Tracer},

@@ -6,6 +6,21 @@ SafeFreeSlot(
     "MT_TROOPSHOT"
 )
 
+local plasmastates = {
+    shot = {
+        {sprite = SPR_BAL1, frame = A|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_BAL1, frame = B|FF_FULLBRIGHT, tics = 4, next = "shot"},
+    },
+
+    explode = {
+        {sprite = SPR_BAL1, frame = C|FF_FULLBRIGHT, tics = 6},
+        {sprite = SPR_BAL1, frame = D|FF_FULLBRIGHT, tics = 6},
+        {sprite = SPR_BAL1, frame = E|FF_FULLBRIGHT, tics = 6},
+    },
+}
+
+FreeDoomStates("ImpFireball", plasmastates)
+
 mobjinfo[MT_TROOPSHOT] = {
     spawnstate = S_DOOM_IMPFIRE1,
     seesound   = sfx_firsht,

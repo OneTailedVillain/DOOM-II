@@ -31,7 +31,11 @@ mobjinfo[MT_DOOM_ROCKETPROJ] = {
 states[S_ROCKET_SPAWN] = {
     sprite = SPR_MISL,
     frame = A|FF_FULLBRIGHT,
-    tics = -1
+    tics = -1,
+    action = nil,
+    var1 = nil,
+    var2 = nil,
+    nextstate = nil,
 }
 
 states[S_ROCKET_EXPLODE1] = {
@@ -39,6 +43,8 @@ states[S_ROCKET_EXPLODE1] = {
     frame = B|FF_FULLBRIGHT,
     tics = 8,
 	action = A_DoomExplode,
+    var1 = nil,
+    var2 = nil,
     nextstate = S_ROCKET_EXPLODE2
 }
 
@@ -46,6 +52,9 @@ states[S_ROCKET_EXPLODE2] = {
     sprite = SPR_MISL,
     frame = C|FF_FULLBRIGHT,
     tics = 6,
+    action = nil,
+    var1 = nil,
+    var2 = nil,
     nextstate = S_ROCKET_EXPLODE3
 }
 
@@ -53,5 +62,8 @@ states[S_ROCKET_EXPLODE3] = {
     sprite = SPR_MISL,
     frame = D|FF_FULLBRIGHT,
     tics = 4,
+    action = nil,
+    var1 = nil,
+    var2 = nil,
     nextstate = S_NULL
 }
