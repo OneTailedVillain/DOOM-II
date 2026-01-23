@@ -394,16 +394,16 @@ dofile("Obituaries.lua")
 ---@field pw_invisibility integer Timer for the Blursphere power-up. Counts down until it turns back to zero.
 
 ---@class laststate_t Snapshot of player state, taken on level exit
----@field ammo table<number, integer> The ammo counts since last archive.
----@field weapons table<number, integer> The weapons owned since last archive.
----@field oldweapons table<number, integer> The last weapons owned since last archive.
----@field curwep table<number, integer> The last weapon held since last archive.
----@field health integer The last health % since last archive.
----@field armor integer The last armor % since last archive.
----@field armorefficiency integer The last armor efficiency since last archive.
----@field pos vector3_t The last position the player was in since last archive.
----@field momentum vector3_t The last momentum the player had since last archive.
----@field map integer The last map the player was in since last archive.
+---@field ammo? table<number, integer> The ammo counts since last archive.
+---@field weapons? table<number, integer> The weapons owned since last archive.
+---@field oldweapons? table<number, integer> The last weapons owned since last archive.
+---@field curwep? table<number, integer> The last weapon held since last archive.
+---@field health? integer The last health % since last archive.
+---@field armor? integer The last armor % since last archive.
+---@field armorefficiency? integer The last armor efficiency since last archive.
+---@field pos? vector3_t The last position the player was in since last archive.
+---@field momentum? vector3_t The last momentum the player had since last archive.
+---@field map? integer The last map the player was in since last archive.
 
 ---@class doomplayer_t Doom-specific player fields
 ---@field ammo table<string, integer> Ammo counts by ammo type/index
@@ -478,11 +478,12 @@ dofile("Obituaries.lua")
 ---@field doom doomplayer_t The Doom-specific fields for this player
 ---@field killcam mobj_t|nil The player's killcam mobj, if any
 ---@field attacker mobj_t|nil The last attacker of the player, if any. Automatically reset when their damagecount is zero.
+---@field hl1doubleammo boolean Freeman variable.
 
 ---@class mobjinfo_t
----@field doomflags doomflags_t Bitmask of doommobj_t flags (DF_*). Auto-copied to mobj_t.doom.flags on spawn.
----@field doomname string The Name passed to DefineDoomActor
----@field fastspeed fixed_t The speed used when doom_fastmonsters is enabled
+---@field doomflags? doomflags_t Bitmask of doommobj_t flags (DF_*). Auto-copied to mobj_t.doom.flags on spawn.
+---@field doomname? string The Name passed to DefineDoomActor
+---@field fastspeed? fixed_t The speed used when doom_fastmonsters is enabled
 
 ---@class doomstrings Non-class, holds the IDs of Doom strings
 ---@field GOTARMOR string Message for picking up the CombatArmor.
