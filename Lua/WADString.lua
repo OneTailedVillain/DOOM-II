@@ -767,6 +767,7 @@ doom.obitStrings = {
 			"%o couldn't shake a revenant missile.",
 			"%o forgot invisibility doesn't fool homing rockets.",
 			"%o vanished, but the missile didn't care.",
+			"%o learned revenant rockets track through invisibility.",
 		},
 		pinv_mancubus = {
 			"%o walked into a mancubus spread.",
@@ -1017,7 +1018,11 @@ doom.obitStrings = {
 			"%o was in the wrong place at the wrong time.",
 			"%o paid the price for monster chaos.",
 			"%o got caught between enemies.",
-			"%o was collateral damage."
+			"%o was collateral damage.",
+			"%o learned to avoid monster battles.",
+			"%o was a victim of monster infighting.",
+			"%o found themselves between bickering foes.",
+			"%o got caught in monster crossfire."
 		},
 		pinv_revenant = {
 			"%o couldn't dodge while invisible.",
