@@ -20,7 +20,7 @@ local function MakeWeaponPickup(def)
 			end
 		end
 
-		local result = funcs.giveWeapon(player, def.weapon, item.doom.flags)
+		local result = funcs.giveWeapon(player, def.weapon, item.doom.flags or 0)
 		if not result then
 			return true
 		end
