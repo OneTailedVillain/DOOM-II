@@ -205,20 +205,29 @@ COM_AddCommand("iddqd", function(player)
 		local returnVal = funcs.shouldDoCheat(player, "iddqd")
 		if returnVal then return end
 	end
-COM_AddCommand("iddqd", function(player)
-	local funcs = P_GetMethodsForSkin(player)
-	if funcs.shouldDoCheat then
-		local returnVal = funcs.shouldDoCheat(player, "iddqd")
-		if returnVal then return end
-	end
 	player.doom.cheats = player.doom.cheats ^^ CF_GODMODE
 	if player.doom.cheats & CF_GODMODE then
+		funcs.setHealth(player, 100)
 		DOOM_DoMessage(player, "$STSTR_DQDON")
 	else
 		DOOM_DoMessage(player, "$STSTR_DQDOFF")
 	end
 	if funcs.onCheat then
 		local returnVal = funcs.onCheat(player, "iddqd")
+	end
+end)
+
+COM_AddCommand("idchoppers", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	if funcs.shouldDoCheat then
+		local returnVal = funcs.shouldDoCheat(player, "idchoppers")
+		if returnVal then return end
+	end
+	funcs.giveWeapon(player, "chainsaw")
+
+	DOOM_DoMessage(player, "$STSTR_CHOPPERS")
+	if funcs.onCheat then
+		local returnVal = funcs.onCheat(player, "idchoppers")
 	end
 end)
 
