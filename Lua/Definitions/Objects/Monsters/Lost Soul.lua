@@ -70,7 +70,7 @@ local function LostSoul_MobjLineCollide(mo, line)
         return
     end
 
-    DOOM_UseRaycastInteractionChecks(mo, line, "walk", true, true)
+    --if DOOM_UseRaycastInteractionChecks(mo, line, "walk", true, true) then return true else return end
 end
 
 local function LostSoul_EnemyMobjCollide(thing, tmthing)
@@ -81,8 +81,7 @@ local function LostSoul_EnemyMobjCollide(thing, tmthing)
     if tmthing.z + tmthing.momz <= thing.z + thing.height
     or thing.z <= tmthing.z + tmthing.height + tmthing.momz then
 		if tmthing.doom.flags & DF_SKULLFLY ~= 0 then
-			print("Successfully hit something!")
-			DOOM_DamageMobj(tmthing, thing, tmthing, (DOOM_Random() % 8 + 1) * thing.info.damage)
+			DOOM_DamageMobj(thing, tmthing, tmthing, (DOOM_Random() % 8 + 1) * thing.info.damage)
 		end
     end
 end
