@@ -881,7 +881,7 @@ doom.dehackedpointers = {
 		[29] = {"shotgun", "attack", 9},           -- S_SGUN9
 		[30] = {"shotgun", "flash", 1},            -- S_SGUNFLASH1
 		[31] = {"shotgun", "flash", 2},            -- S_SGUNFLASH2
-		
+
 		[32] = {"supershotgun", "idle", 1},        -- S_DSGUN
 		[33] = {"supershotgun", "lower", 1},       -- S_DSGUNDOWN
 		[34] = {"supershotgun", "raise", 1},       -- S_DSGUNUP
@@ -899,7 +899,7 @@ doom.dehackedpointers = {
 		[46] = {"supershotgun", "attack", 12},     -- S_DSNR2 (reload state)
 		[47] = {"supershotgun", "flash", 1},       -- S_DSGUNFLASH1
 		[48] = {"supershotgun", "flash", 2},       -- S_DSGUNFLASH2
-		
+
 		[49] = {"chaingun", "idle", 1},            -- S_CHAIN
 		[50] = {"chaingun", "lower", 1},           -- S_CHAINDOWN
 		[51] = {"chaingun", "raise", 1},           -- S_CHAINUP
@@ -908,7 +908,7 @@ doom.dehackedpointers = {
 		[54] = {"chaingun", "attack", 3},          -- S_CHAIN3
 		[55] = {"chaingun", "flash", 1},           -- S_CHAINFLASH1
 		[56] = {"chaingun", "flash", 2},           -- S_CHAINFLASH2
-		
+
 		[57] = {"rocketlauncher", "idle", 1},      -- S_MISSILE
 		[58] = {"rocketlauncher", "lower", 1},     -- S_MISSILEDOWN
 		[59] = {"rocketlauncher", "raise", 1},     -- S_MISSILEUP
@@ -919,7 +919,7 @@ doom.dehackedpointers = {
 		[64] = {"rocketlauncher", "flash", 2},     -- S_MISSILEFLASH2
 		[65] = {"rocketlauncher", "flash", 3},     -- S_MISSILEFLASH3
 		[66] = {"rocketlauncher", "flash", 4},     -- S_MISSILEFLASH4
-		
+
 		[67] = {"chainsaw", "idle", 1},            -- S_SAW (first idle frame)
 		[68] = {"chainsaw", "idle", 2},            -- S_SAWB (second idle frame)
 		[69] = {"chainsaw", "lower", 1},           -- S_SAWDOWN
@@ -927,7 +927,7 @@ doom.dehackedpointers = {
 		[71] = {"chainsaw", "attack", 1},          -- S_SAW1
 		[72] = {"chainsaw", "attack", 2},          -- S_SAW2
 		[73] = {"chainsaw", "attack", 3},          -- S_SAW3
-		
+
 		[74] = {"plasmarifle", "idle", 1},         -- S_PLASMA
 		[75] = {"plasmarifle", "lower", 1},        -- S_PLASMADOWN
 		[76] = {"plasmarifle", "raise", 1},        -- S_PLASMAUP
@@ -935,7 +935,7 @@ doom.dehackedpointers = {
 		[78] = {"plasmarifle", "attack", 2},       -- S_PLASMA2
 		[79] = {"plasmarifle", "flash", 1},        -- S_PLASMAFLASH1
 		[80] = {"plasmarifle", "flash", 2},        -- S_PLASMAFLASH2
-		
+
 		[81] = {"bfg9000", "idle", 1},             -- S_BFG
 		[82] = {"bfg9000", "lower", 1},            -- S_BFGDOWN
 		[83] = {"bfg9000", "raise", 1},            -- S_BFGUP
