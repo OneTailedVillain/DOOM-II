@@ -700,6 +700,7 @@ function A_SawHit(actor, var1, var2, weapon)
 end
 
 -- Cut-down definitions for SPECIFICALLY enemies
+---@type table<integer, shortweapondef_t>
 doom.predefinedWeapons = {
 	{
 		damage = {3, 15},
