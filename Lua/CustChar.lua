@@ -293,6 +293,10 @@ local baseMethods = {
 		local ptype = ptypeMap[powername]
 		if not duration or not ptype then print("FAIL! on base doPowerup method", powername, duration, ptype) return false end
 
+		if powername == "berserk" then
+			DOOM_SwitchWeapon(player, "brassknuckles")
+		end
+
 		player.doom.powers[ptype] = duration
 		return true
 	end
