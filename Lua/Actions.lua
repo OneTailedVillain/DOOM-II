@@ -309,17 +309,17 @@ function A_DoomChase(actor)
 		-- snap angle to nearest 45 sector
 		actor.angle = $ & (7<<29)
 
-		-- convert both to fixed degrees
-		local a = AngleFixed(actor.angle)
-		local target = AngleFixed(actor.movedir << 29)
+		-- convert to degrees
+		local target = actor.movedir << 29
 
-		local delta = a - target
-
-		-- turn 45 degrees toward desired direction
-		if delta > 0 then
-			actor.angle = FixedAngle(a - 45*FRACUNIT)
-		elseif delta < 0 then
-			actor.angle = FixedAngle(a + 45*FRACUNIT)
+		-- Lugent didn't MR this! But credits to them
+		local delta = FixedInt(AngleFixed(target - actor.angle))
+		if delta < 45 or delta > 315 then
+			actor.angle = target
+		elseif delta < 180 then
+			actor.angle = $ + ANGLE_45
+		else
+			actor.angle = $ - ANGLE_45
 		end
 	end
 
