@@ -80,6 +80,59 @@ COM_AddCommand("idclip", function(player)
 	end
 end)
 
+-- This is the ugliest code to date. Whatever!
+COM_AddCommand("idbehold", function(player, arg)
+	local funcs = P_GetMethodsForSkin(player)
+	if funcs.shouldDoCheat then
+		if funcs.shouldDoCheat(player, "idbehold", arg) then return end
+	end
+	if arg == "v" then
+		if funcs.hasPowerup(player, "invulnerability") then
+			funcs.takePowerUp(player, "invulnerability")
+		else
+			funcs.doPowerUp(player, "invulnerability")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	elseif arg == "a" then
+		if funcs.hasPowerup(player, "allmap") then
+			funcs.takePowerUp(player, "allmap")
+		else
+			funcs.doPowerUp(player, "allmap")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	elseif arg == "s" then
+		if funcs.hasPowerup(player, "berserk") then
+			funcs.takePowerUp(player, "berserk")
+		else
+			funcs.doPowerUp(player, "berserk")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	elseif arg == "i" then
+		if funcs.hasPowerup(player, "invisibility") then
+			funcs.takePowerUp(player, "invisibility")
+		else
+			funcs.doPowerUp(player, "invisibility")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	elseif arg == "r" then
+		if funcs.hasPowerup(player, "ironfeet") then
+			funcs.takePowerUp(player, "ironfeet")
+		else
+			funcs.doPowerUp(player, "ironfeet")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	elseif arg == "l" then
+		if funcs.hasPowerup(player, "lightamp") then
+			funcs.takePowerUp(player, "lightamp")
+		else
+			funcs.doPowerUp(player, "lightamp")
+		end
+		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
+	else
+		DOOM_DoMessage(player, "$STSTR_BEHOLD")
+	end
+end)
+
 COM_AddCommand("idclev", function(player, arg)
 	local funcs = P_GetMethodsForSkin(player)
 
@@ -146,6 +199,12 @@ COM_AddCommand("idmus", function(player, arg)
 	end
 end)
 
+COM_AddCommand("iddqd", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	if funcs.shouldDoCheat then
+		local returnVal = funcs.shouldDoCheat(player, "iddqd")
+		if returnVal then return end
+	end
 COM_AddCommand("iddqd", function(player)
 	local funcs = P_GetMethodsForSkin(player)
 	if funcs.shouldDoCheat then

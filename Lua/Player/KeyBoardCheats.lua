@@ -85,12 +85,12 @@ end
 -- Power-up cheat handler
 local function handlePowerupCheat(buffer, player)
     local powerups = {
-        i = "idbehold invulnerability",
-        r = "idbehold radsuit",
-        s = "idbehold berserk",
-        v = "idbehold invisibility",
-        a = "idbehold automap",
-        l = "idbehold lightamp"
+        v = "idbehold v",
+        a = "idbehold a",
+        s = "idbehold s",
+        i = "idbehold i",
+        r = "idbehold r",
+        l = "idbehold l"
     }
     
     local cmd = powerups[buffer:lower()]
