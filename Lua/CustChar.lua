@@ -274,6 +274,27 @@ local baseMethods = {
 		elseif ptype == "ironfeet" then
 			return player.doom.powers[pw_ironfeet]
 		end
+	end,
+
+	doPowerUp = function (player, powername)
+		local durationMap = {
+			berserk         = 1,
+			invisibility    = 120 * TICRATE,
+			invulnerability = 30 * TICRATE,
+			ironfeet        = 60 * TICRATE,
+		}
+		local ptypeMap = {
+			berserk         = pw_strength,
+			invisibility    = pw_invisibility,
+			invulnerability = pw_invulnerability,
+			ironfeet        = pw_ironfeet,
+		}
+		local duration = durationMap[powername]
+		local ptype = ptypeMap[powername]
+		if not duration or not ptype then print("FAIL! on base doPowerup method", powername, duration, ptype) return false end
+
+		player.doom.powers[ptype] = duration
+		return true
 	end
 }
 
@@ -554,94 +575,20 @@ local function clamp_pips(player, pips)
     return pips
 end
 
+doom.charSupport = $ or {}
+
 -- Build doom.charSupport using baseMethods and per-char overrides
-doom.charSupport = {
-	bj = {
-		noWeapons = true,
-		noHUD = true,
-		customDamage = true,
-		methods = mergeMethods(baseMethods, {
-			damage = function(player, damage, attacker, proj, damageType, minhealth)
-				if (player.playerstate or PST_LIVE) == PST_DEAD then return false end
-				local player, mobj = resolvePlayerAndMobj(player)
-				player.wolfenstein.health = max($ - damage, minhealth or 0)
-				P_DamageMobj(mobj, proj, attacker, 0, damageType)
-			end,
-
-			getHealth = function(player)
-				if not player or not player.mo then return nil end
-				return player.wolfenstein.health or 0
-			end,
-
-			setHealth = function(player, health)
-				if not player or not player.mo then return false end
-				player.wolfenstein.health = health
-				return true
-			end,
-
-			getCurAmmo = function(player)
-				if not player then return nil end
-				return player.wolfenstein.ammo
-			end,
-
-			getMaxFor = function(player, aType)
-				return 99
-			end,
-
-			giveAmmoFor = function(player, source, dflags)
-				if dflags == nil then dflags = 0 end
-				local tables = {
-					clip           = {"bullets", 10, true},
-					clipbox        = {"bullets", 50},
-					shells         = {"shells", 4, true},
-					shellbox       = {"shells", 20},
-					rocket         = {"rockets", 1, true},
-					rocketbox      = {"rockets", 5},
-					cell           = {"cells", 20, true},
-					cellpack       = {"cells", 100},
-					pistol         = {"bullets", 20, true},
-					chaingun       = {"bullets", 20, true},
-					shotgun        = {"shells", 8, true},
-					supershotgun   = {"shells", 8, true},
-					rocketlauncher = {"rockets", 2, true},
-					plasmarifle    = {"cells", 40, true},
-					bfg9000        = {"cells", 40, true},
-				}
-
-				if not player or not player.doom then return false end
-
-				local entry = tables[source]
-				if not entry then return false end
-
-				if doom.gameskill == 1 or doom.gameskill == 5 then
-					entry[2] = $ * 2
-				end
-				if (dflags & DF_DROPPED) then
-					entry[2] = $ / 2
-				end
-
-				if gametype == GT_DOOMDM and entry[3] then
-					entry[2] = $ * 5
-				end
-
-				local aType, addAmount = entry[1], entry[2]
-
-				local curAmmo = player.wolfenstein.ammo or 0
-				local maxAmmo = P_GetMethodsForSkin(player).getMaxFor(player, aType)
-
-				player.wolfenstein.ammo = min(curAmmo + addAmount, maxAmmo)
-
-				return curAmmo ~= player.doom.ammo[aType]
-			end,
-		})
-	},
-
-	kombifreeman = {
+doom.charSupport.kombifreeman = {
 		noWeapons = true, -- Disable the DOOM port's weapons
 		noHUD = true, -- Get rid of the DOOM port's HUD
 		customDamage = true, -- If this skin also uses MobjDamage
 		-- TODO: Re-make this! Slowpoke.
 		methods = {
+			hasPowerUp = baseMethods.hasPowerup,
+			saveState = baseMethods.saveState,
+			throwOutSaveState = baseMethods.throwOutSaveState,
+			takePowerUp = baseMethods.takePowerUp,
+
 			getHealth = function(player)
 				if not player or not player.mo then return nil end
 				local curHealth = (player.mo.hl and player.mo.hl.health)
@@ -1030,21 +977,32 @@ doom.charSupport = {
 				return false
 			end,
 
-			damage = function(player, damage, attacker, proj, damageType, minhealth)
-				if (player.playerstate or PST_LIVE) == PST_DEAD then return false end
-				local player, mobj = resolvePlayerAndMobj(player)
-				P_DamageMobj(mobj, proj, attacker, damage, damageType)
-			end,
-		},
+		damage = function(player, damage, attacker, proj, damageType, minhealth)
+		if (player.playerstate or PST_LIVE) == PST_DEAD then return false end
+
+		local player, mobj = resolvePlayerAndMobj(player)
+		P_DamageMobj(mobj, proj, attacker, damage, damageType)
+		end,
 	},
-	other = {
-		methods = baseMethods
-	},
-	metalman = {
+}
+
+doom.charSupport.other = {
+	methods = baseMethods
+}
+
+doom.charSupport.metalman = {
 		noWeapons = true,
 		noHUD = true,
 		customDamage = true,
 		methods = {
+			getCurAmmoType = baseMethods.getCurAmmoType,
+			getMaxHealth = baseMethods.getMaxHealth,
+			getMaxArmor = baseMethods.getMaxArmor,
+			hasPowerUp = baseMethods.hasPowerup,
+			saveState = baseMethods.saveState,
+			throwOutSaveState = baseMethods.throwOutSaveState,
+			takePowerUp = baseMethods.takePowerUp,
+
 			getHealth = function(player)
 				if not player or not player.mo then return nil end
 				local health = FixedMul(player.megaman.curpips, conversionRate) + 1
@@ -1161,8 +1119,7 @@ doom.charSupport = {
 				P_DamageMobj(mobj, proj, attacker, damage, damageType)
 			end,
 		}
-	},
-}
+	}
 
 for charName, charTable in pairs(doom.charSupport) do
     if charName ~= "other" and charTable.methods then
