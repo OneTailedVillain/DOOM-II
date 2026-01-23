@@ -131,7 +131,7 @@ dofile("Obituaries.lua")
 ---| "idclev" Change level/map
 ---| "idmus"  Play level music
 ---| "iddqd"  Toggle godmode
----| "idbehold" Give power-up (followed by a single letter indicating which one)
+---| "idbehold" Give power-up (followed by a single letter indicating which one). Can be ran without an argument.
 ---| "idspispopd" Toggle no clipping (alternate)
 ---| "idchoppers" Give chainsaw and full ammo
 ---| "idmypos" Show current position and angle
@@ -142,6 +142,7 @@ dofile("Obituaries.lua")
 ---| "invisibility"    Invisibility.    Lasts 60 seconds.
 ---| "invulnerability" Invulnerability. Lasts 30 seconds.
 ---| "ironfeet"        Radiation suit.  Lasts 60 seconds.
+---| "infrared"        Light amp.      Lasts 120 seconds.
 
 ---@alias vanillaweps
 ---| "brassknuckles"
@@ -179,15 +180,15 @@ dofile("Obituaries.lua")
 ---@field getCurAmmoType fun(player: player_t): string|nil Returns the ammo type string for the player's current weapon, or nil if unavailable
 ---@field getAmmoFor fun(player: player_t, aType: string): integer|false Returns the player's current ammo for the given ammo type, or false if unavailable
 ---@field setAmmoFor fun(player: player_t, aType: string, amount: integer): boolean Sets the player's ammo for the given ammo type. Returns true if successful.
----@field getMaxFor fun(player: player_t, aType: string): integer|nil Returns the player's maximum ammo for the given ammo type, or nil if unavailable
+---@field getMaxFor fun(player: player_t, aType: string): integer|nil|false Returns the player's maximum ammo for the given ammo type, or false if unavailable
 ---@field giveWeapon fun(player: player_t, weapon: string, doomflags: integer|nil): boolean Gives the specified weapon to the player. Returns true if the gift was successful (typically if the player didn't already have it or wasn't at max ammo)
 ---@field hasWeapon fun(player: player_t, weapon: string): boolean Returns true if the player has the specified weapon
 ---@field giveAmmoFor fun(player: player_t, source: validsource, dflags: integer|nil): boolean Gives ammo to the player based on `source`. Returns true if ammo was added.
 ---@field damage fun(player: mobj_t, damage: integer, attacker: player_t|mobj_t|nil, proj: mobj_t|nil, damageType: integer|nil, minhealth: integer|nil): boolean|nil Applies damage to the player using doom-style armor efficiency. Returns true if damage was applied. (Due to a bug, the player argument is not actually of type player_t)
----@field doBackpack fun(player: player_t): nil Gives the player a backpack and maximum ammo
----@field doPowerUp fun(player: player_t, powerType: poweruptype): boolean Gives a power-up to the player. Returns true if successful.
+---@field doBackpack? fun(player: player_t): nil Gives the player a backpack and maximum ammo
+---@field doPowerUp? fun(player: player_t, powerType: poweruptype): boolean Gives a power-up to the player. Returns true if successful.
 ---@field shouldDealDamage? fun(player: player_t, inflictor: mobj_t|nil, source: mobj_t|nil, damage: integer, damageType: integer|nil, minhealth: integer|nil): boolean|nil Optional. If present, called before applying damage to allow the skin/system to veto damage handling. Return truthy (true or any non-zero number) to allow damage to proceed; return falsy (false, nil or zero) to prevent damage. Parameters match those passed to the "damage" method. Due to intended behavior, the "player" argument is actually of player_t.
----@field hasPowerup fun(player: player_t, powerType: poweruptype): boolean Returns true if the player currently has the specified power-up active, or false otherwise.
+---@field hasPowerUp fun(player: player_t, powerType: poweruptype): boolean Returns true if the player currently has the specified power-up active, or false otherwise.
 ---@field onIntermission? fun(player: player_t): nil? Optional. Hook called when the intermission screen starts.
 ---@field onNowEntering? fun(player: player_t): nil? Optional. Hook called when the Intermission Screen enters the "Now Entering" state.
 ---@field onSoulsphere? fun(player: player_t): nil? Optional. Hook called when the player picks up a Soulsphere.
@@ -200,6 +201,8 @@ dofile("Obituaries.lua")
 ---@field doForcedWeaponSwitch? fun(player: player_t, weapon: string): nil Optional. Called when the game forcibly switches the player's weapon (e.g. Berserk Pack autoswitch). "weapon" is the internal weapon name the game is switching to.
 ---@field throwOutSaveState fun(player: player_t) Attempt to throw out the player's current saved state. This should clear out *all* state variables.
 ---@field getCurWeapon? fun(player: player_t): vanillaweps Returns the weapon name the current player is holding. Recommended to include for obituaries.
+---@field takePowerUp fun(player: player_t, powerType: poweruptype): boolean Attempt to take the specified power-up from the player. Returns true if successful.
+---@field getPowerUpTime? fun(player: player_t, powerType: poweruptype): boolean Attempt to get the current time the power-up has remaining. Berserk should return a counter counting *up* from initial pick-up. Will default to getting from player.doom.powers[] if left out.
 
 ---@class validsoundentries Non-class
 ---@field noway integer Sound played when you try to interact with a non-interactible line
@@ -212,9 +215,8 @@ dofile("Obituaries.lua")
 ---@field getpow integer Sound played when you collect a power-up.
 
 ---@class doomcharsupport_t Character support definition
----@field noWeapons boolean If true, disable Doom weapon system. Nil = default behavior (uses Doom system)
----@field noHUD boolean If true, disable Doom HUD. Nil = default behavior (uses Doom HUD)
----@field customDamage boolean @deprecated Unnecessary to set since v0.99-3. Used to be a hack to circumnavigate a stack overflow when a damage method used P_DamageMobj.
+---@field noWeapons? boolean If true, disable Doom weapon system. Nil = default behavior (uses Doom system)
+---@field noHUD? boolean If true, disable Doom HUD. Nil = default behavior (uses Doom HUD)
 ---@field soundTable? validsoundentries Table of sound effects that can be replaced. Empty entries will use their default sound effects.
 ---@field intermusic? string The music lump played when you go the intermission while playing as this character. Overrides both DOOM II and DOOM 1 intermission songs.
 ---@field noPartialInvisEffect? boolean Optional. If true, disables the partial invisibility effect that the engine provides by default.
@@ -358,13 +360,27 @@ dofile("Obituaries.lua")
 ---@field order integer The order of this weapon in the player's inventory (higher == lower)
 ---@field damage table The damage values for this weapon, in order of {min, max, steps}
 ---@field pellets integer The number of shootmobjs fired by this weapon
----@field shootmobj mobjtype_t The type of object this weapon fires (defaults to hitscanner)
----@field raycaster boolean Whether this weapon uses raycasting (defaults to false)
+---@field shootmobj? mobjtype_t The type of object this weapon fires (defaults to hitscanner)
+---@field raycaster? boolean Whether this weapon uses raycasting (defaults to false)
 ---@field shotcost integer The ammo cost per shot
 ---@field ammotype string The type of ammo this weapon uses
----@field spread doomspread_t The spread values for this weapon
+---@field spread? doomspread_t The spread values for this weapon
 ---@field states doomweaponstates_t The states for this weapon
 ---@field noinitfirespread boolean Whether this weapon should only apply spread on refire
+
+---@class shortweapondef_t Definition of a short Doom weapon, used by monsters
+---@field sprite? spritenum_t The weapon sprite this weapon uses
+---@field weaponslot? integer The slot this weapon occupies in the player's inventory
+---@field order? integer The order of this weapon in the player's inventory (higher == lower)
+---@field damage table The damage values for this weapon, in order of {min, max, steps}
+---@field pellets integer The number of shootmobjs fired by this weapon
+---@field shootmobj? mobjtype_t The type of object this weapon fires (defaults to hitscanner)
+---@field raycaster? boolean Whether this weapon uses raycasting (defaults to false)
+---@field shotcost? integer The ammo cost per shot
+---@field ammotype? string The type of ammo this weapon uses
+---@field spread? doomspread_t The spread values for this weapon
+---@field states? doomweaponstates_t The states for this weapon
+---@field noinitfirespread? boolean Whether this weapon should only apply spread on refire
 
 ---@class ammodef_t Definition of a Doom ammo type
 ---@field max integer The maximum amount of this ammo the player can carry
