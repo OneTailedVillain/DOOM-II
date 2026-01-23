@@ -47,11 +47,11 @@ local states = {
 		{frame = B, tics = 6},
 }
 
-local function GiveArmorCompat(funcs, player, heal, clampMax)
+local function GiveArmorCompat(funcs, player, heal, clampMax, efficiency)
 	-- Prefer skin-provided giveArmor if available
 	if funcs.giveArmor then
 		-- expectedMaxArmor is used for clamping inside giveArmor
-		return funcs.giveArmor(player, heal, clampMax)
+		return funcs.giveArmor(player, heal, efficiency, clampMax)
 	end
 
 	-- Fallback: manual get/set
@@ -62,7 +62,7 @@ local function GiveArmorCompat(funcs, player, heal, clampMax)
 		return false
 	end
 
-	funcs.setArmor(player, newhealth)
+	funcs.setArmor(player, newhealth, efficiency)
 	return true
 end
 
@@ -72,7 +72,7 @@ local function onPickup(item, mobj)
 	local funcs = P_GetMethodsForSkin(player)
 	local maxhealth = funcs.getMaxArmor(player)
 
-	GiveArmorCompat(funcs, player, 1, maxhealth * 2)
+	GiveArmorCompat(funcs, player, 1, maxhealth * 2, nil)
 	DOOM_DoMessage(player, "$GOTARMBONUS")
 end
 
