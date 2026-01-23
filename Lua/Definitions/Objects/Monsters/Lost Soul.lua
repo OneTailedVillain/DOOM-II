@@ -34,29 +34,6 @@ local object = {
 	doomflags = DF_NOBLOOD,
 }
 
-local SKULLSPEED = 20 * FRACUNIT
-
-local function A_SkullAttack(actor)
-	if not actor.target then return end
-
-	local dest = actor.target
-	-- Utterly UGLY hack since MF2_SKULLFLY will cause Lost Souls to stop one tic before hitting the player
-	actor.doom.flags = actor.doom.flags | DF_SKULLFLY
-
-	S_StartSound(actor, actor.info.attacksound)
-	A_DoomFaceTarget(actor)
-	local an = actor.angle
-	actor.momx = FixedMul(SKULLSPEED, cos(an))
-	actor.momy = FixedMul(SKULLSPEED, sin(an))
-	local dist = P_AproxDistance(dest.x - actor.x, dest.y - actor.y)
-	dist = dist / SKULLSPEED
-
-	if dist < 1 then
-		dist = 1
-	end
-	actor.momz = (dest.z + (dest.height >> 1) - actor.z) / dist
-end
-
 local states = {
 	stand = {
 		{action = A_DoomLook, frame = A|FF_FULLBRIGHT, tics = 10},
