@@ -49,10 +49,10 @@
         "tth_doombuild",
         "GT_DOOMDMTWO",
         "doom",
-        "DF_SKULLFLY"
+        "DF_SKULLFLY",
+        "CF_NOMOMENTUM"
     ],
     "Lua.diagnostics.disable": [
-        "missing-fields",
         "deprecated",
         "redundant-parameter",
         "cast-local-type",
