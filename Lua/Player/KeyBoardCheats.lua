@@ -107,6 +107,12 @@ local cheats = {
     fixedCheat("idfa", "idfa"),
     fixedCheat("idclip", "idclip"),
     fixedCheat("iddqd", "iddqd"),
+    fixedCheat("idspispopd", "idclip"),
+    fixedCheat("idchoppers", "idchoppers"),
+    fixedCheat("idmypos", "idmypos"),
+    fixedCheat("iddt", "iddt"),
+    -- Include base so the message triggers
+    fixedCheat("idbehold", "idbehold"),
     
 	cheat("idclev",
 		function(buf, player)
