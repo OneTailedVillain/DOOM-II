@@ -148,9 +148,13 @@ sfxinfo[sfx_itmbk].caption = "Item respawned"
 DOOM_Freeslot("S_LIGHTDONE", "S_SPAWNFIRE1", "S_SPAWNFIRE2", "S_SPAWNFIRE3", "S_SPAWNFIRE4", "S_SPAWNFIRE5", "S_SPAWNFIRE6", "S_SPAWNFIRE7", "S_SPAWNFIRE8")
 
 states[S_SPAWNFIRE5] = {
-	sprite = SPR_FIRE, 
+	sprite = SPR_FIRE,
 	frame = E|FF_FULLBRIGHT,
-	tics = 4
+	tics = 4,
+	action = nil,
+	var1 = nil,
+	var2 = nil,
+	nextstate = nil
 }
 
 doom.dropTable = {
@@ -522,13 +526,13 @@ doom.dehackedpointers = {
 
 	frames = {
 		[0] = S_NULL,
-		[90] = S_DOOM_BLOOD1,
-		[91] = S_DOOM_BLOOD2,
-		[92] = S_DOOM_BLOOD3,
-		[93] = S_DOOM_PUFF1,
-		[94] = S_DOOM_PUFF2,
-		[95] = S_DOOM_PUFF3,
-		[96] = S_DOOM_PUFF4,
+		[90] = S_DOOM_BPUFF_BLOOD1,
+		[91] = S_DOOM_BPUFF_BLOOD2,
+		[92] = S_DOOM_BPUFF_BLOOD3,
+		[93] = S_DOOM_BPUFF_PUFF1,
+		[94] = S_DOOM_BPUFF_PUFF2,
+		[95] = S_DOOM_BPUFF_PUFF3,
+		[96] = S_DOOM_BPUFF_PUFF4,
 		[97] = S_DOOM_IMPFIRE1,
 		[98] = S_DOOM_IMPFIRE2,
 		[99] = S_DOOM_IMPFIREEXPLODE1,
@@ -853,7 +857,7 @@ doom.dehackedpointers = {
 		[7] = {"brassknuckles", "attack", 3},      -- S_PUNCH3
 		[8] = {"brassknuckles", "attack", 4},      -- S_PUNCH4
 		[9] = {"brassknuckles", "attack", 5},      -- S_PUNCH5
-		
+
 		[10] = {"pistol", "idle", 1},              -- S_PISTOL
 		[11] = {"pistol", "lower", 1},             -- S_PISTOLDOWN
 		[12] = {"pistol", "raise", 1},             -- S_PISTOLUP
@@ -862,7 +866,7 @@ doom.dehackedpointers = {
 		[15] = {"pistol", "attack", 3},            -- S_PISTOL3
 		[16] = {"pistol", "attack", 4},            -- S_PISTOL4
 		[17] = {"pistol", "flash", 1},             -- S_PISTOLFLASH
-		
+
 		[18] = {"shotgun", "idle", 1},             -- S_SGUN
 		[19] = {"shotgun", "lower", 1},            -- S_SGUNDOWN
 		[20] = {"shotgun", "raise", 1},            -- S_SGUNUP
