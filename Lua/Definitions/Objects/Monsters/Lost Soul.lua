@@ -65,11 +65,57 @@ local states = {
 
 DefineDoomActor(name, object, states)
 
+local function stopCharging(mobj)
+	-- TOs: Verify if this is correct!!!
+	mobj.state = S_SEESTATE
+	mobj.doom.flags = $ & ~DF_SKULLFLY
+
+	mobj.momx = 0
+	mobj.momy = 0
+	mobj.momz = 0
+end
+
 local function LostSoul_MobjLineCollide(mo, line)
     if not (mo and mo.valid and line and line.valid) then
         return
     end
 
+    -- Early return if not charging
+    if not (mo.doom.flags & DF_SKULLFLY) then
+        return
+    end
+
+    -- Add a guard to prevent recursion
+	-- TODO: ??? SRB2 is usually smarter than this
+    if mo.doom._isHandlingCollision then
+        return
+    end
+    
+    mo.doom._isHandlingCollision = true
+    
+    local side = P_PointOnLineSide(mo.x, mo.y, line)
+    local sect = nil
+
+    if side == 0 then
+        sect = line.backsector
+    else
+        sect = line.frontsector
+    end
+
+    if not sect then
+        stopCharging(mo)
+    else
+        if mo.z < sect.floorheight then
+            stopCharging(mo)
+        elseif (mo.z + mo.height) > sect.ceilingheight then
+            stopCharging(mo)
+        end
+    end
+    
+    mo.doom._isHandlingCollision = false
+
+	-- TODO: REINSTATE THIS!
+	-- And also maybe check if v1.666 actually does this
     --if DOOM_UseRaycastInteractionChecks(mo, line, "walk", true, true) then return true else return end
 end
 
@@ -78,13 +124,28 @@ local function LostSoul_EnemyMobjCollide(thing, tmthing)
         return
     end
     
+    -- Early return if not charging
+    if not (thing.doom.flags & DF_SKULLFLY) then
+        return
+    end
+    
+    -- Add recursion guard
+    if thing.doom._isHandlingCollision then
+        return
+    end
+    
+    thing.doom._isHandlingCollision = true
+    
     if tmthing.z + tmthing.momz <= thing.z + thing.height
     or thing.z <= tmthing.z + tmthing.height + tmthing.momz then
-		if tmthing.doom.flags & DF_SKULLFLY ~= 0 then
-			DOOM_DamageMobj(thing, tmthing, tmthing, (DOOM_Random() % 8 + 1) * thing.info.damage)
-		end
+        if (tmthing.flags & MF_SHOOTABLE) then
+            DOOM_DamageMobj(tmthing, thing, thing, (DOOM_Random() % 8 + 1) * thing.info.damage)
+            stopCharging(thing)
+        end
     end
+    
+    thing.doom._isHandlingCollision = false
 end
 
 addHook("MobjLineCollide", LostSoul_MobjLineCollide, MT_DOOM_LOSTSOUL)
-addHook("MobjCollide", LostSoul_EnemyMobjCollide, MT_DOOM_LOSTSOUL)
+addHook("MobjMoveCollide", LostSoul_EnemyMobjCollide, MT_DOOM_LOSTSOUL)
