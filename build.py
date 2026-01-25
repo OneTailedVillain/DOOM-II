@@ -190,7 +190,7 @@ def main():
                 shutil.copytree(item, temp_pk3_dir / item.name, ignore=shutil.ignore_patterns('__pycache__'))
                 print(f"  Added folder: {item.name}")
             elif item.is_file() and item.suffix not in exclude_extensions:
-                if item.suffix in {'.lua', '.txt', '.md', '.wad', '.pk3', '.deh', '.bex', '.cfg'}:
+                if item.suffix in {'.lua', '.txt', '.wad', '.pk3', '.deh', '.bex', '.cfg', '.lmp'}:
                     shutil.copy2(item, temp_pk3_dir / item.name)
                     print(f"  Added file: {item.name}")
         
