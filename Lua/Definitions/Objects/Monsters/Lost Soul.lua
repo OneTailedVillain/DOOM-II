@@ -66,7 +66,7 @@ local states = {
 DefineDoomActor(name, object, states)
 
 local function stopCharging(mobj)
-	-- TOs: Verify if this is correct!!!
+	-- TODO: Verify if this is correct!!!
 	mobj.state = S_SEESTATE
 	mobj.doom.flags = $ & ~DF_SKULLFLY
 
