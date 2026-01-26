@@ -264,7 +264,7 @@ local baseMethods = {
 		return false
 	end,
 
-	hasPowerup = function(player, ptype)
+	hasPowerUp = function(player, ptype)
 		if ptype == "berserk" then
 			return player.doom.powers[pw_strength]
 		elseif ptype == "invisibility" then
@@ -588,7 +588,7 @@ doom.charSupport.kombifreeman = {
 		customDamage = true, -- If this skin also uses MobjDamage
 		-- TODO: Re-make this! Slowpoke.
 		methods = {
-			hasPowerUp = baseMethods.hasPowerup,
+			hasPowerUp = baseMethods.hasPowerUp,
 			saveState = baseMethods.saveState,
 			throwOutSaveState = baseMethods.throwOutSaveState,
 			takePowerUp = baseMethods.takePowerUp,
@@ -1002,7 +1002,7 @@ doom.charSupport.metalman = {
 			getCurAmmoType = baseMethods.getCurAmmoType,
 			getMaxHealth = baseMethods.getMaxHealth,
 			getMaxArmor = baseMethods.getMaxArmor,
-			hasPowerUp = baseMethods.hasPowerup,
+			hasPowerUp = baseMethods.hasPowerUp,
 			saveState = baseMethods.saveState,
 			throwOutSaveState = baseMethods.throwOutSaveState,
 			takePowerUp = baseMethods.takePowerUp,

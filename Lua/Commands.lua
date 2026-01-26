@@ -87,42 +87,42 @@ COM_AddCommand("idbehold", function(player, arg)
 		if funcs.shouldDoCheat(player, "idbehold", arg) then return end
 	end
 	if arg == "v" then
-		if funcs.hasPowerup(player, "invulnerability") then
+		if funcs.hasPowerUp(player, "invulnerability") then
 			funcs.takePowerUp(player, "invulnerability")
 		else
 			funcs.doPowerUp(player, "invulnerability")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "a" then
-		if funcs.hasPowerup(player, "allmap") then
+		if funcs.hasPowerUp(player, "allmap") then
 			funcs.takePowerUp(player, "allmap")
 		else
 			funcs.doPowerUp(player, "allmap")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "s" then
-		if funcs.hasPowerup(player, "berserk") then
+		if funcs.hasPowerUp(player, "berserk") then
 			funcs.takePowerUp(player, "berserk")
 		else
 			funcs.doPowerUp(player, "berserk")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "i" then
-		if funcs.hasPowerup(player, "invisibility") then
+		if funcs.hasPowerUp(player, "invisibility") then
 			funcs.takePowerUp(player, "invisibility")
 		else
 			funcs.doPowerUp(player, "invisibility")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "r" then
-		if funcs.hasPowerup(player, "ironfeet") then
+		if funcs.hasPowerUp(player, "ironfeet") then
 			funcs.takePowerUp(player, "ironfeet")
 		else
 			funcs.doPowerUp(player, "ironfeet")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "l" then
-		if funcs.hasPowerup(player, "lightamp") then
+		if funcs.hasPowerUp(player, "lightamp") then
 			funcs.takePowerUp(player, "lightamp")
 		else
 			funcs.doPowerUp(player, "lightamp")

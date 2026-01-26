@@ -208,7 +208,7 @@ addHook("PlayerThink", function(player)
 	ST_updateFaceWidget(player)
 
 	local hasPInvis = false
-	if funcs.hasPowerup(player, "invisibility") then
+	if funcs.hasPowerUp(player, "invisibility") then
 		hasPInvis = true
 	else
 		hasPInvis = (player.doom.powers[pw_invisibility] or 0) > 0
@@ -583,7 +583,7 @@ end)
 local function DoomSectorDamage(player, amount, burnthrough)
 	local funcs = P_GetMethodsForSkin(player)
 	-- If they have ironfeet, normally ignore damage
-	if funcs.hasPowerup(player, "ironfeet")
+	if funcs.hasPowerUp(player, "ironfeet")
 	then
 		-- burnthrough ONLY applies to 20 dmg floors
 		if not burnthrough then

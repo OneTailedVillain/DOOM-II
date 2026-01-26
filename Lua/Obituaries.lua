@@ -151,8 +151,8 @@ end
 
 local function maybeDoSpecialObits(vplayer, source, inflictor)
 	local funcs = P_GetMethodsForSkin(vplayer)
-	local hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
-	local hasPartialInvis = funcs.hasPowerup(vplayer, "invisibility")
+	local hasInvuln = funcs.hasPowerUp(vplayer, "invulnerability")
+	local hasPartialInvis = funcs.hasPowerUp(vplayer, "invisibility")
 	local isProjectile = source != inflictor
 	local isBullet = inflictor.type == MT_DOOM_BULLETRAYCAST
 	if isBullet then isProjectile = false end
@@ -211,7 +211,7 @@ local function doSelfObituary(vplayer, source, inflictor, dtype)
 	elseif inflictor then
 		local assailantName = getName(inflictor)
 		local funcs = P_GetMethodsForSkin(vplayer)
-		local hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
+		local hasInvuln = funcs.hasPowerUp(vplayer, "invulnerability")
 		if inflictor == vplayer.mo then
 			if hasInvuln then
 				printOutObituary("invuln_self", vplayer)
@@ -258,7 +258,7 @@ function doom.doObituary(target, source, inflictor, dtype)
 	if source.player then
 		if dtype == doom.damagetypes.telefrag then
 			local funcs = P_GetMethodsForSkin(vplayer)
-			local hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
+			local hasInvuln = funcs.hasPowerUp(vplayer, "invulnerability")
 			if hasInvuln then
 				printOutObituary("invuln_telefrag_player", target.player, source.player)
 			else
@@ -272,8 +272,8 @@ function doom.doObituary(target, source, inflictor, dtype)
 	elseif type(source) == "userdata" and userdataType(source) == "mobj_t" then
 			local funcs = P_GetMethodsForSkin(vplayer)
 			local hasInvuln
-			if funcs.hasPowerup then
-				hasInvuln = funcs.hasPowerup(vplayer, "invulnerability")
+			if funcs.hasPowerUp then
+				hasInvuln = funcs.hasPowerUp(vplayer, "invulnerability")
 			else
 				hasInvuln = vplayer.doom.powers[pw_invulnerability] > 0
 			end
