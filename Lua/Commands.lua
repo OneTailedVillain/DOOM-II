@@ -122,10 +122,10 @@ COM_AddCommand("idbehold", function(player, arg)
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	elseif arg == "l" then
-		if funcs.hasPowerUp(player, "lightamp") then
-			funcs.takePowerUp(player, "lightamp")
+		if funcs.hasPowerUp(player, "infrared") then
+			funcs.takePowerUp(player, "infrared")
 		else
-			funcs.doPowerUp(player, "lightamp")
+			funcs.doPowerUp(player, "infrared")
 		end
 		DOOM_DoMessage(player, "$STSTR_BEHOLDX")
 	else
