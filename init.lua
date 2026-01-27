@@ -207,7 +207,7 @@ dofile("Obituaries.lua")
 ---@field throwOutSaveState fun(player: player_t) Attempt to throw out the player's current saved state. This should clear out *all* state variables.
 ---@field getCurWeapon? fun(player: player_t): vanillaweps Returns the weapon name the current player is holding. Recommended to include for obituaries.
 ---@field takePowerUp fun(player: player_t, powerType: poweruptype): boolean Attempt to take the specified power-up from the player. Returns true if successful.
----@field getPowerUpTime? fun(player: player_t, powerType: poweruptype): boolean Attempt to get the current time the power-up has remaining. Berserk should return a counter counting *up* from initial pick-up. Will default to getting from player.doom.powers[] if left out.
+---@field getPowerUpTime? fun(player: player_t, powerType: poweruptype): integer Attempt to get the current time the power-up has remaining. Berserk should return a counter counting *up* from initial pick-up. Will default to getting from player.doom.powers[] if left out.
 
 ---@class validsoundentries Non-class
 ---@field noway integer Sound played when you try to interact with a non-interactible line
