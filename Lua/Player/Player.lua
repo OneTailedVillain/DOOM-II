@@ -854,9 +854,9 @@ addHook("PlayerSpawn",function(player)
 
 	local function choose(field)
 		if preset.useinvbackups and saved and saved[field] ~= nil then
-			return saved[field]
+			return deepcopy(saved[field])
 		end
-		return preset[field]
+		return deepcopy(preset[field])
 	end
 
 	-- Assign latest backup
@@ -896,8 +896,6 @@ addHook("PlayerSpawn",function(player)
 	else
 		player.mo.z = P_FloorzAtPos(player.mo.x, player.mo.y, 0, 0)
 	end
-	
-	saveStatus(player) -- for some fuckass reason I have to save this again RIGHT after the player spawns because srb2 CAN'T comprehend having variables not be a live reference to eachother
 end)
 
 
