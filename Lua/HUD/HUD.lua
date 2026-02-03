@@ -256,11 +256,11 @@ local function drawStatusBar(v, player)
 	local centerBorderRepeats = (maybeTrueWidth / centerBorderWidth)
 
 	for i = 0, centerBorderRepeats do
-		v.draw(i * centerBorderWidth, 168, centerBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+		v.draw(i * centerBorderWidth, 168, centerBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
 	end
 
 	for i = 0, bottomBorderRepeats do
-		v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+		v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
 	end
 
 	local statusBarPatch = v.cachePatch("STBAR")
