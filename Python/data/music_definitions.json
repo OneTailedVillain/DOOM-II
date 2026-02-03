@@ -234,5 +234,18 @@
 	"OPENIN": {"Title": "Freedom_for_Your_Shooting_Skills_(DM30)", "Authors": "rostuhan", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 145},
 	"EVIL": {"Title": "The_Syntax_of_Time_(DM31)", "Authors": "Kevin_Velvetic_Martins", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 170},
 	"ULTIMA": {"Title": "Bullet_Hell_(DM32)", "Authors": "rostuhan", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 180}
+  },
+
+  "01d1ea86c0280db8940349f7fd03b660": {
+    "_comment": {"IWADIs": "Chex Quest 1"},
+    "D_INTRO": {"Title": "Intro", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 90},
+    "D_INTER": {"Title": "Intermission", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 120},
+    "D_VICTOR": {"Title": "Victory", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 100},
+    "D_BUNNY": {"Title": "Epic Win", "Authors": "Sabrina DiDuro", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 95},
+    "D_E1M1": {"Title": "Landing_(E1M1)", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 170},
+    "D_E1M2": {"Title": "Storage_(E1M2)", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 140},
+    "D_E1M3": {"Title": "Laboratory_(E1M3)", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 110},
+    "D_E1M4": {"Title": "Arboretum_(E1M4)", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 155},
+    "D_E1M5": {"Title": "Caverns_(E1M5)", "Authors": "Andrew Benon", "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 100},
   }
 }
