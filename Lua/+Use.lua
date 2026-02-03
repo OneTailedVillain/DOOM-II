@@ -234,30 +234,43 @@ end)
 ---@param silent boolean|nil
 ---@param dontkill boolean|nil
 rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, silent, dontkill)
+    local interacted = true -- we hit a line at least
+    local activated = false
+
     local lineSpecial = doom.linespecials[usedLine]
-	if not lineSpecial then
-		if not (usedLine.flags & ML_TWOSIDED) or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
-			-- Blocked
-			if not silent then
-				S_StartSound(ray.target, sfx_noway)
-			end
-			P_KillMobj(ray)
-			return
-		end
-	end
+    if not lineSpecial then
+        if not (usedLine.flags & ML_TWOSIDED)
+        or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
+            -- Blocked by geometry (interaction, but no interactable)
+            if not silent then
+                S_StartSound(ray.target, sfx_noway)
+            end
+            P_KillMobj(ray)
+            return interacted, activated
+        end
+    end
+
     local whatIs = deepcopy(doom.lineActions[lineSpecial])
 
     if not whatIs then
-		if lineSpecial != 0 then
-			print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
-			if not silent then
-				S_StartSound(ray.target, sfx_noway) P_KillMobj(ray)
-			end
-		end
-		return
-	end
+        -- Line had a special, but it isn't interactable
+        if lineSpecial != 0 then
+            print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
+            if not silent then
+                S_StartSound(ray.target, sfx_noway)
+            end
+            P_KillMobj(ray)
+        end
+        return false, false
+    end
 
-	if whatIs.activationType != useType then return end
+    -- Correct interactable, wrong activation type
+    if whatIs.activationType != useType then
+        return false, false
+    end
+
+    -- From this point on, activation WILL happen
+    activated = true
 
     local targSide = usedLine.sidenum[0]
     if sides[targSide] then
@@ -267,26 +280,26 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         whatIs.newSectorSpecial = sector.special
     end
 
-    -- Handle immediate exit special
+    -- Immediate exit
     if whatIs.type == "exit" then
-		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
-			if not doom.cvars.dmExit.value then
-				DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
+        if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+            if not doom.cvars.dmExit.value then
+                DOOM_DamageMobj(ray.target, ray.target, ray.target, (FRACUNIT/2)-1)
                 doom.doObituary(ray.target, ray.target, ray.target, doom.damage.exit)
-				return true
-			end
-		end
+                return interacted, activated
+            end
+        end
 
         doom.didSecretExit = whatIs.secret
         DOOM_ExitLevel()
-        return true
+        return interacted, activated
     end
 
-    -- Build thinker data and hand off to thinkers
+    -- Build thinker
     local switchThinker = {
         type = "switch",
         victimData = whatIs,
-		owner = whatIs.owner,
+        owner = whatIs.owner,
         switcher = ray.target,
         victimLine = usedLine,
         victimTag = usedLine.tag,
@@ -298,14 +311,13 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         delay = whatIs.delay,
     }
 
-	DOOM_AddThinker(usedLine, switchThinker)
+    DOOM_AddThinker(usedLine, switchThinker)
+
     if not dontkill then
         P_KillMobj(ray)
-    else
-        -- missile hack
-        return false
     end
-    return true
+
+    return interacted, activated
 end)
 
 addHook("MobjLineCollide", function(ray, usedLine)
