@@ -315,7 +315,7 @@ def wad_to_pk3(wad, pk3_path):
                 temp_wad_path = os.path.join(temp_dir, f"{map_name}.wad")
                 temp_wad.to_file(temp_wad_path)
                 pk3.write(temp_wad_path, f"Maps/{map_name}.wad")
-                print(f"  Added map: Maps/{map_name}.wad")
+                #print(f"  Added map: Maps/{map_name}.wad")
             
             groups = {
                 'Sprites': wad.sprites,
@@ -373,32 +373,32 @@ def wad_to_pk3(wad, pk3_path):
                         full_path = lump_name
                     
                     pk3.writestr(full_path, lump.data)
-                    print(f"  Added {full_path}")
+                    #print(f"  Added {full_path}")
             
             for lua_name, lua_lump in lua_lumps.items():
                 lua_filename = lua_name[4:] if lua_name.startswith('LUA_') else lua_name
                 if lua_filename in alt_lua_names:
                     lua_filename = alt_lua_names[lua_filename]
                 pk3.writestr(f"Lua/{lua_filename}.lua", lua_lump.data)
-                print(f"  Added Lua/{lua_filename}.lua")
+                #print(f"  Added Lua/{lua_filename}.lua")
             
             for soc_name, soc_lump in soc_lumps.items():
                 soc_filename = soc_name[4:] if soc_name.startswith('SOC_') else soc_name
                 if soc_filename in alt_soc_names:
                     soc_filename = alt_soc_names[soc_filename]
                 pk3.writestr(f"SOC/{soc_filename}", soc_lump.data)
-                print(f"  Added SOC/{soc_filename}")
+                #print(f"  Added SOC/{soc_filename}")
             
             if p_skin_lump or player_sprite_lumps:
-                print("  Adding player sprites to Skins/ directory structure...")
+                #print("  Adding player sprites to Skins/ directory structure...")
                 
                 if p_skin_lump:
                     pk3.writestr("Skins/1 - P_SKIN/P_SKIN", p_skin_lump.data)
-                    print(f"    Added Skins/1 - P_SKIN/P_SKIN")
+                    #print(f"    Added Skins/1 - P_SKIN/P_SKIN")
                 
                 if player_sprite_lumps:
                     for sprite_name, sprite_lump in player_sprite_lumps.items():
                         pk3.writestr(f"Skins/2 - Sprites/{sprite_name}", sprite_lump.data)
-                        print(f"    Added Skins/2 - Sprites/{sprite_name}")
+                        #print(f"    Added Skins/2 - Sprites/{sprite_name}")
     
     print(f"Created PK3: {pk3_path}")
