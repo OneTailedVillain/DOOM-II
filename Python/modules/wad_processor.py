@@ -6,8 +6,10 @@ import re
 import struct
 import math
 import os
+import json
 import zipfile
 import tempfile
+import hashlib
 from pathlib import Path
 from omg import WAD, WadIO, Lump
 
@@ -15,6 +17,137 @@ from modules.utils import *
 from modules.dehacked_parser import parse_key_value_pairs_from_text, parse_dehacked_structured
 from modules.lua_generator import build_lua_deh_table, build_structured_lua_deh, parse_endoom_and_build_lua
 from modules.midi_converter import convert_mus_to_midi
+
+MUSIC_DEFINITIONS = None
+
+def load_music_definitions(music_def_file=None):
+	"""
+	Load music definitions from an external JSON file.
+	
+	Args:
+		music_def_file (str): Path to music definitions JSON file.
+							 If None, uses default location.
+	
+	Returns:
+		dict: Loaded music definitions
+	"""
+	
+	# Default location if not specified
+	if music_def_file is None:
+		# Try to find the file relative to the script
+		script_dir = Path(__file__).parent.parent
+		default_path = script_dir / "data" / "music_definitions.json"
+		music_def_file = default_path
+	
+	# Ensure it's a Path object
+	music_def_path = Path(music_def_file)
+	
+	# Load definitions from file
+	try:
+		if music_def_path.exists():
+			with open(music_def_path, 'r', encoding='utf-8') as f:
+				MUSIC_DEFINITIONS = json.load(f)
+			print(f"Loaded music definitions from: {music_def_path}")
+		else:
+			# Fallback to empty dict if file doesn't exist
+			MUSIC_DEFINITIONS = {}
+			print(f"Music definitions file not found: {music_def_path}")
+	except Exception as e:
+		print(f"Error loading music definitions: {e}")
+		MUSIC_DEFINITIONS = {}
+	
+	# Ensure we have at least a default entry
+	if "default" not in MUSIC_DEFINITIONS:
+		MUSIC_DEFINITIONS["default"] = {
+			"DM2TTL": {"Title": "Doom_II_Title", "Authors": "Bobby_Prince", 
+					   "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 140},
+			"DM2INT": {"Title": "Doom_II_Intermission", "Authors": "Bobby_Prince",
+					   "Soundtestpage": 1, "Soundtestcond": 0, "BPM": 120},
+		}
+	
+	return MUSIC_DEFINITIONS
+
+def create_musicdef_lump(endoom_md5, music_lumps, music_def_file=None):
+	"""
+	Create a MUSICDEF lump based on ENDOOM MD5 and available music lumps.
+	
+	Args:
+		endoom_md5 (str): MD5 hash of ENDOOM lump or None if not available
+		music_lumps (list): List of music lump names found in WAD
+		music_def_file (str): Path to external music definitions file
+		
+	Returns:
+		Lump: MUSICDEF lump with music definitions
+	"""
+	# Load music definitions
+	music_defs = load_music_definitions(music_def_file)
+	
+	# Determine which music definition to use
+	if not endoom_md5 or endoom_md5 not in music_defs:
+		active_defs = music_defs.get("default", {})
+		print("Using default music definitions")
+	else:
+		active_defs = music_defs.get(endoom_md5, music_defs.get("default", {}))
+		print(f"Using custom music definitions for ENDOOM MD5: {endoom_md5[:8]}...")
+	
+	# Build MUSICDEF content
+	musicdef_lines = []
+	
+	for lump_name in music_lumps:
+		# Clean lump name (remove "D_" prefix if present, truncate to 6 chars)
+		clean_name = lump_name.upper()
+		if clean_name.startswith("D_"):
+			clean_name = clean_name[2:]
+		
+		# Truncate to 6 characters (standard Doom lump name length)
+		clean_name = clean_name[:6]
+		
+		# Look up definition
+		if clean_name in active_defs:
+			def_data = active_defs[clean_name]
+			musicdef_lines.append(f"Lump {clean_name}")
+			musicdef_lines.append(f"Title = {def_data['Title']}")
+			musicdef_lines.append(f"Authors = {def_data['Authors']}")
+			musicdef_lines.append(f"Soundtestpage = {def_data['Soundtestpage']}")
+			musicdef_lines.append(f"Soundtestcond = {def_data['Soundtestcond']}")
+			musicdef_lines.append(f"BPM = {def_data['BPM']}")
+			musicdef_lines.append("")  # Empty line between entries
+		else:
+			# Create default entry for unknown music lumps
+			musicdef_lines.append(f"Lump {clean_name}")
+			musicdef_lines.append(f"Title = {clean_name}")
+			musicdef_lines.append(f"Authors = Unknown")
+			musicdef_lines.append(f"Soundtestpage = 1")
+			musicdef_lines.append(f"Soundtestcond = 0")
+			musicdef_lines.append(f"BPM = 120")
+			musicdef_lines.append("")
+	
+	# Join lines and create lump
+	musicdef_content = "\n".join(musicdef_lines)
+	return Lump(musicdef_content.encode('utf-8'))
+
+def get_endoom_md5(src_wadio):
+	"""
+	Calculate MD5 hash of ENDOOM lump if present.
+	
+	Args:
+		src_wadio: WadIO object to read lumps from
+		
+	Returns:
+		str: MD5 hash as hex string or None if no ENDOOM
+	"""
+	try:
+		for entry in src_wadio.entries:
+			lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+			if lname in ("ENDOOM", "ENDBOOM"):
+				data = src_wadio.read(lname)
+				md5_hash = hashlib.md5(data).hexdigest()
+				print(f"Found ENDOOM lump, MD5: {md5_hash}")
+				return md5_hash
+	except Exception as e:
+		print(f"Error getting ENDOOM MD5: {e}")
+	
+	return None
 
 def make_fw_sequence(src_wad, out_wad):
 	"""Create FWATER1..FWATER16 from FWATER1..FWATER4."""
@@ -53,7 +186,7 @@ def make_fw_sequence(src_wad, out_wad):
 	out_wad.flats = out_flats
 	return created
 
-def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None):
+def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None):
 	"""
 	Convert ExMx map names into MAPnn in out_wad.maps and copy D_E* lumps.
 	Also convert MUS lumps to MIDI.
@@ -86,6 +219,9 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None):
 
 		ex_to_new_map[oldname.upper()] = (target_name, target_num)
 
+	# Collect music lumps for MUSICDEF creation
+	music_lumps = []
+	
 	for entry in src_wadio.entries:
 		lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
 		
@@ -96,7 +232,15 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None):
 
 		if lname.startswith("D_"):
 			out_wad.music[lname] = lump_obj
+			music_lumps.append(lname)
 			print(f"Copied music lump: {lname}")
+
+	# Create MUSICDEF lump
+	if music_lumps:
+		endoom_md5 = get_endoom_md5(src_wadio)
+		musicdef_lump = create_musicdef_lump(endoom_md5, music_lumps, music_def_file)
+		out_wad.data["MUSICDEF"] = musicdef_lump
+		print(f"Created MUSICDEF lump with {len(music_lumps)} entries")
 
 	return len(ex_to_new_map)
 

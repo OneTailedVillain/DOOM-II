@@ -1,0 +1,531 @@
+Lump RUNNIN
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 180
+
+Lump STALKS
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump COUNTD
+Title = No_Track_Here
+Authors = Discoholic
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump BETWEE
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump DOOM
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 115
+
+Lump THE_DA
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 130
+
+Lump SHAWN
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey_and_Goji
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 155
+
+Lump DDTBLU
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 105
+
+Lump IN_CIT
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 125
+
+Lump DEAD
+Title = No_Track_Here
+Authors = Jeremy_Vandalorian_Emerson
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 100
+
+Lump STLKS2
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump THEDA2
+Title = No_Track_Here
+Authors = Discoholic
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 130
+
+Lump DOOM2
+Title = No_Track_Here
+Authors = Discoholic
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 115
+
+Lump DDTBL2
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins_and_Jonathan_julnen_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 105
+
+Lump RUNNI2
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 180
+
+Lump DEAD2
+Title = No_Track_Here
+Authors = Scragadelic
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 100
+
+Lump STLKS3
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump ROMERO
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 90
+
+Lump SHAWN2
+Title = No_Track_Here
+Authors = Julian_Julian_Hope_Aubourg
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 155
+
+Lump MESSAG
+Title = No_Track_Here
+Authors = J.Astartes
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 110
+
+Lump COUNT2
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump DDTBL3
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 105
+
+Lump AMPIE
+Title = No_Track_Here
+Authors = MoonDeLaAxel_and_Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 135
+
+Lump THEDA3
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 130
+
+Lump ADRIAN
+Title = No_Track_Here
+Authors = Jeremy_Vandalorian_Emerson
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump MESSG2
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 110
+
+Lump ROMER2
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins_and_Jonathan_julnen_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 90
+
+Lump TENSE
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump SHAWN3
+Title = No_Track_Here
+Authors = Tyler_Picklehammer_P.
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 155
+
+Lump OPENIN
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump EVIL
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 170
+
+Lump ULTIMA
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins_and_Jonathan_julnen_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 180
+
+Lump READ_M
+Title = No_Track_Here
+Authors = jute
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump DM2TTL
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump DM2INT
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E1M1
+Title = No_Track_Here
+Authors = J.Astartes_and_Mr795
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 170
+
+Lump E1M2
+Title = No_Track_Here
+Authors = Mark_TheMisterCat_McGill-Smith
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump E1M3
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins_and_Jonathan_julnen_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 110
+
+Lump E1M4
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins_and_Jonathan_julnen_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 155
+
+Lump E1M5
+Title = No_Track_Here
+Authors = Ralph_Ralphis_Vickers
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 100
+
+Lump E1M6
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump E1M7
+Title = No_Track_Here
+Authors = J.Astartes
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E1M8
+Title = No_Track_Here
+Authors = Kevin_Velvetic_Martins
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E1M9
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 135
+
+Lump INTER
+Title = No_Track_Here
+Authors = Stratos
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump INTRO
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump VICTOR
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 100
+
+Lump INTROA
+Title = No_Track_Here
+Authors = Unknown
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E2M1
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 165
+
+Lump E2M2
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 130
+
+Lump E2M3
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E2M4
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 110
+
+Lump E2M5
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E2M6
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 125
+
+Lump E2M7
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump E2M8
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump E2M9
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 135
+
+Lump E3M1
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump E3M2
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E3M3
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump E3M4
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E3M5
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E3M6
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump E3M7
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump E3M8
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 170
+
+Lump E3M9
+Title = No_Track_Here
+Authors = Lola_BlueWorrior_Harvey
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 110
+
+Lump E4M1
+Title = No_Track_Here
+Authors = continuum.mid
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 140
+
+Lump E4M2
+Title = No_Track_Here
+Authors = Proxy-MIDI
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E4M3
+Title = No_Track_Here
+Authors = Matzu
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump E4M4
+Title = No_Track_Here
+Authors = continuum.mid
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 120
+
+Lump E4M5
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 145
+
+Lump E4M6
+Title = No_Track_Here
+Authors = ZeMystic
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 160
+
+Lump E4M7
+Title = No_Track_Here
+Authors = Korp
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 150
+
+Lump E4M8
+Title = No_Track_Here
+Authors = continuum.mid
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 170
+
+Lump E4M9
+Title = No_Track_Here
+Authors = continuum.mid
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 135
+
+Lump BUNNY
+Title = No_Track_Here
+Authors = Goji
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
