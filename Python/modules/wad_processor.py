@@ -9,6 +9,8 @@ import os
 import json
 import zipfile
 import tempfile
+import urllib.request
+import urllib.error
 import hashlib
 from pathlib import Path
 from omg import WAD, WadIO, Lump
@@ -20,24 +22,61 @@ from modules.midi_converter import convert_mus_to_midi
 
 MUSIC_DEFINITIONS = None
 
+REMOTE_MUSICDEF_URL = (
+	"https://raw.githubusercontent.com/OneTailedVillain/DOOM-II/"
+	"refs/heads/main/Python/data/music_definitions.json"
+)
+
+def _hash_bytes(data: bytes) -> str:
+	return hashlib.sha256(data).hexdigest()
+
+def try_update_music_definitions(local_path: Path, remote_url: str) -> None:
+	"""
+	Try to update local music_definitions.json if the remote version differs.
+	Silent failure if offline or unreachable.
+	"""
+
+	try:
+		with urllib.request.urlopen(remote_url, timeout=5) as resp:
+			remote_bytes = resp.read()
+	except (urllib.error.URLError, TimeoutError):
+		# Offline / GitHub down, silently ignore
+		return
+	except Exception as e:
+		print(f"Music definitions update failed: {e}")
+		return
+
+	remote_hash = _hash_bytes(remote_bytes)
+
+	if local_path.exists():
+		local_bytes = local_path.read_bytes()
+		local_hash = _hash_bytes(local_bytes)
+
+		if local_hash == remote_hash:
+			return  # Already up to date
+
+	# Write updated file
+	try:
+		local_path.parent.mkdir(parents=True, exist_ok=True)
+		local_path.write_bytes(remote_bytes)
+		print("Updated music_definitions.json from GitHub")
+	except Exception as e:
+		print(f"Failed to write updated music definitions: {e}")
+
 def load_music_definitions(music_def_file=None):
-	"""
-	Load music definitions from an external JSON file.
-	
-	Args:
-		music_def_file (str): Path to music definitions JSON file.
-							 If None, uses default location.
-	
-	Returns:
-		dict: Loaded music definitions
-	"""
-	
-	# Default location if not specified
+	global MUSIC_DEFINITIONS
+
 	if music_def_file is None:
-		# Try to find the file relative to the script
 		script_dir = Path(__file__).parent.parent
-		default_path = script_dir / "data" / "music_definitions.json"
-		music_def_file = default_path
+		music_def_file = script_dir / "data" / "music_definitions.json"
+
+	music_def_path = Path(music_def_file)
+
+	# Try live-update before loading
+	try_update_music_definitions(
+		music_def_path,
+		REMOTE_MUSICDEF_URL
+	)
 	
 	# Ensure it's a Path object
 	music_def_path = Path(music_def_file)
