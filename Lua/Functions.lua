@@ -1056,11 +1056,33 @@ rawset(_G, "DOOM_NextLevel", function()
 	G_ExitLevel()
 end)
 
-rawset(_G, "DOOM_DoMessage", function(player, string)
-	player.doom.messageclock = TICRATE*5
-	player.doom.message = DOOM_ResolveString(string)
-	if player.doom.message != string then
-		player.doom.message = player.doom.message
+rawset(_G, "DOOM_DoMessage", function(player, text)
+	if not (player and player.valid) then return end
+
+	local doom = player.doom
+	if not doom then return end
+
+	local funcs = P_GetMethodsForSkin(player)
+
+	-- Allow skins to intercept / modify / cancel
+	if funcs.onMessage then
+		local ok, result = pcall(funcs.onMessage, player, text)
+		if not ok then
+			print("onMessage error:", result)
+		elseif result == false then
+			return -- cancelled
+		elseif type(result) == "string" then
+			text = result -- overridden text
+		end
+	end
+
+	-- Default behavior
+	doom.messageclock = TICRATE*5
+	doom.message = DOOM_ResolveString(text)
+
+	-- Optional post hook
+	if funcs.afterMessage then
+		pcall(funcs.afterMessage, player, doom.message)
 	end
 end)
 

@@ -208,6 +208,8 @@ dofile("Obituaries.lua")
 ---@field getCurWeapon? fun(player: player_t): vanillaweps Returns the weapon name the current player is holding. Recommended to include for obituaries.
 ---@field takePowerUp fun(player: player_t, powerType: poweruptype): boolean Attempt to take the specified power-up from the player. Returns true if successful.
 ---@field getPowerUpTime? fun(player: player_t, powerType: poweruptype): integer Attempt to get the current time the power-up has remaining. Berserk should return a counter counting *up* from initial pick-up. Will default to getting from player.doom.powers[] if left out.
+---@field onMessage? fun(player: player_t, text: string): boolean|string|nil Optional. Called before a Doom message is shown to the player and before the text in question gets resolved. Return false (or any falsy value) to cancel the message entirely. Return a string to replace/override the message text. Return nil to allow default handling.
+---@field afterMessage? fun(player: player_t, resolvedText: string): nil Optional. Called after the message has been resolved and applied to the player. Return value is ignored.
 
 ---@class validsoundentries Non-class
 ---@field noway integer Sound played when you try to interact with a non-interactible line
