@@ -976,7 +976,7 @@ local function HLExplode(actor, range, source)
 		if not foundmobj then return end
 
 		local damage = (range - dist) / FRACUNIT
-		DOOM_DamageMobj(foundmobj, actor, source, damage, doom.damagetypes.explodesplash)
+		DOOM_DamageMobj(foundmobj, actor, (source and source.valid) and source or actor, damage, doom.damagetypes.explodesplash)
 	end
 
 	-- Process nearby objects
