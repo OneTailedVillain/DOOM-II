@@ -179,6 +179,7 @@ local doom1MapToPatch = {
 	"WILV05",
 	"WILV06",
 	"WILV07",
+	"WILV08",
 	"WILV10",
 	"WILV11",
 	"WILV12",
@@ -187,6 +188,7 @@ local doom1MapToPatch = {
 	"WILV15",
 	"WILV16",
 	"WILV17",
+	"WILV18",
 	"WILV20",
 	"WILV21",
 	"WILV22",
@@ -195,6 +197,7 @@ local doom1MapToPatch = {
 	"WILV25",
 	"WILV26",
 	"WILV27",
+	"WILV28",
 	"WILV30",
 	"WILV31",
 	"WILV32",
@@ -203,12 +206,8 @@ local doom1MapToPatch = {
 	"WILV35",
 	"WILV36",
 	"WILV37",
+	"WILV38",
 }
-
-doom1MapToPatch[41] = "WILV08"
-doom1MapToPatch[42] = "WILV18"
-doom1MapToPatch[43] = "WILV28"
-doom1MapToPatch[43] = "WILV38"
 
 -- Helper: draws a number with leading zeros using cached patches
 local function drawNum(v, x, y, num, digits)
