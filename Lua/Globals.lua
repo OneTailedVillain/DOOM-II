@@ -13,6 +13,8 @@ local toDeclare = {
 	DF_INFLOAT = 2048,
 	DF_TELEPORT = 4096,
 	DF_SKULLFLY = 8192,
+	DF_SKINCOLOR1 = 16384,
+	DF_SKINCOLOR2 = 32768,
 	pw_strength = 1,
 	pw_ironfeet = 2,
 	pw_invisibility = 3,
@@ -229,6 +231,10 @@ function doom.addWeapon(wepname, properties)
     if not properties.states.raise then
         properties.states.raise = make_lower_or_raise_from_idle(properties.states, A_DoomRaise)
     end
+
+	if not properties.spread then
+		properties.spead = {0, 0}
+	end
 
     doom.weapons[wepname] = properties
     local wepslot = properties.weaponslot

@@ -335,9 +335,17 @@ local function P_PlayerMove(player, doRun)
 	end
 end
 
+---@param player player_t
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
-	if player.mo.skin != "johndoom" then return end
+	local support = P_GetSupportsForSkin(player)
+	if not support.useDoomMovement then
+		if player.mo.skin != "johndoom" then return end
+	else
+		player.thrustfactor = 0
+		player.charability = CA_NONE
+		player.charability2 = CA2_NONE
+	end
 	local run = CV_FindVar("doom_alwaysrun").value != 0
 	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0
 	local doRun = run != usingSPIN

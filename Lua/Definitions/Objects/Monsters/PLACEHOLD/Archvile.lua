@@ -12,7 +12,7 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_VILE", "sfx_vilatk", "sfx_flamst", "sfx_flame")
+SafeFreeSlot("SPR_VILE", "sfx_vilatk", "sfx_flamst", "sfx_vildth", "sfx_vipain", "sfx_flame")
 local name = "Archvile"
 
 local object = {
@@ -26,10 +26,272 @@ local object = {
 	seesound = sfx_bgsit1,
 	activesound = sfx_bgact,
 	painsound = sfx_popain,
-	deathsound = sfx_bgdth1,
+	deathsound = sfx_vildth,
 	sprite = SPR_VILE,
 	doomflags = DF_COUNTKILL
 }
+
+function A_DoomVileAttack(actor)
+	local fire
+	local an
+
+	if not actor.target then return end
+	A_DoomFaceTarget(actor)
+
+	if not (P_CheckSight(actor, actor.target)) then return end
+	S_StartSound(actor, sfx_barexp)
+	DOOM_DamageMobj(actor.target, actor, actor, 20)
+	actor.target.momz = 1000*FRACUNIT/actor.target.info.mass
+
+	an = actor.angle
+	fire = actor.tracer
+	if not fire then return end
+
+	// move the fire between the vile and the player
+	local targetX = actor.target.x - FixedMul(24*FRACUNIT, cos(an))
+	local targetY = actor.target.y - FixedMul(24*FRACUNIT, sin(an))
+	P_MoveOrigin(fire, targetX, targetY, fire.z)
+	DOOM_RadiusAttack(fire, actor, 70)
+end
+
+/* PIT_VileCheck
+//
+// PIT_VileCheck
+// Detect a corpse that could be raised.
+//
+mobj_t*		corpsehit;
+mobj_t*		vileobj;
+fixed_t		viletryx;
+fixed_t		viletryy;
+
+boolean PIT_VileCheck (mobj_t*	thing)
+{
+    int		maxdist;
+    boolean	check;
+	
+    if (!(thing->flags & MF_CORPSE) )
+	return true;	// not a monster
+    
+    if (thing->tics != -1)
+	return true;	// not lying still yet
+    
+    if (thing->info->raisestate == S_NULL)
+	return true;	// monster doesn't have a raise state
+    
+    maxdist = thing->info->radius + mobjinfo[MT_VILE].radius;
+	
+    if ( abs(thing->x - viletryx) > maxdist
+	 || abs(thing->y - viletryy) > maxdist )
+	return true;		// not actually touching
+		
+    corpsehit = thing;
+    corpsehit->momx = corpsehit->momy = 0;
+    corpsehit->height <<= 2;
+    check = P_CheckPosition (corpsehit, corpsehit->x, corpsehit->y);
+    corpsehit->height >>= 2;
+
+    if (!check)
+	return true;		// doesn't fit here
+		
+    return false;		// got one, so stop checking
+}
+*/
+
+/* A_VileChase
+//
+// A_VileChase
+// Check for ressurecting a body
+//
+void A_VileChase (mobj_t* actor)
+{
+    int			xl;
+    int			xh;
+    int			yl;
+    int			yh;
+    
+    int			bx;
+    int			by;
+
+    mobjinfo_t*		info;
+    mobj_t*		temp;
+	
+    if (actor->movedir != DI_NODIR)
+    {
+	// check for corpses to raise
+	viletryx =
+	    actor->x + actor->info->speed*xspeed[actor->movedir];
+	viletryy =
+	    actor->y + actor->info->speed*yspeed[actor->movedir];
+
+	xl = (viletryx - bmaporgx - MAXRADIUS*2)>>MAPBLOCKSHIFT;
+	xh = (viletryx - bmaporgx + MAXRADIUS*2)>>MAPBLOCKSHIFT;
+	yl = (viletryy - bmaporgy - MAXRADIUS*2)>>MAPBLOCKSHIFT;
+	yh = (viletryy - bmaporgy + MAXRADIUS*2)>>MAPBLOCKSHIFT;
+	
+	vileobj = actor;
+	for (bx=xl ; bx<=xh ; bx++)
+	{
+	    for (by=yl ; by<=yh ; by++)
+	    {
+		// Call PIT_VileCheck to check
+		// whether object is a corpse
+		// that canbe raised.
+		if (!P_BlockThingsIterator(bx,by,PIT_VileCheck))
+		{
+		    // got one!
+		    temp = actor->target;
+		    actor->target = corpsehit;
+		    A_FaceTarget (actor);
+		    actor->target = temp;
+					
+		    P_SetMobjState (actor, S_VILE_HEAL1);
+		    S_StartSound (corpsehit, sfx_slop);
+		    info = corpsehit->info;
+		    
+		    P_SetMobjState (corpsehit,info->raisestate);
+		    corpsehit->height <<= 2;
+		    corpsehit->flags = info->flags;
+		    corpsehit->health = info->spawnhealth;
+		    corpsehit->target = NULL;
+
+		    return;
+		}
+	    }
+	}
+    }
+
+    // Return to normal attack.
+    A_Chase (actor);
+}
+*/
+
+/* A_VileStart
+//
+// A_VileStart
+//
+void A_VileStart (mobj_t* actor)
+{
+    S_StartSound (actor, sfx_vilatk);
+}
+
+
+//
+// A_Fire
+// Keep fire in front of player unless out of sight
+//
+void A_Fire (mobj_t* actor);
+
+void A_StartFire (mobj_t* actor)
+{
+    S_StartSound(actor,sfx_flamst);
+    A_Fire(actor);
+}
+
+void A_FireCrackle (mobj_t* actor)
+{
+    S_StartSound(actor,sfx_flame);
+    A_Fire(actor);
+}
+
+void A_Fire (mobj_t* actor)
+{
+    mobj_t*	dest;
+    unsigned	an;
+		
+    dest = actor->tracer;
+    if (!dest)
+	return;
+		
+    // don't move it if the vile lost sight
+    if (!P_CheckSight (actor->target, dest) )
+	return;
+
+    an = dest->angle >> ANGLETOFINESHIFT;
+
+    P_UnsetThingPosition (actor);
+    actor->x = dest->x + FixedMul (24*FRACUNIT, finecosine[an]);
+    actor->y = dest->y + FixedMul (24*FRACUNIT, finesine[an]);
+    actor->z = dest->z;
+    P_SetThingPosition (actor);
+}
+*/
+
+local corpsehit
+local vileobj
+local viletryx
+local viletryy
+
+local function PIT_VileCheck(thing)
+	local maxdist
+	local check
+
+	if not (thing.doom.flags & DF_CORPSE) then
+		return true // not a monster
+	end
+
+	if thing.tics != -1 then
+		return true // not lying still yet
+	end
+
+	if thing.info.raisestate == S_NULL then
+		return true // monster doesn't have a raise state
+	end
+
+	maxdist = thing.info.radius + mobjinfo[MT_DOOM_ARCHVILE].radius
+
+	if (abs(thing.x - viletryx) > maxdist) or (abs(thing.y - viletryy) > maxdist) then
+		return true // not actually touching
+	end
+
+	corpsehit = thing
+	corpsehit.momx = 0
+	corpsehit.momy = 0
+
+	corpsehit.height = $ << 2
+
+	check = P_CheckPosition(corpsehit, corpsehit.x, corpsehit.y)
+	corpsehit.height = $ >> 2
+
+	if not check then
+		return true // doesn't fit here
+	else
+		return false // got one, so stop checking
+	end
+end
+
+local xspeed = {FRACUNIT,47000,0,-47000,-FRACUNIT,-47000,0,47000}
+local yspeed = {0,47000,FRACUNIT,47000,0,-47000,-FRACUNIT,-47000}
+
+local MAXRADIUS = 32*FRACUNIT
+
+function A_VileChase(actor)
+	local xl
+	local xh
+	local yl
+	local yh
+
+	local bx
+	local by
+
+	local info
+	local temp
+
+	if actor.movedir != DI_NODIR then
+		// check for corpses to raise
+		viletryx =
+			actor.x + actor.info.speed*xspeed[actor.movedir]
+		viletryy =
+			actor.y + actor.info.speed*yspeed[actor.movedir]
+
+		xl = viletryx - bmaporgx
+
+		searchBlockmap("objects", function(refmobj, foundmobj)
+			if not PIT_VileCheck(foundmobj) then return true end
+		end, actor,
+					viletryx - MAXRADIUS*2, viletryx + MAXRADIUS*2,
+					viletryy - MAXRADIUS*2, viletryy + MAXRADIUS*2)
+	end
+end
 
 local states = {
 	stand = {

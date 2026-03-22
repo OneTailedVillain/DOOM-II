@@ -53,8 +53,8 @@ G_AddGametype({
     name = "Deathmatch (Original)",
     identifier = "doomdm",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
-    intermissiontype = int_none,
+    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER|GTR_TIMELIMIT|GTR_POINTLIMIT,
+    intermissiontype = int_match,
     headercolor = 103,
     description = "Classic DOOM deathmatch: competitive free-for-all where pickups do NOT respawn and weapons are grabbable only once per life."
 })
@@ -64,13 +64,14 @@ G_AddGametype({
     name = "Deathmatch 2.0",
     identifier = "doomdmtwo",
     typeoflevel = TOL_SP|TOL_DOOM,
-    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER,
-    intermissiontype = int_none,
+    rules = GTR_FIRSTPERSON|GTR_SPECTATORS|GTR_RESPAWNDELAY|GTR_ALLOWEXIT|GTR_NOTITLECARD|GTR_RINGSLINGER|GTR_TIMELIMIT|GTR_POINTLIMIT,
+    intermissiontype = int_match,
     headercolor = 103,
     description = "Alternate DOOM deathmatch: competitive free-for-all with delayed item and weapon respawns so pickups return after a short time."
 })
 
 mobjinfo[MT_DOOM_TELETARGET] = {
+doomname = "TeleTarget",
 spawnstate = S_INVISIBLE,
 spawnhealth = 1000,
 doomednum = 14,

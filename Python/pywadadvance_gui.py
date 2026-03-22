@@ -407,7 +407,11 @@ class WadAdvanceGUI(QMainWindow):
         self.suppress_pskin_errors_cb = QCheckBox("Suppress errors in player sprite creation")
         self.suppress_pskin_errors_cb.setChecked(False)
         pk3_layout.addWidget(self.suppress_pskin_errors_cb)
-        
+
+        self.use_srb2_playerconventions_cb = QCheckBox("Use SRB2 sprite frame conventions")
+        self.use_srb2_playerconventions_cb.setChecked(False)
+        pk3_layout.addWidget(self.use_srb2_playerconventions_cb)
+
         layout.addWidget(pk3_group)
         
         layout.addStretch()
@@ -650,7 +654,8 @@ class WadAdvanceGUI(QMainWindow):
             'use_pcspeaker': self.use_pcspeaker_cb.isChecked(),
             'auto_pk3': self.auto_pk3_cb.isChecked(),
             'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked(),
-            'suppress_pskin_errors': self.suppress_pskin_errors_cb.isChecked()
+            'suppress_pskin_errors': self.suppress_pskin_errors_cb.isChecked(),
+            'use_srb2_conventions': self.use_srb2_playerconventions_cb.isChecked()
         }
     
     def reset_options(self):

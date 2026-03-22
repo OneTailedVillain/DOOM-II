@@ -721,4 +721,9 @@ doom.lineActions = {
 		type = "scroll", axis = "x", direction = "left",
 		repeatable = true, activationType = "always"
 	},
+
+	[244] = {
+		type = "teleport", linetoline = true, preserveangle = true,
+		crossSide = "front", activationType = "walk", repeatable = true
+	}
 }

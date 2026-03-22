@@ -13,35 +13,44 @@ local baseInfo = {
 local mt = freeslot("MT_DOOM_DEADZOMBIEMAN")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_ZOMBIEMAN_DIE5
+mobjinfo[mt].doomname = "DeadZombieman"
 
 local mt = freeslot("MT_DOOM_DEADSHOTGUNNER")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_SHOTGUNNER_DIE5
+mobjinfo[mt].doomname = "DeadShotgunner"
 
 local mt = freeslot("MT_DOOM_DEADIMP")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_IMP_DIE5
+mobjinfo[mt].doomname = "DeadImp"
 
 local mt = freeslot("MT_DOOM_DEADDEMON")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_DEMON_DIE6
+mobjinfo[mt].doomname = "DeadDemon"
 
 local mt = freeslot("MT_DOOM_DEADCACODEMON")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_CACODEMON_DIE6
+mobjinfo[mt].doomname = "DeadCacodemon"
 
 local mt = freeslot("MT_DOOM_DEADLOSTSOUL")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_LOSTSOUL_DIE6
+mobjinfo[mt].doomname = "DeadLostSoul"
 
 local mt = freeslot("MT_DOOM_CORPSE")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_PLAYER_DIE7
+mobjinfo[mt].doomname = "Corpse"
 
 local mt = freeslot("MT_DOOM_BLOODYMESS")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_PLAYER_GIB9
+mobjinfo[mt].doomname = "BloodyMess"
 
 local mt = freeslot("MT_DOOM_BLOODYMESSEXTRA")
 mobjinfo[mt] = deepcopy(baseInfo)
 mobjinfo[mt].spawnstate = S_DOOM_PLAYER_GIB9
+mobjinfo[mt].doomname = "BloodyMessExtra"

@@ -109,6 +109,50 @@ rawset(_G, "FreeDoomStates", function(name, stateDefs)
     end
 end)
 
+doom.statecache = doom.statecache or {}
+
+local function Doom_GetStateSlots(actorName, prefix, groupKey, frames, nameFormat)
+    assert(nameFormat, "Doom_GetStateSlots requires nameFormat")
+
+    local cached = doom.statecache[frames]
+
+    local slotList
+
+    if cached then
+        slotList = cached.slots
+    else
+        -- allocate new slots using current prefix names
+        local needed = {}
+
+        for i=1,#frames do
+            needed[i] = nameFormat(prefix, groupKey, i)
+        end
+
+---@diagnostic disable-next-line: deprecated
+        local newSlots = SafeFreeSlot(unpack(needed))
+
+        slotList = {}
+
+        for i,name in ipairs(needed) do
+            slotList[i] = newSlots[name]
+        end
+
+        doom.statecache[frames] = {
+            slots = slotList
+        }
+    end
+
+    -- build correct name→slot map for THIS actor
+    local map = {}
+
+    for i=1,#frames do
+        local name = nameFormat(prefix, groupKey, i)
+        map[name] = slotList[i]
+    end
+
+    return map
+end
+
 -- TODO: Port state freeslotting to FreeDoomStates
 rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     local up     = name:upper()
@@ -124,8 +168,29 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
     end
 
     -- free and capture the slots
----@diagnostic disable-next-line: deprecated
-    local slots = SafeFreeSlot( unpack(needed) )
+	local slots = {}
+
+	do
+		local mtSlot = SafeFreeSlot("MT_"..prefix)
+		slots["MT_"..prefix] = mtSlot["MT_"..prefix]
+	end
+
+	-- allocate states using cache
+	for stateKey, frames in pairs(stateData) do
+		local stateSlots = Doom_GetStateSlots(
+			name,
+			prefix,
+			stateKey,
+			frames,
+			function(prefix, groupKey, i)
+				return string.format("S_%s_%s%d", prefix, groupKey:upper(), i)
+			end
+		)
+
+		for slotName,slotNum in pairs(stateSlots) do
+			slots[slotName] = slotNum
+		end
+	end
 
     -- 3) fill mobjinfo using slots[...] and the MT_'s object data
     local MT = slots["MT_"..prefix]
@@ -241,8 +306,9 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 	end, MT)
 end)
 
-local function maybeAddToRespawnTable(mo)
-	if netgame and gametype != GT_DOOMDM and (mo.doom.flags & DF_DM2RESPAWN) then
+local function maybeAddToRespawnTable(mo, df)
+	df = $ or 0
+	if netgame and gametype != GT_DOOMDM and (df & DF_DM2RESPAWN) then
 		table.insert(doom.torespawn, {
 			time = leveltime,
 			x = mo.x,
@@ -263,11 +329,35 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
         needed[#needed+1] = string.format("S_%s_%d", prefix, i)
     end
 
-    local slots = SafeFreeSlot(unpack(needed))
-    local MT = slots["MT_"..prefix]
+	local slots = {}
+	local MT
+
+	-- allocate MT normally
+	do
+	---@diagnostic disable-next-line: deprecated
+		local mtSlot = SafeFreeSlot("MT_"..prefix)
+		MT = mtSlot["MT_"..prefix]
+		slots["MT_"..prefix] = MT
+	end
+
+	-- allocate state group using cache
+	local stateSlots = Doom_GetStateSlots(
+		name,
+		prefix,
+		"__main",
+		stateFrames,
+		function(prefix, _, i)
+			return string.format("S_%s_%d", prefix, i)
+		end
+	)
+
+	for k,v in pairs(stateSlots) do
+		slots[k] = v
+	end
 
     -- first state name (for looping)
     local firstStateName = string.format("S_%s_1", prefix)
+	local baseDoomFlags = objData.doomflags
 
     mobjinfo[MT] = {
         spawnstate  = slots[firstStateName],
@@ -289,6 +379,8 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
         doomname = name,
         fastspeed = objData.fastspeed or objData.speed or 0,
     }
+---@diagnostic disable-next-line: inject-field
+	mobjinfo[MT].doomname = name
 
 	if onPickup then
 		addHook("TouchSpecial", function(mo, toucher)
@@ -297,7 +389,7 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 
 			-- Check for DF_COUNTITEM
 			if (res == nil or res == false) and mo and mo.doom then
-				maybeAddToRespawnTable(mo)
+				maybeAddToRespawnTable(mo, baseDoomFlags)
 				toucher.player.doom.bonuscount = ($ or 0) + 6
 				if mo.doom.flags & DF_COUNTITEM then
 					if (mo.doom and mo.doom.flags and (mo.doom.flags & DF_DROPPED)) then return res end
@@ -343,11 +435,37 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
         needed[#needed+1] = string.format("S_%s_%d", prefix, i)
     end
 
-    local slots = SafeFreeSlot(unpack(needed))
-    local MT = slots["MT_"..prefix]
+	local slots = {}
+	local MT
+
+	-- allocate MT normally
+	do
+	---@diagnostic disable-next-line: deprecated
+		local mtSlot = SafeFreeSlot("MT_"..prefix)
+		MT = mtSlot["MT_"..prefix]
+		slots["MT_"..prefix] = MT
+	end
+
+	-- allocate state group using cache
+	local stateSlots = Doom_GetStateSlots(
+		name,
+		prefix,
+		"__main",
+		stateFrames,
+		function(prefix, _, i)
+			return string.format("S_%s_%d", prefix, i)
+		end
+	)
+
+	for k,v in pairs(stateSlots) do
+		slots[k] = v
+	end
 
     -- first state name (for looping)
     local firstStateName = string.format("S_%s_1", prefix)
+
+	print(slots)
+	print(slots[firstStateName])
 
     -- minimal mobjinfo for an item
     mobjinfo[MT] = {
@@ -363,10 +481,12 @@ rawset(_G, "DefineDoomDeco", function(name, objData, stateFrames)
         painsound   = objData.painsound,
         deathsound  = objData.deathsound,
         sprite      = objData.sprite,
-        doomflags = objData.doomflags,
-        doomname = name,
-        fastspeed = objData.fastspeed or objData.speed or 0,
+        doomflags   = objData.doomflags,
+        doomname    = name,
+        fastspeed   = objData.fastspeed or objData.speed or 0,
     }
+---@diagnostic disable-next-line: inject-field
+	mobjinfo[MT].doomname = name
 
     -- fill states and make them loop (last -> first)
     for i, frame in ipairs(stateFrames) do
@@ -485,6 +605,7 @@ rawset(_G, "DOOM_SpawnMissile", function(source, dest, type)
     return th
 end)
 
+-- Awkward name! fuckhead
 rawset(_G, "P_GetSupportsForSkin", function(player)
 	if not player.mo then return {} end
 	return doom.charSupport[player.mo.skin]
@@ -496,17 +617,251 @@ rawset(_G, "P_GetMethodsForSkin", function(player)
 	return support.methods
 end)
 
+-- Merge state frames with override support
+local function mergeStateFrames(originalFrames, overrideFrames)
+    if not originalFrames or #originalFrames == 0 then
+        return overrideFrames
+    end
+    
+    local result = {}
+    local overrideIndex = 1
+    local originalIndex = 1
+    
+    while overrideIndex <= #overrideFrames or originalIndex <= #originalFrames do
+        local overrideFrame = overrideFrames[overrideIndex]
+        
+        if overrideFrame and overrideFrame.resumeOriginal then
+            -- Resume original sequence at specified frame
+            local resumeAt = overrideFrame.atFrame or originalIndex
+            while originalIndex < resumeAt and originalIndex <= #originalFrames do
+                table.insert(result, originalFrames[originalIndex])
+                originalIndex = originalIndex + 1
+            end
+            overrideIndex = overrideIndex + 1
+            
+        elseif overrideFrame and overrideFrame.removeFrame then
+            -- Skip this frame in original sequence
+            originalIndex = originalIndex + 1
+            overrideIndex = overrideIndex + 1
+            
+        elseif overrideFrame and overrideFrame.insertBefore then
+            -- Insert frame before current original frame
+            local insertFrame = deepcopy(overrideFrame)
+            insertFrame.insertBefore = nil
+            table.insert(result, insertFrame)
+            overrideIndex = overrideIndex + 1
+            -- Don't advance original index yet
+            
+        elseif overrideFrame then
+            -- Use override frame
+            local newFrame = deepcopy(overrideFrame)
+            -- Clean up special markers
+            newFrame.overrideAction = nil
+            newFrame.resumeOriginal = nil
+            newFrame.removeFrame = nil
+            newFrame.insertBefore = nil
+
+			-- Preserve frame from original if missing
+			if overrideFrame.frame == nil and originalFrames[originalIndex] then
+				newFrame.frame = originalFrames[originalIndex].frame
+			end
+
+            -- Handle action override
+			if overrideFrame.action then
+				newFrame.action = overrideFrame.action
+				newFrame.var1 = overrideFrame.var1
+				newFrame.var2 = overrideFrame.var2
+			elseif originalFrames[originalIndex] then
+				newFrame.action = originalFrames[originalIndex].action
+				newFrame.var1 = originalFrames[originalIndex].var1
+				newFrame.var2 = originalFrames[originalIndex].var2
+			end
+            
+            table.insert(result, newFrame)
+            overrideIndex = overrideIndex + 1
+            originalIndex = originalIndex + 1
+            
+        else
+            -- Use original frame
+            table.insert(result, originalFrames[originalIndex])
+            originalIndex = originalIndex + 1
+        end
+    end
+    
+    return result
+end
+
+-- Apply vanilla overrides to weapon definitions
+local function applyWeaponOverrides(weaponName, baseWeapon, overrides)
+    if not overrides then return baseWeapon end
+    
+    -- Create a deep copy to avoid modifying the original
+    local modifiedWeapon = deepcopy(baseWeapon)
+    
+    -- Apply simple field overrides
+    local simpleFields = {"damage", "firesound", "pellets", "shotcost", "raycaster", "shootmobj", "hitsound",
+                         "priority", "weaponslot", "order", "noinitfirespread", "wimpyweapon", "sprite", "flashsprite"}
+    
+    for _, field in ipairs(simpleFields) do
+        if overrides[field] ~= nil then
+            modifiedWeapon[field] = overrides[field]
+        end
+    end
+    
+    -- Apply spread overrides (special handling for table)
+    if overrides.spread then
+        modifiedWeapon.spread = modifiedWeapon.spread or {}
+        for k, v in pairs(overrides.spread) do
+            modifiedWeapon.spread[k] = v
+        end
+    end
+    
+    -- Apply state overrides (the complex part)
+    if overrides.states then
+        modifiedWeapon.states = modifiedWeapon.states or {}
+        for stateName, stateOverrides in pairs(overrides.states) do
+            modifiedWeapon.states[stateName] = 
+                mergeStateFrames(modifiedWeapon.states[stateName] or {}, stateOverrides)
+        end
+    end
+    
+    return modifiedWeapon
+end
+
 rawset(_G, "DOOM_GetWeaponDef", function(player)
-	return doom.weapons[player.doom.curwep]
+    local baseWeapon = doom.weapons[player.doom.curwep]
+    if not baseWeapon then return nil end
+    
+    -- Get character-specific overrides
+    local support = P_GetSupportsForSkin(player)
+    local weaponOverrides = support.vanillaoverrides and 
+                           support.vanillaoverrides.weapons and 
+                           support.vanillaoverrides.weapons[player.doom.curwep]
+    
+    if weaponOverrides then
+        -- Return overridden version for this character
+        return applyWeaponOverrides(player.doom.curwep, baseWeapon, weaponOverrides)
+    end
+    
+    return baseWeapon
 end)
 
 rawset(_G, "DOOM_IsExiting", function()
 	return doom.intermission or doom.textscreen.active
 end)
 
+doom.hooks = doom.hooks or {}
+
+doom.hookTypes = {
+	lastfunc = 1,
+	anytrue = 2,
+	anyfalse = 3
+}
+
+doom.hookResolvers = {
+    [doom.hookTypes.lastfunc] = {
+        init = function()
+            return nil
+        end,
+
+        step = function(state, result)
+            if result != nil then
+                return result, false -- update state, don't stop
+            end
+            return state, false
+        end,
+
+        finish = function(state)
+            return state
+        end
+    },
+
+    [doom.hookTypes.anytrue] = {
+        init = function()
+            return false
+        end,
+
+        step = function(state, result)
+            if result then
+                return true, true -- true, stop immediately
+            end
+            return state, false
+        end,
+
+        finish = function(state)
+            return state
+        end
+    },
+
+    [doom.hookTypes.anyfalse] = {
+        init = function()
+            return true
+        end,
+
+        step = function(state, result)
+            if result == false then
+                return false, true -- false, stop immediately
+            end
+            return state, false
+        end,
+
+        finish = function(state)
+            return state
+        end
+    }
+}
+
+function doom.addHook(name, func, objecttype)
+    if not name or not func then return end
+
+    doom.hooks[name] = doom.hooks[name] or {}
+
+    table.insert(doom.hooks[name], {
+        func = func,
+        type = objecttype or MT_NULL
+    })
+end
+
+function doom.callHook(name, returnmode, target, ...)
+    local hooks = doom.hooks[name]
+    if not hooks then return nil end
+
+    local resolver = doom.hookResolvers[returnmode]
+    if not resolver then return nil end
+
+    local state = resolver.init()
+
+    for i = 1, #hooks do
+        local hook = hooks[i]
+
+        if hook.type == MT_NULL
+        or (target and target.valid and target.type == hook.type)
+        then
+            local ok, result = pcall(hook.func, target, ...)
+
+            if ok then
+                state, stop = resolver.step(state, result)
+                if stop then
+                    return resolver.finish(state)
+                end
+            else
+                print("Hook error ("..name.."): "..result)
+            end
+        end
+    end
+
+    return resolver.finish(state)
+end
+
 rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, minhealth)
     if not target or not target.valid then return end
     damage = inflictor and inflictor.doom.damage or damage
+
+	if doom.callHook("MobjDamage", doom.hookTypes.anytrue,
+		target, inflictor, source, damage, damagetype, minhealth)
+	then
+		return
+	end
 
     local player = target.player
     
@@ -727,74 +1082,82 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 end)
 
 doom.thinkerlist = doom.thinkerlist or {}
-doom.thinkermap  = doom.thinkermap  or {}
 
--- Add thinker: append to numeric list and set map
 rawset(_G, "DOOM_AddThinker", function(any, thinkingType)
     if not any or thinkingType == nil then return end
-
-    -- Disallow duplicates (emulate original behavior)
-    if doom.thinkermap[any] then return end
-
+    
+    -- Check for existing thinker with same userdata and type
+    for i, thinker in ipairs(doom.thinkerlist) do
+        if thinker.userdata == any and thinker.data.type == thinkingType.type then
+            -- Found duplicate - return existing index without adding new one
+            return i
+        end
+    end
+    
     local data = deepcopy(thinkingType)
-    local entry = { key = any, data = data, active = true }
+    local entry = { userdata = any, data = data, active = true }
     local idx = #doom.thinkerlist + 1
     doom.thinkerlist[idx] = entry
-    doom.thinkermap[any] = idx
+    return idx
 end)
 
--- Stop thinker: mark inactive and remove mapping
-rawset(_G, "DOOM_StopThinker", function(any)
-    if not any then return end
-    local idx = doom.thinkermap[any]
-    if not idx then return end
-    local entry = doom.thinkerlist[idx]
-    if entry then
-        entry.active = false      -- mark for skipping
-        entry.data   = nil        -- free payload
-        entry.key    = nil
+-- Stop thinker:
+-- Usage options:
+--   DOOM_StopThinker(index)                      -- stop by numeric index
+--   DOOM_StopThinker(userdata, data)             -- stop single entry that matches userdata+data (table identity)
+--   DOOM_StopThinker(userdata)                   -- if called *from inside* a thinker, stops that thinker only;
+--                                                 otherwise, stops *all* thinkers for userdata
+rawset(_G, "DOOM_StopThinker", function(a, b)
+    if a == nil then return end
+
+    -- Stop by numeric index
+    if type(a) == "number" then
+        local idx = a
+        local entry = doom.thinkerlist[idx]
+        if not entry then return end
+        entry.active = false
+        entry.data = nil
+        entry.userdata = nil
+        return
+    end
+
+    local userdata = a
+    local data = b
+
+    -- If both userdata and data provided: stop the single entry matching both (table identity)
+    if data ~= nil then
+        for i = 1, #doom.thinkerlist do
+            local entry = doom.thinkerlist[i]
+            if entry and entry.active and entry.userdata == userdata and entry.data == data then
+                entry.active = false
+                entry.data = nil
+                entry.userdata = nil
+                return
+            end
+        end
+        return
+    end
+
+    -- If called inside a thinker, try to stop the current entry only
+    local current = doom._current_thinker_entry
+    if current and current.userdata == userdata then
+        current.active = false
+        current.data = nil
+        current.userdata = nil
+        doom._current_thinker_entry = nil
+        return
+    end
+
+    -- Otherwise: stop ALL thinkers for this userdata (backwards-compatible behavior)
+    for i = 1, #doom.thinkerlist do
+        local entry = doom.thinkerlist[i]
+        if entry and entry.active and entry.userdata == userdata then
+            entry.active = false
+            entry.data = nil
+            entry.userdata = nil
+        end
     end
 end)
-
--- Compatibility proxy so old code can still do doom.thinkers[any] = nil
--- and doom.thinkers[any] to read. Important: don't rely on pairs() on this table.
-do
-    local proxy = {}
-    local mt = {}
-
-    mt.__index = function(_, any)
-        local idx = doom.thinkermap[any]
-        if idx then
-            return doom.thinkerlist[idx] and doom.thinkerlist[idx].data or nil
-        end
-        return nil
-    end
-
-    mt.__newindex = function(_, any, val)
-        -- writing nil -> means "stop thinker" (compatibility)
-        if val == nil then
-            DOOM_StopThinker(any)
-            return
-        end
-        -- writing non-nil -> replace/create thinker data (rare for your code; prefer DOOM_AddThinker)
-        local idx = doom.thinkermap[any]
-        if idx then
-            doom.thinkerlist[idx].data = val
-            doom.thinkerlist[idx].active = true
-            doom.thinkermap[any] = idx
-        else
-            -- append as new entry
-            local entry = { key = any, data = deepcopy(val), active = true }
-            local n = #doom.thinkerlist + 1
-            doom.thinkerlist[n] = entry
-            doom.thinkermap[any] = n
-        end
-    end
-
-    -- put proxy into doom.thinkers so existing reads/writes work (but do not pairs() it)
-    doom.thinkers = proxy
-    setmetatable(doom.thinkers, mt)
-end
 
 rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 	if not (player and player.valid) then return end
@@ -1107,6 +1470,8 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
             continue
         end
 
+        local sightmethod = "sight"
+
         if not allaround then
             local an = (R_PointToAngle2(actor.x, actor.y, player.mo.x, player.mo.y) - actor.angle)
 			an = AngleFixed(an)
@@ -1115,7 +1480,18 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
 				if dist > MELEERANGE then
 					continue
 				end
+				sightmethod = "closeness"
 			end
+        end
+
+        -- Check if skin wants to deny this sighting
+        if player and player.valid then
+            local funcs = P_GetMethodsForSkin(player)
+            if funcs and funcs.shouldEnemySight then
+                if funcs.shouldEnemySight(player, actor, sightmethod) then
+                    continue
+                end
+            end
         end
 
         actor.target = player.mo

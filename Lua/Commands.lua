@@ -80,6 +80,87 @@ COM_AddCommand("idclip", function(player)
 	end
 end)
 
+-- Command to display text screens by episode/level number
+COM_AddCommand("doom_dotextscreen", function(player, arg)
+	local funcs = P_GetMethodsForSkin(player)
+	
+	-- Check if arg is provided
+	if not arg or arg == "" then
+		DOOM_DoMessage(player, "Usage: doom_dotextscreen <episode/level> (e.g., doomtext e1, doomtext 8)")
+		return
+	end
+	
+	arg = string.lower(arg)
+	local textScreen = nil
+	
+	-- Handle episode format (e1, e2, e3, e4) for DOOM 1
+	if doom.isdoom1 then
+		if arg == "e1" then
+			textScreen = doom.textscreenmaps[8]  -- E1M8 text
+		elseif arg == "e2" then
+			textScreen = doom.textscreenmaps[17] -- E2M8 text
+		elseif arg == "e3" then
+			textScreen = doom.textscreenmaps[26] -- E3M8 text
+		elseif arg == "e4" then
+			textScreen = doom.textscreenmaps[35] -- E4M8 text
+		else
+			-- Try direct level number
+			local levelNum = tonumber(arg)
+			if levelNum then
+				textScreen = doom.textscreenmaps[levelNum]
+			end
+		end
+	else -- DOOM 2
+		if arg == "c1" or arg == "map06" or arg == "6" then
+			textScreen = doom.textscreenmaps[6]   -- MAP06 text
+		elseif arg == "c2" or arg == "map11" or arg == "11" then
+			textScreen = doom.textscreenmaps[11]  -- MAP11 text
+		elseif arg == "c3" or arg == "map20" or arg == "20" then
+			textScreen = doom.textscreenmaps[20]  -- MAP20 text
+		elseif arg == "c4" or arg == "map30" or arg == "30" then
+			textScreen = doom.textscreenmaps[30]  -- MAP30 text
+		elseif arg == "c5" or arg == "map15" or arg == "15" then
+			textScreen = doom.textscreenmaps[15]  -- MAP15 text (secret)
+		elseif arg == "c6" or arg == "map31" or arg == "31" then
+			textScreen = doom.textscreenmaps[31]  -- MAP31 text (secret)
+		else
+			-- Try direct level number
+			local levelNum = tonumber(arg)
+			if levelNum then
+				textScreen = doom.textscreenmaps[levelNum]
+			end
+		end
+	end
+	
+	-- Display the text screen if found
+	if textScreen then
+		-- Create a copy of the text screen data
+		local screenData = {
+			text = textScreen.text,
+			bg = textScreen.bg
+		}
+		
+		-- Call the existing text screen function
+		DOOM_StartTextScreen(screenData)
+		
+		-- Optional: Notify the player
+		if textScreen.secret then
+			DOOM_DoMessage(player, "Showing secret text screen...")
+		else
+			DOOM_DoMessage(player, "Showing text screen...")
+		end
+	else
+		-- List available options if no match found
+		DOOM_DoMessage(player, "Text screen not found! Available:")
+		if doom.isdoom1 then
+			DOOM_DoMessage(player, "doomtext e1 (E1M8), doomtext e2 (E2M8), doomtext e3 (E3M8), doomtext e4 (E4M8)")
+			DOOM_DoMessage(player, "Or use level numbers: 8, 17, 26, 35")
+		else
+			DOOM_DoMessage(player, "doomtext c1/c2/c3/c4/c5/c6 or map numbers: 6,11,15,20,30,31")
+		end
+	end
+end)
+
 -- This is the ugliest code to date. Whatever!
 COM_AddCommand("idbehold", function(player, arg)
 	local funcs = P_GetMethodsForSkin(player)

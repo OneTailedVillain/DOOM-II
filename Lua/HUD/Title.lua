@@ -17,26 +17,40 @@ end
 doom.titlemenus = {
 	menu = {
 		entries = {
-			{label = "newgame", patch = "M_NGAME", x = 97, y = 64, goto = "newgame"},
+			{label = "newgame", patch = "M_NGAME", x = 97, y = 64, goto = "cssselect"},
 			-- no options! can't do that at all here
-			{label = "loadgame", patch = "M_LOADG", x = 97, y = 64+LINEHEIGHT},
-			{label = "savegame", patch = "M_SAVEG", x = 97, y = 64+LINEHEIGHT*2},
-			{label = "readme", patch = "M_RDTHIS", x = 97, y = 64+LINEHEIGHT*3},
-			{label = "quitgame", patch = "M_QUITG", x = 97, y = 64+LINEHEIGHT*4, goto = "quitgame"}
+			{label = "loadgame", patch = "M_LOADG", x = 97, y = 64},
+			{label = "savegame", patch = "M_SAVEG", x = 97, y = 64},
+			{label = "readme", patch = "M_RDTHIS", x = 97, y = 64},
+			{label = "quitgame", patch = "M_QUITG", x = 97, y = 64, goto = "quitgame"}
 		},
 		customFunc = function(v, player)
 			v.draw(94, 2, v.cachePatch("M_DOOM"))
 		end,
 	},
+	cssselect = {
+		default = 1,
+		lineheight = 20,
+		x = 40,
+		y = 50,
+
+		entries = function()
+			return doom.buildCSSMenu()
+		end,
+
+		customFunc = function(v)
+			drawInFont(v, 160*FRACUNIT, 20*FRACUNIT, FRACUNIT, "STCFN", "SELECT CHARACTER", 0, "center")
+		end
+	},
 	newgame = {
 		iscommandbased = true,
 		default = 3,
 		entries = {
-			{label = "itytd", patch = "M_JKILL", x = 48, y = 63, command = {"skin johndoom", "doom_skill 1", "map map01 -f"}},
-			{label = "hntr", patch = "M_ROUGH", x = 48, y = 63+LINEHEIGHT, command = {"skin johndoom", "doom_skill 2", "map map01 -f"}},
-			{label = "hmp", patch = "M_HURT", x = 48, y = 63+LINEHEIGHT*2, command = {"skin johndoom", "doom_skill 3", "map map01 -f"}},
-			{label = "uv", patch = "M_ULTRA", x = 48, y = 63+LINEHEIGHT*3, command = {"skin johndoom", "doom_skill 4", "map map01 -f"}},
-			{label = "nightmare", patch = "M_NMARE", x = 48, y = 63+LINEHEIGHT*4, command = {"skin johndoom", "doom_skill 5", "map map01 -f"}},
+			{label = "itytd", patch = "M_JKILL", x = 48, y = 63, command = {"doom_skill 1", "map map01 -f"}},
+			{label = "hntr", patch = "M_ROUGH", x = 48, y = 63, command = {"doom_skill 2", "map map01 -f"}},
+			{label = "hmp", patch = "M_HURT", x = 48, y = 63, command = {"doom_skill 3", "map map01 -f"}},
+			{label = "uv", patch = "M_ULTRA", x = 48, y = 63, command = {"doom_skill 4", "map map01 -f"}},
+			{label = "nightmare", patch = "M_NMARE", x = 48, y = 63, command = {"doom_skill 5", "map map01 -f"}},
 		},
 		customFunc = function(v, player)
 			v.draw(96, 14, v.cachePatch("M_NEWG"))
@@ -48,10 +62,10 @@ doom.titlemenus = {
 		default = 1,
 		-- Episode selection for Doom 1
 		entries = {
-			{label = "episode1", patch = "M_EPI1", x = 48, y = 63,              goto = "newgame", episode = 1},
-			{label = "episode2", patch = "M_EPI2", x = 48, y = 63+LINEHEIGHT,   goto = "newgame", episode = 2},
-			{label = "episode3", patch = "M_EPI3", x = 48, y = 63+LINEHEIGHT*2, goto = "newgame", episode = 3},
-			{label = "episode4", patch = "M_EPI4", x = 48, y = 63+LINEHEIGHT*3, goto = "newgame", episode = 4},
+			{label = "episode1", patch = "M_EPI1", x = 48, y = 63,	goto = "newgame", episode = 1},
+			{label = "episode2", patch = "M_EPI2", x = 48, y = 63,	goto = "newgame", episode = 2},
+			{label = "episode3", patch = "M_EPI3", x = 48, y = 63,	goto = "newgame", episode = 3},
+			{label = "episode4", patch = "M_EPI4", x = 48, y = 63,	goto = "newgame", episode = 4},
 		},
 		customFunc = function(v, player)
 			v.draw(54, 38, v.cachePatch("M_EPISOD"))
@@ -107,30 +121,171 @@ doom.titlemenus = {
 	},
 }
 
+local function resolveEntries(menuDef)
+	local entries = menuDef.entries
+
+	-- Allow dynamic builders (like CSS)
+	if type(entries) == "function" then
+		entries = entries()
+	end
+
+	-- Normalize old entries into new format
+	for _, entry in ipairs(entries or {}) do
+		if not entry.drawtype then
+			if entry.patch then
+				entry.drawtype = "patch"
+			else
+				entry.drawtype = "text"
+				entry.text = entry.text or entry.label
+			end
+		end
+	end
+
+	return entries or {}
+end
+
 local selectedEpisode = 1
 
+---@param v videolib
+local function drawMenuEntry(v, entry, x, y)
+	if entry.drawtype == "patch" then
+		v.draw(x, y, v.cachePatch(entry.patch))
+
+	elseif entry.drawtype == "text" then
+		drawInFont(v,
+			(x + 160) * FRACUNIT,
+			y * FRACUNIT,
+			FRACUNIT,
+			"STCFN",
+			DOOM_ResolveString(entry.text),
+			0,
+			"center"
+		)
+
+	elseif entry.drawtype == "css" then
+		local seq = entry.sequence
+		local base = seq[1]
+		local count = seq[2] or 1
+		local tics = seq[3] or 4
+
+		local frame = ((hudtime / tics) % count)
+		local vf = 0
+		local sprite2 = entry.nonselectedsprite2 or SPR2_STND
+		frame = frame + base
+
+		-- Adjust frame based on highlight state
+		if entry.highlight == "current" then
+			frame = frame -- could keep normal animation
+			y = 112
+			sprite2 = entry.sprite2
+		elseif entry.highlight == "up" then
+			frame = entry.nonselectedframe
+			y = 50
+			vf = V_SNAPTOTOP
+		elseif entry.highlight == "down" then
+			frame = entry.nonselectedframe
+			y = 175
+			vf = V_SNAPTOBOTTOM
+		else
+			return
+		end
+
+		local patch = v.getSprite2Patch(entry.skin, sprite2, frame)
+
+		if patch then
+			v.drawScaled(
+				(x + 32) * FRACUNIT,
+				(y + 8) * FRACUNIT,
+				skins[entry.skin].highresscale,
+				patch,
+				vf,
+				v.getColormap(entry.skin, skins[entry.skin].prefcolor)
+			)
+		end
+
+		if entry.highlight == "current" then
+			drawInFont(v,
+				(x + 72) * FRACUNIT,
+				(y - 48) * FRACUNIT,
+				FRACUNIT,
+				"STCFN",
+				entry.name,
+				vf,
+				"left"
+			)
+
+			-- Normalize description to a table
+			local lines = {}
+			if type(entry.description) == "string" then
+				for line in entry.description:gmatch("[^\n]+") do
+					table.insert(lines, line)
+				end
+			elseif type(entry.description) == "table" then
+				lines = entry.description
+			end
+
+			-- Draw up to 6 lines
+			for i = 1, min(6, #lines) do
+				drawInFont(v,
+					(x + 72) * FRACUNIT,
+					(y - 40 + (i * 8)) * FRACUNIT,
+					FRACUNIT,
+					"STCFN",
+					lines[i],
+					vf,
+					"left"
+				)
+			end
+		end
+	end
+end
+
 local function DrawTitleScreen(v, player)
-	hudtime = $ + 1
+	hudtime = hudtime + 1
 
 	local currentMenuKey = menustatus.menu
 	local menuDef = doom.titlemenus[currentMenuKey]
 	if not menuDef then return end
 
-	if menuDef.entries then
-		for k, entry in pairs(menuDef.entries) do
-			if not entry.patch then continue end
-			v.draw(entry.x or 0, entry.y or 0, v.cachePatch(entry.patch))
-
-			if not menuDef.nocursor then
-				if k ~= menustatus.selection + 1 then continue end
-				local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
-				v.draw((entry.x or 0) + SKULLXOFF, entry.y or 0, v.cachePatch(skullframe))
-			end
-		end
-	end
-
 	if menuDef.customFunc then
 		menuDef.customFunc(v, player)
+	end
+
+	if menuDef.entries then
+		local entries = resolveEntries(menuDef)
+		local entryCount = #entries
+
+		-- Compute the three indices for CSS menus
+		local selIndex = menustatus.selection + 1
+		local upIndex = ((menustatus.selection - 1 + entryCount) % entryCount) + 1
+		local downIndex = ((menustatus.selection + 1) % entryCount) + 1
+
+		for k, entry in ipairs(entries) do
+			local baseX = entry.x or menuDef.x or 48
+			local baseY = entry.y or menuDef.y or 64
+			local y = baseY + (k-1)*(menuDef.lineheight or LINEHEIGHT)
+
+			-- Determine highlight state for CSS entries
+			if entry.drawtype == "css" then
+				if k == selIndex then
+					entry.highlight = "current"
+				elseif k == upIndex then
+					entry.highlight = "up"
+				elseif k == downIndex then
+					entry.highlight = "down"
+				else
+					entry.highlight = nil
+				end
+			end
+
+			drawMenuEntry(v, entry, baseX, y)
+
+			-- Draw skull cursor for normal menus
+			if not menuDef.nocursor and k == selIndex then
+				local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
+				v.draw(baseX + SKULLXOFF, y, v.cachePatch(skullframe))
+			end
+		end
 	end
 end
 
@@ -180,6 +335,17 @@ addHook("ThinkFrame", function()
     end
 end)
 
+local function resolveNewGameTarget()
+	-- Decide destination once
+	local targetMenu = "newgame"
+
+	if doom.isdoom1 and doom.matchedGame != "chex1" then
+		targetMenu = "episelect"
+	end
+
+	return targetMenu
+end
+
 local function OnKeyDown(keyevent)
     -- Only handle input on the title screen and ignore repeats or tilde
     if not IsTitleMode() or keyevent.repeated or keyevent.name == "TILDE" then
@@ -198,7 +364,8 @@ local function OnKeyDown(keyevent)
     local menuDef = doom.titlemenus[currentMenuKey]
     if not menuDef then return false end
 
-    local entryCount = menuDef.entries and #menuDef.entries or 0
+	local entries = resolveEntries(menuDef)
+	local entryCount = #entries
 
     -- Navigation logic if cursor is shown
     if not menuDef.nocursor then
@@ -221,7 +388,7 @@ local function OnKeyDown(keyevent)
 
     -- Determine selected entry (first if nocursor)
     local idx = menuDef.nocursor and 1 or (menustatus.selection + 1)
-    local selectedEntry = menuDef.entries and menuDef.entries[idx] or 0
+    local selectedEntry = entries[idx]
 
     -- If custom validkeys, only allow those
     if menuDef.validkeys then
@@ -254,10 +421,10 @@ local function OnKeyDown(keyevent)
             local startMap = "map" .. (startMapNum < 10 and "0" .. startMapNum or startMapNum)
             
             -- Update all newgame entries to use the correct episode map
-            for i, skillEntry in ipairs(doom.titlemenus.newgame.entries) do
+			local newgameEntries = resolveEntries(doom.titlemenus.newgame)
+			for i, skillEntry in ipairs(newgameEntries) do
                 skillEntry.command = {
-                    "skin johndoom", 
-                    "doom_skill " .. i, 
+                    "doom_skill " .. i,
                     "map " .. startMap .. " -f"
                 }
             end
@@ -270,9 +437,15 @@ local function OnKeyDown(keyevent)
             end
         end
         if selectedEntry and selectedEntry.goto then
-            menustatus.menu = selectedEntry.goto
-            menustatus.selection = (doom.titlemenus[selectedEntry.goto].default or 1) - 1
-			local nextMenu = doom.titlemenus[selectedEntry.goto]
+			local target = selectedEntry.goto
+		
+			if target == "__newgame_router" then
+				target = resolveNewGameTarget()
+			end
+	
+            menustatus.menu = target
+            menustatus.selection = (doom.titlemenus[menustatus.menu].default or 1) - 1
+			local nextMenu = doom.titlemenus[menustatus.menu]
 			if nextMenu and nextMenu.onEnter then
 				nextMenu.onEnter()
 			end

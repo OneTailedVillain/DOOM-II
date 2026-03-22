@@ -97,6 +97,7 @@ doom.addWeapon("pistol", {
 	wimpyweapon = true,
 	pellets = 1,
 	firesound = sfx_pistol,
+	shotcost = 1,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
@@ -187,6 +188,7 @@ doom.addWeapon("shotgun", {
 		vert = 0,
 	},
 	raycaster = true,
+	shotcost = 1,
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -231,6 +233,7 @@ doom.addWeapon("chaingun", {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
 	},
+	shotcost = 1,
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -268,6 +271,7 @@ doom.addWeapon("rocketlauncher", {
 	pellets = 1,
 	firesound = sfx_rlaunc,
 	shootmobj = MT_DOOM_ROCKETPROJ,
+	shotcost = 1,
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -304,6 +308,7 @@ doom.addWeapon("plasmarifle", {
 	pellets = 1,
 	shootmobj = MT_DOOM_PLASMASHOT,
 	noshareware = true,
+	shotcost = 1,
 	states = {
 		idle = {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
@@ -323,6 +328,10 @@ doom.addWeapon("plasmarifle", {
 	ammotype = "cells",
 })
 
+function A_DoomPlayFireSound(actor, var1, var2, wepdef)
+	S_StartSound(actor, wepdef.firesound)
+end
+
 doom.addWeapon("bfg9000", {
 	sprite = SPR_BFGG,
 	flashsprite = SPR_BFGF,
@@ -335,6 +344,7 @@ doom.addWeapon("bfg9000", {
 	noautoswitchfire = true,
 	noshareware = true,
 	pellets = 60,
+	firesound = sfx_bfg,
 	spread = {
 		horiz = FRACUNIT*59/10,
 		vert = 0,
@@ -350,9 +360,9 @@ doom.addWeapon("bfg9000", {
 			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
-			{frame = A, tics = 20, action = A_PlaySound, var1 = sfx_bfg, var2 = 1},
+			{frame = A, tics = 20, action = A_DoomPlayFireSound},
 			{frame = B, tics = 10, action = A_GunFlash},
-			{frame = B, tics = 10, action = A_DoomFire, var2 = {noFlash = true}},
+			{frame = B, tics = 10, action = A_DoomFire, var2 = {noFlash = true, noFireSound = true}},
 			{frame = B, tics = 20, action = A_DoomReFire},
 		},
 		flash = {

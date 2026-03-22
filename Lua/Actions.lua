@@ -77,9 +77,27 @@ function A_DoomLook(actor)
 		if (actor.flags2 & MF2_AMBUSH) then
 			if P_CheckSight(actor, actor.target) then
 				gotoseeyou = true
+				if actor.target and actor.target.valid and actor.target.player then
+					local funcs = P_GetMethodsForSkin(actor.target.player)
+					if funcs and funcs.shouldEnemySight then
+						if funcs.shouldEnemySight(actor.target.player, actor, "sound") then
+							actor.target = nil
+							gotoseeyou = false
+						end
+					end
+				end
 			end
 		else
 			gotoseeyou = true
+			if actor.target and actor.target.valid and actor.target.player then
+				local funcs = P_GetMethodsForSkin(actor.target.player)
+				if funcs and funcs.shouldEnemySight then
+					if funcs.shouldEnemySight(actor.target.player, actor, "sound") then
+						actor.target = nil
+						gotoseeyou = false
+					end
+				end
+			end
 		end
 	end
 
@@ -100,17 +118,20 @@ function A_DoomLook(actor)
 		else
 			sound = seesound
 		end
-/*
-		if actor.type == MT_SPIDER or actor.type == MT_CYBORG then
+
+		if actor.type == MT_DOOM_SPIDERMASTERMIND or actor.type == MT_DOOM_CYBERDEMON then
 			S_StartSound(nil, sound) -- full volume
 		else
 			S_StartSound(actor, sound)
 		end
-*/
-		S_StartSound(actor, sound)
 	end
 
-	actor.state = actor.info.seestate
+	if not actor.doom.sightedplayer then
+		actor.doom.sightedplayer = true
+		actor.state = actor.info.seestate
+	else
+		print("WARNING: Actor tried to A_Look while already sighting a player!")
+	end
 	actor.reactiontime = 8
 end
 
@@ -329,6 +350,7 @@ function A_DoomChase(actor)
 			return
 		end
 
+		actor.doom.sightedplayer = false
 		actor.state = actor.info.spawnstate
 		return
 	end
@@ -737,11 +759,11 @@ doom.predefinedWeapons = {
 	},
 }
 
-function A_DoomFire(actor, isPlayer, weaponDef, weapon)
+function A_DoomFire(actor, var1, weaponDef, weapon)
     -- Determine if this is a player or enemy
     local isPlayerActor = actor.player ~= nil
     local player = actor.player
-    
+
     if isPlayerActor then
 		local wepProperties = weaponDef or {}
         -- Player logic
@@ -754,7 +776,7 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 			if curAmmo - weapon.shotcost < 0 then return end
 		end
 
-		if weapon.firesound then
+		if weapon.firesound and not wepProperties.noFireSound then
 			S_StartSound(actor, weapon.firesound)
 		end
 
@@ -780,7 +802,7 @@ function A_DoomFire(actor, isPlayer, weaponDef, weapon)
 
         funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
 
-        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, weapon.spread.horiz or 0, weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
+        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, spread and spread.horiz or 0, spread and spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     else
 		local weapon = doom.predefinedWeapons[weaponDef or 1]
         -- Enemy logic
@@ -959,8 +981,7 @@ local function HL_GetDistance(obj1, obj2) -- get distance between two objects; u
 
 	return FixedHypot(FixedHypot(dx, dy), dz) -- 3D distance calculationd
 end
-
-local function HLExplode(actor, range, source)
+rawset(_G, "DOOM_RadiusAttack", function(actor, source, range)
 	if not (actor and actor.valid) then return end -- Ensure the actor exists
 
 	local function DamageAndBoostNearby(refmobj, foundmobj)
@@ -985,10 +1006,10 @@ local function HLExplode(actor, range, source)
 		actor.x - range, actor.x + range,
 		actor.y - range, actor.y + range
 	)
-end
+end)
 
 function A_DoomExplode(actor)
-	HLExplode(actor, 128*FRACUNIT, actor.target)
+	DOOM_RadiusAttack(actor, actor.target, 128*FRACUNIT)
 end
 
 function A_MaybeRespawn(actor)
@@ -1306,3 +1327,11 @@ function A_SkullAttack(actor)
 	end
 	actor.momz = (dest.z + (dest.height >> 1) - actor.z) / dist
 end
+
+-- Stub
+-- TODO: Move as FAR AWAY from fakestates as possible! Needed for DEHACKED
+/*
+function A_DoomFirePistol()
+	
+end
+*/

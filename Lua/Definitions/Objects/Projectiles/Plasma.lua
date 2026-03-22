@@ -1,7 +1,8 @@
 SafeFreeSlot(
     "SPR_PLSS","SPR_PLSE",
     "sfx_plasma","sfx_firxpl",
-    "MT_DOOM_PLASMASHOT"
+    "MT_DOOM_PLASMASHOT",
+	"sfx_sd2pls"
 )
 
 local plasmastates = {
@@ -24,6 +25,21 @@ FreeDoomStates("Plasma", plasmastates)
 mobjinfo[MT_DOOM_PLASMASHOT] = {
     spawnstate = S_DOOM_PLASMA_SHOT1,
     seesound   = sfx_plasma,
+    deathsound = sfx_firxpl,
+    deathstate = S_DOOM_PLASMA_EXPLODE1,
+
+    speed      = 25*FRACUNIT,
+    radius     = 13*FRACUNIT,
+    height     = 8*FRACUNIT,
+    damage     = 5,
+    dispoffset = 5,
+
+    flags = MF_NOGRAVITY|MF_MISSILE,
+}
+
+mobjinfo[MT_DOOM_SD2PLASMASHOT] = {
+    spawnstate = S_DOOM_PLASMA_SHOT1,
+    seesound   = sfx_sd2pls,
     deathsound = sfx_firxpl,
     deathstate = S_DOOM_PLASMA_EXPLODE1,
 

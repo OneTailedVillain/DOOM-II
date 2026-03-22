@@ -175,7 +175,7 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
     # Create player sprites from PLAY lumps
     if options.get('player_sprites', True):
         print("Creating player sprites from PLAY lumps...")
-        sprites_created = create_player_sprites_from_play_lumps(src_wad, out_wad, "johndoom")
+        sprites_created = create_player_sprites_from_play_lumps(src_wad, out_wad, "johndoom", options.get('suppress_pskin_errors', False), options.get('use_srb2_conventions', False))
 
     if options.get('stcfn_uppercase_to_lowercase', True):
         print("Copying STCFN uppercase graphics to lowercase letter codes...")

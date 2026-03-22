@@ -835,6 +835,14 @@ addHook("PlayerSpawn",function(player)
 	player.doom.flashtics = 0
 	player.doom.flashstate = "flash"
 	player.doom.flashframe = -1
+
+	if (gametyperules & GTR_RINGSLINGER) then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs and funcs.throwOutSaveState then
+			funcs.throwOutSaveState(player)
+		end
+	end
+
 	if player.doom.laststate and player.doom.laststate.map == gamemap then
 		P_SetOrigin(player.mo, player.doom.laststate.pos.x, player.doom.laststate.pos.y, player.doom.laststate.pos.z)
 		player.mo.momx = player.doom.laststate.momentum.x
@@ -896,11 +904,113 @@ addHook("PlayerSpawn",function(player)
 	else
 		player.mo.z = P_FloorzAtPos(player.mo.x, player.mo.y, 0, 0)
 	end
+
+	local sp = doom.spawnpoints
+	-- If spawnpoints are initialized...
+	if (sp and sp.player and sp.player[1] and #sp.player[1] > 0)
+	or (sp and sp.deathmatch and #sp.deathmatch > 0) then
+		local function getPlayerSpawn(preferred)
+			for i = 0, 3 do
+				local slot = ((preferred - 1 + i) % 4) + 1
+				local list = sp.player[slot]
+
+				if list and list[1] then
+					return list[1]
+				end
+			end
+		end
+
+		if (gametyperules & GTR_RINGSLINGER) then
+			local matchspawncount = #sp.deathmatch
+			if matchspawncount > 0 then
+				local pspawn_index = P_RandomKey(matchspawncount) + 1
+				local pspawn = sp.deathmatch[pspawn_index]
+
+				P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+				player.mo.angle = pspawn.angle
+				player.drawangle = pspawn.angle
+			end
+		else
+			local pnum = #player
+			local preferred = (pnum % 4) + 1
+			local pspawn = getPlayerSpawn(preferred)
+
+			if pspawn then
+				P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+				player.mo.angle = pspawn.angle
+				player.drawangle = pspawn.angle
+			end
+		end
+	end
 end)
 
+local function lineToLinePos(mo, src, dst, reversed)
+	local sdx = src.v2.x - src.v1.x
+	local sdy = src.v2.y - src.v1.y
+	local slen = P_AproxDistance(sdx, sdy)
+	if slen == 0 then return end
+
+	local dx = mo.x - src.v1.x
+	local dy = mo.y - src.v1.y
+
+	// Fraction along the source line: 0 = v1, FRACUNIT = v2
+	local along = FixedDiv(
+		FixedMul(dx, sdx) + FixedMul(dy, sdy),
+		FixedMul(slen, slen)
+	)
+
+	if reversed then
+		along = FRACUNIT - along
+	end
+
+	// Signed perpendicular offset from the source line
+	local perp = FixedDiv(
+		FixedMul(dx, -sdy) + FixedMul(dy, sdx),
+		slen
+	)
+
+	local ddx = dst.v2.x - dst.v1.x
+	local ddy = dst.v2.y - dst.v1.y
+	local dlen = P_AproxDistance(ddx, ddy)
+	if dlen == 0 then return end
+
+	local newx = dst.v1.x
+		+ FixedMul(along, ddx)
+		+ FixedMul(perp, FixedDiv(-ddy, dlen))
+
+	local newy = dst.v1.y
+		+ FixedMul(along, ddy)
+		+ FixedMul(perp, FixedDiv(ddx, dlen))
+
+	return newx, newy
+end
 
 local typeHandlers = {
+	---@param usedLine line_t
 	teleport = function(usedLine, whatIs, plyrmo)
+		local player = plyrmo.player
+		local line = usedLine
+
+		if whatIs.linetoline then
+			local lineTag
+
+			for line in lines.tagged(usedLine.tag) do
+				if line == usedLine then continue end
+				lineTag = line
+				break
+			end
+			if not lineTag then return end
+
+			local newx, newy = lineToLinePos(plyrmo, usedLine, lineTag, true)
+			if newx == nil then return end
+
+			plyrmo.doom.handlingtele = true
+			plyrmo.tele = {x = newx, y = newy, z = plyrmo.z}
+			plyrmo.doom.handlingtele = false
+
+			return
+		end
+
 		if (plyrmo.flags & MF_MISSILE) then return end
 		if plyrmo.reactiontime and plyrmo.reactiontime > 0 then return end
 		if P_PointOnLineSide(plyrmo.x, plyrmo.y, usedLine) == 1 then return end
@@ -941,6 +1051,7 @@ local typeHandlers = {
 }
 
 addHook("MobjLineCollide", function(mobj, hit)
+	if mobj.doom.handlingtele then return end
 	-- pos + momentum = the direction the player intended to go
 	-- TODO: Add checks for if the movement is available to the player!
 	if P_PointOnLineSide(mobj.x, mobj.y, hit) == P_PointOnLineSide(mobj.x + mobj.momx, mobj.y + mobj.momy, hit) then return end

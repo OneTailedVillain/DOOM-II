@@ -72,6 +72,13 @@ local states = {
 		{action = nil, frame = T, tics = 5},
 		{action = nil, frame = U, tics = -1},
 	},
+	raise = {
+		{frame = M, tics = 8},
+		{frame = L, tics = 8},
+		{frame = K, tics = 6},
+		{frame = J, tics = 6},
+		{frame = I, tics = 6, next = "chase"},
+	},
 }
 
 DefineDoomActor(name, object, states)

@@ -67,5 +67,6 @@
         "duplicate-doc-alias",
         "duplicate-doc-field",
         "duplicate-set-field"
-    ]
+	],
+	"python.REPL.enableREPLSmartSend": false
 }

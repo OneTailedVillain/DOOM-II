@@ -4,6 +4,21 @@ GameData = doom.dat
 
 Clear All
 
+Unlockable 1
+Name = Sound Test
+NoChecklist = true
+ConditionSet = -1
+Height = 0
+Type = SoundTest
+
+Unlockable 2
+Name = Level Select
+NoChecklist = true
+ConditionSet = -1
+Height = 0
+Type = LevelSelect
+Var = 1
+
 Character
 SkinName = JohnDoom
 DisplayName = "JohnDoom"

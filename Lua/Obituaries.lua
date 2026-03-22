@@ -275,7 +275,7 @@ function doom.doObituary(target, source, inflictor, dtype)
 			if funcs.hasPowerUp then
 				hasInvuln = funcs.hasPowerUp(vplayer, "invulnerability")
 			else
-				hasInvuln = vplayer.doom.powers[pw_invulnerability] > 0
+				hasInvuln = vplayer.doom.powers[pw_invulnerability] or 0
 			end
 		if dtype == doom.damagetypes.telefrag then
 			if hasInvuln then

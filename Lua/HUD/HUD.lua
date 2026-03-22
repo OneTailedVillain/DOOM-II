@@ -46,28 +46,30 @@ local function IsAboveVersion(major, sub)
 	return (VERSION > major) or (VERSION == major and SUBVERSION >= sub)
 end
 
+---@param v videolib
 local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 	local stateDef, sprite
-	
+	local wepDef = DOOM_GetWeaponDef(player)
+
 	if stateType == "weapon" then
-		stateDef = doom.weapons[player.doom.curwep].states[player.doom.wepstate][player.doom.wepframe]
-		sprite = stateDef.sprite == nil and doom.weapons[player.doom.curwep].sprite or stateDef.sprite
+		stateDef = wepDef.states[player.doom.wepstate][player.doom.wepframe]
+		sprite = stateDef.sprite == nil and wepDef.sprite or stateDef.sprite
 	else -- flash
 		if player.doom.flashframe < 1 then return false end
-		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"] then return false end
-		if not doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe] then return false end
+		if not wepDef.states[player.doom.flashstate or "flash"] then print("No flashstate") return false end
+		if not wepDef.states[player.doom.flashstate or "flash"][player.doom.flashframe] then print("Flashframe doesnt exist") return false end
 		
-		stateDef = doom.weapons[player.doom.curwep].states[player.doom.flashstate or "flash"][player.doom.flashframe]
-		sprite = stateDef.sprite == nil and doom.weapons[player.doom.curwep].flashsprite or stateDef.sprite
+		stateDef = wepDef.states[player.doom.flashstate or "flash"][player.doom.flashframe]
+		sprite = stateDef.sprite == nil and wepDef.flashsprite or stateDef.sprite
 	end
 
-	local whatFrame = stateDef.frame
+	local whatFrame = stateDef.frame or A
 	if whatFrame < 0 then return false end
 	
 	local spriteflags = whatFrame & ~FF_FRAMEMASK
 	whatFrame = $ & FF_FRAMEMASK
 	local patch = v.getSpritePatch(sprite, whatFrame)
-	if not patch then return false end
+	if not patch then print("No patch") return false end
 
 	local stateOffsetX = 0
 	local stateOffsetY = 0
@@ -182,11 +184,18 @@ local function DrawStatusBarNumbers(v, player)
 end
 
 local function drawFace(v, player)
+	local chardef = P_GetSupportsForSkin(player)
 	local index = player.doom.faceindex + 1
 	if index > #st_faces then index = #st_faces end
-	local patch = st_faces[index]
+	local patch
+	if chardef.st_faces then
+		patch = chardef.st_faces[index]
+	else
+		patch = st_faces[index]
+	end
+	local prefixmaybe = chardef.faceprefix or ""
 	if patch != nil then
-		v.draw(143, 168, v.cachePatch(patch), V_PERPLAYER|V_SNAPTOBOTTOM)
+		v.draw(143, 168, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
 	else
 		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
 	end

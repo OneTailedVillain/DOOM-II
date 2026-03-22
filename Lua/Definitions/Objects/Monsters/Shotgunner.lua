@@ -65,6 +65,7 @@ local states = {
 		{action = nil, frame = L, tics = -1},
 	},
 	raise = {
+		{action = nil, frame = L, tics = 5},
 		{action = nil, frame = K, tics = 5},
 		{action = nil, frame = J, tics = 5},
 		{action = nil, frame = I, tics = 5},

@@ -56,15 +56,14 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local health = funcs.getHealth(player)
 
 	local maxhealth = funcs.getMaxHealth(player)
 	local clampMax = maxhealth * 2
 
-	GiveHealthCompat(funcs, player, 100, clampMax)
 	if funcs.onSoulsphere then
 		funcs.onSoulsphere(player)
 	end
+	GiveHealthCompat(funcs, player, 100, clampMax)
 	DOOM_DoMessage(player, "$GOTSUPER")
 end
 

@@ -68,6 +68,7 @@ DefineDoomActor(name, object, states)
 local function stopCharging(mobj)
 	-- TODO: Verify if this is correct!!!
 	mobj.state = S_SEESTATE
+	if not (mobj and mobj.valid) then return end
 	mobj.doom.flags = $ & ~DF_SKULLFLY
 
 	mobj.momx = 0
@@ -120,14 +121,12 @@ local function LostSoul_MobjLineCollide(mo, line)
 end
 
 local function LostSoul_EnemyMobjCollide(thing, tmthing)
-    if not (thing and thing.valid and tmthing and tmthing.valid) then
-        return
-    end
-    
+    if not (thing and thing.valid and tmthing and tmthing.valid) then return end
+
+	if not (tmthing.flags & MF_SOLID) then return end
+
     -- Early return if not charging
-    if not (thing.doom.flags & DF_SKULLFLY) then
-        return
-    end
+    if not (thing.doom.flags & DF_SKULLFLY) then return end
     
     -- Add recursion guard
     if thing.doom._isHandlingCollision then

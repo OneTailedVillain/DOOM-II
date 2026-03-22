@@ -364,7 +364,7 @@ local states = {
 DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_TRE1")
-local name = "BurntTree"
+local name = "TorchTree"
 
 local object = {
 	radius = 16,
@@ -381,7 +381,7 @@ local states = {
 DefineDoomDeco(name, object, states)
 
 SafeFreeSlot("SPR_GOR1")
-local name = "BloodyTwitching"
+local name = "BloodyTwitch"
 
 local object = {
 	radius = 16,
@@ -397,6 +397,19 @@ local states = {
 	{frame = B, tics = 15},
 	{frame = C, tics = 8},
 	{frame = B, tics = 6},
+}
+
+DefineDoomDeco(name, object, states)
+
+local name = "NonsolidTwitch"
+
+local object = {
+	radius = 16,
+	height = 68,
+	doomednum = 49,
+	sprite = SPR_GOR1,
+	bulletheight = 16,
+	flags = MF_SOLID|MF_NOGRAVITY|MF_SPAWNCEILING,
 }
 
 DefineDoomDeco(name, object, states)
@@ -817,6 +830,44 @@ local states = {
     {frame = B|FF_FULLBRIGHT, tics = 6},
     {frame = C|FF_FULLBRIGHT, tics = 6},
     {frame = B|FF_FULLBRIGHT, tics = 6},
+}
+
+DefineDoomDeco(name, object, states)
+
+SafeFreeSlot("SPR_FCAN")
+local name = "FlamingBarrel"
+
+local object = {
+	radius = 16,
+	height = 32,
+	doomednum = 70,
+	sprite = SPR_FCAN,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = 4},
+    {frame = B|FF_FULLBRIGHT, tics = 4},
+    {frame = C|FF_FULLBRIGHT, tics = 4},
+}
+
+DefineDoomDeco(name, object, states)
+
+SafeFreeSlot("SPR_SMBT")
+local name = "ShortBlueTorch"
+
+local object = {
+	radius = 16,
+	height = 32,
+	doomednum = 70,
+	sprite = SPR_SMBT,
+	flags = MF_SOLID
+}
+
+local states = {
+    {frame = A|FF_FULLBRIGHT, tics = 4},
+    {frame = B|FF_FULLBRIGHT, tics = 4},
+    {frame = C|FF_FULLBRIGHT, tics = 4},
 }
 
 DefineDoomDeco(name, object, states)

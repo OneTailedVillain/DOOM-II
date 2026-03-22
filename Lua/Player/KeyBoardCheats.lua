@@ -147,6 +147,7 @@ addHook("KeyDown", function(keyevent)
     if gamestate ~= GS_LEVEL or keyevent.repeated or keyevent.name == "TILDE" then
         return
     end
+	if (gametyperules & GTR_RINGSLINGER) then return end
 
     local keyname = keyevent.name:lower()
     

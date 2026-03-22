@@ -252,20 +252,30 @@ def parse_dehacked_structured(blob: bytes) -> dict:
                     print(f"WARNING: TEXT header with only one number: {s}")
                     continue
                 
-                # Read the concatenated original + new string data
-                if i < len(lines):
-                    # Get the next line which contains the concatenated string data
-                    string_data_line = lines[i]
+                # Read ALL subsequent lines until next section or EOF
+                string_lines = []
+                while i < len(lines):
+                    next_line = lines[i]
+                    next_stripped = next_line.strip()
+                    
+                    # Stop if we hit another section header (bracketed or word+number)
+                    if next_stripped and not next_stripped.startswith('#'):
+                        # Check for next section header
+                        next_m = re.match(r'^\s*([A-Za-z\[\]_]+)\s+(-?\d+)', next_stripped)
+                        if next_m or (next_stripped.startswith('[') and next_stripped.endswith(']')):
+                            break
+                    
+                    string_lines.append(next_line)
                     i += 1
+                
+                # Combine all string lines
+                if string_lines:
+                    string_data = '\n'.join(string_lines).rstrip('\n')
+                    string_data_bytes = string_data.encode('latin-1')
                     
-                    # The string data should be exactly orig_len + new_len characters
-                    # But we need to handle it as bytes, not text
-                    string_data_bytes = string_data_line.encode('latin-1')
-                    
-                    # Ensure we have enough bytes
+                    # Ensure we have enough bytes (pad with spaces if needed)
                     if len(string_data_bytes) < orig_len + new_len:
                         print(f"WARNING: TEXT data too short. Expected {orig_len + new_len} bytes, got {len(string_data_bytes)}")
-                        # Pad with spaces if needed
                         string_data_bytes = string_data_bytes.ljust(orig_len + new_len, b' ')
                     
                     # Split into original and new parts

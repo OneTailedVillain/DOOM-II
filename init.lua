@@ -5,7 +5,16 @@ dofile("Globals.lua")
 dofile("Freeslots.lua")
 dofile("Specials.lua")
 dofile("Colors.lua")
-dofile("CustChar.lua")
+
+
+dofile("CharSupport/base.lua")
+dofile("CharSupport/other.lua")
+dofile("CharSupport/kombifreeman.lua")
+dofile("CharSupport/metalman.lua")
+dofile("CharSupport/sonicdoomtwo.lua")
+
+doom.charSupportFinalize()
+
 dofile("WADString.lua")
 dofile("WADLoad.lua")
 dofile("Functions.lua")
@@ -66,6 +75,7 @@ dofile("Definitions/Objects/Monsters/Arachnotron.lua")
 dofile("Definitions/Objects/Monsters/Revenant.lua")
 dofile("Definitions/Objects/Monsters/Lost Soul.lua")
 dofile("Definitions/Objects/Monsters/Pain Elemental.lua")
+dofile("Definitions/Objects/Monsters/Voodoo Doll.lua")
 dofile("Definitions/Objects/Monsters/PLACEHOLD/Archvile.lua")
 dofile("Definitions/States/Player.lua")
 dofile("Definitions/Objects/MiscDeco.lua")
@@ -73,6 +83,7 @@ dofile("HUD/HUDLib.lua")
 dofile("HUD/HUD.lua")
 dofile("HUD/Inter.lua")
 dofile("HUD/Text Screens.lua")
+dofile("HUD/CSS.lua")
 dofile("HUD/Title.lua")
 dofile("HUD/Cast Drawer.lua")
 dofile("HUD/ENDOOM.lua")
@@ -174,6 +185,11 @@ dofile("Obituaries.lua")
 ---@field momentum vector3_t
 ---@field map integer
 
+---@alias possiblesightmethods
+---| "sight" When the enemy sees you
+---| "closeness" When the player gets too close to an enemy
+---| "sight" When the enemy gets alerted due to sound
+
 ---@class doommethods_t List of Doom-specific methods for handling between different weapon/health/ammo systems.
 ---@field getHealth fun(player: player_t): integer|nil Returns the player's current health as an integer or nil if unavailable
 ---@field setHealth fun(player: player_t, health: integer): boolean Sets the player's health. Returns true if successful.
@@ -210,6 +226,7 @@ dofile("Obituaries.lua")
 ---@field getPowerUpTime? fun(player: player_t, powerType: poweruptype): integer Attempt to get the current time the power-up has remaining. Berserk should return a counter counting *up* from initial pick-up. Will default to getting from player.doom.powers[] if left out.
 ---@field onMessage? fun(player: player_t, text: string): boolean|string|nil Optional. Called before a Doom message is shown to the player and before the text in question gets resolved. Return false (or any falsy value) to cancel the message entirely. Return a string to replace/override the message text. Return nil to allow default handling.
 ---@field afterMessage? fun(player: player_t, resolvedText: string): nil Optional. Called after the message has been resolved and applied to the player. Return value is ignored.
+---@field shouldEnemySight? fun(player: player_t, actor: mobj_t, sightmethod: possiblesightmethods): boolean? Optional. Called whenever an enemy sights the player. Return value determines if the enemy will see you or not (true to deny, false/nil to allow)
 
 ---@class validsoundentries Non-class
 ---@field noway integer Sound played when you try to interact with a non-interactible line
@@ -247,6 +264,15 @@ dofile("Obituaries.lua")
 ---@field ignoreSameType boolean whether to ignore same-type attacks by default
 ---@field noRetaliateAgainst table<number, boolean> monster types that should not be retaliated against
 ---@field noExplosionDamage table<number, boolean> monster types that are immune to explosion damage
+
+---@class doomhook_t
+---@field func fun(target: mobj_t, ...): boolean|nil The hook function
+---@field type mobjtype_t The object type filter (MT_NULL for all types)
+
+---@class doomhookresolver_t
+---@field init fun(): any Initializes resolver state
+---@field step fun(state: any, result: any): any, boolean Updates state and optionally stops iteration
+---@field finish fun(state: any): any Finalizes and returns result
 
 ---@class doomglobal_t Global Doom-specific variables and functions
 ---@field isdoom1 boolean Denotes if the IWAD loaded was based on the Doom 1 engine
@@ -342,6 +368,12 @@ dofile("Obituaries.lua")
 ---@field doObituary fun(target: mobj_t, source: mobj_t|nil, inflictor: mobj_t|nil, dtype: integer): nil Function to handle obituaries
 ---@field obitStrings table<string, table> Table of obituary strings, where "doom.obitStringsp[gametype]" gets the strings for the current game type
 ---@field loadStrings fun(gametype: string): nil Function to load the doom.strings table for the given game type
+---@field hooks table<string, table<integer, doomhook_t>> Registered hook lists indexed by hook name
+---@field hookTypes table<string, integer> Hook resolver type enum.
+---@field hookResolvers table<integer, doomhookresolver_t> Resolver implementations indexed by hook type
+---@field addHook fun(name: string, func: fun(...): boolean|nil, objecttype: mobjtype_t?): nil Registers a hook function for a given hook name and optional object type filter
+---@field callHook fun(name: string, returnmode: integer, target: mobj_t, ...): any Calls all hooks for a given name using the specified resolver mode and returns the resolved value
+---@field charSupportBaseMethods doommethods_t A table of base character methods. Used for John Doom.
 
 ---@class doomspread_t
 ---@field horiz fixed_t

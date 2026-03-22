@@ -62,56 +62,49 @@ local FASTDARK = 15
 local SLOWDARK = 35
 
 local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
-	local flash = {
-		type = "strobe",
-		sector = sector,
-		darktime = fastOrSlow,
-		brighttime = STROBEBRIGHT,
-		maxlight = sector.lightlevel,
-		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-		count = 0
-	}
-	
-	-- Adjust minlight if necessary
-	if (flash.minlight == flash.maxlight) then
-		flash.minlight = 0
-	end
-	
-	-- Set initial count based on sync
-	if (not inSync) then
-		flash.count = (DOOM_Random() & 7) + 1
-	else
-		flash.count = 1
-	end
-	
-	-- Add to thinker system
-	doom.subthinkers[sector] = flash
+
+    local flash = {
+        type = "strobe",
+        darktime = fastOrSlow,
+        brighttime = STROBEBRIGHT,
+        maxlight = sector.lightlevel,
+        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+        count = 0
+    }
+
+    if flash.minlight == flash.maxlight then
+        flash.minlight = 0
+    end
+
+    flash.count = inSync and 1 or ((DOOM_Random() & 7) + 1)
+
+    DOOM_AddThinker(sector, flash)
 end
 
 local function P_SpawnGlowingLight(sector)
-	local glow = {
-		type = "glow",
-		sector = sector,
-		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-		maxlight = sector.lightlevel,
-		direction = -1
-	}
 
-	doom.subthinkers[sector] = glow
+    local glow = {
+        type = "glow",
+        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+        maxlight = sector.lightlevel,
+        direction = -1
+    }
+
+    DOOM_AddThinker(sector, glow)
 end
 
 local function P_SpawnLightFlash(sector)
-	local flash = {
-		type = "flash",
-		sector = sector,
-		maxlight = sector.lightlevel,
-		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-		maxtime = 64,
-		mintime = 7,
-		count   = (DOOM_Random() & 64) + 1,
-	}
 
-	doom.subthinkers[sector] = flash
+    local flash = {
+        type = "flash",
+        maxlight = sector.lightlevel,
+        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+        maxtime = 64,
+        mintime = 7,
+        count   = (DOOM_Random() & 64) + 1,
+    }
+
+    DOOM_AddThinker(sector, flash)
 end
 
 local function SkillMaskFor(skill)
@@ -264,6 +257,18 @@ addHook("MapLoad", function(mapid)
 			end
 		end
 
+		local override = doom.callHook(
+			"MapThingSpawn",
+			doom.hookTypes.lastfunc,
+			mthing
+		)
+
+		if override == false then
+			continue -- block spawn completely
+		elseif override != nil then
+			mthing.type = override -- override doomednum
+		end
+
 		if doom.mthingReplacements[mthing.type] then
 			if not (gametyperules & GTR_SPAWNENEMIES) then
 				local objinfo = mobjinfo[doom.mthingReplacements[mthing.type]]
@@ -295,6 +300,7 @@ addHook("MapLoad", function(mapid)
 			table.insert(doom.spawnpoints.player[mthing.type], {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,
+				z = P_FloorzAtPos(x, y, 0, 0),
 				angle = FixedAngle(mthing.angle * FRACUNIT),
 				mthing = mthing
 			})
@@ -303,6 +309,7 @@ addHook("MapLoad", function(mapid)
 			table.insert(doom.spawnpoints.deathmatch, {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,
+				z = P_FloorzAtPos(x, y, 0, 0),
 				angle = FixedAngle(mthing.angle * FRACUNIT),
 				mthing = mthing
 			})
@@ -325,6 +332,39 @@ addHook("MapLoad", function(mapid)
 			player.doom.keys = UINT32_MAX
 		else
 			player.doom.keys = 0
+		end
+
+		local function getPlayerSpawn(preferred)
+			for i = 0, 3 do
+				local slot = ((preferred - 1 + i) % 4) + 1
+				local list = doom.spawnpoints.player[slot]
+
+				if list and list[1] then
+					return list[1]
+				end
+			end
+		end
+
+		if (gametyperules & GTR_RINGSLINGER) then
+			local matchspawncount = #doom.spawnpoints.deathmatch
+			if matchspawncount > 0 then
+				local pspawn_index = P_RandomKey(matchspawncount) + 1
+				local pspawn = doom.spawnpoints.deathmatch[pspawn_index]
+
+				P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+				player.mo.angle = pspawn.angle
+				player.drawangle = pspawn.angle
+			end
+		else
+			local pnum = #player
+			local preferred = (pnum % 4) + 1
+			local pspawn = getPlayerSpawn(preferred)
+
+			if pspawn then
+				P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+				player.mo.angle = pspawn.angle
+				player.drawangle = pspawn.angle
+			end
 		end
 	end
 end)
@@ -491,14 +531,6 @@ local function BuildStairs(startsec, stairsize, speed)
 	local visited = {}
 	visited[startsec] = true
 
-	local newt = {
-		type = "floor",
-		speed = speed,
-		target = startsec.floorheight + stairsize,
-		-- any stair-only fields you want
-	}
-	doom.thinkers[startsec] = newt
-
 	local created = 0
 	local created_list = {}
 
@@ -507,8 +539,7 @@ local function BuildStairs(startsec, stairsize, speed)
 	local MAX_ENQUEUED = 20000 -- safety cap (tweak or remove if you want)
 	while head <= tail do
 		if (tail - head) > MAX_ENQUEUED then
-			-- safety bail-out to avoid pathological levels
-			break
+			break -- safety bail-out
 		end
 
 		local entry = queue[head]; head = head + 1
@@ -516,51 +547,38 @@ local function BuildStairs(startsec, stairsize, speed)
 		local step = entry.step
 		local dest = base_height + (step * stairsize)
 
-		-- If sector already has a thinker, skip creating another; DOOM_AddThinker also checks this,
-		-- but avoiding unnecessary template allocs is nice.
-		if not doom.thinkers[sec] then
-			-- prepare a template for the floor thinker; DOOM_AddThinker will deepcopy it
-			local floorTemplate = {
-				type = "floor",	-- your code expects data.type == "floor"
-				speed = speed,
-				target = dest,	 -- your floor thinker reads `data.target`
-				-- you can add any other default fields your thinker needs
-			}
-			DOOM_AddThinker(sec, floorTemplate)
-			created = created + 1
-			created_list[#created_list + 1] = sec
-		end
+		-- create floor thinker for this sector
+		local floorTemplate = {
+			type = "floor",   -- thinker type
+			speed = speed,
+			target = dest,    -- final floor height
+			action = "raise", -- default action
+		}
 
-		-- iterate lines on this sector and enqueue valid backsides
+		-- DOOM_AddThinker allows multiple thinkers, no need for doom.thinkers[sec]
+		DOOM_AddThinker(sec, floorTemplate)
+		created = created + 1
+		created_list[#created_list + 1] = sec
+
+		-- enqueue neighbor sectors to form stairs
 		for i = 0, #sec.lines - 1 do
 			local line = sec.lines[i]
-			-- skip one-sided lines
-			if (line.flags & ML_TWOSIDED) == 0 then
-				continue
-			end
 
-			-- DOOM-style orientation check: current sector must be the frontsector
-			if line.frontsector ~= sec then
-				continue
-			end
+			-- skip one-sided lines
+			if (line.flags & ML_TWOSIDED) == 0 then continue end
+
+			-- must be frontsector
+			if line.frontsector ~= sec then continue end
 
 			local backsec = line.backsector
-			-- require same floor texture (as in DOOM)
-			if backsec.floorpic ~= sec.floorpic then
-				continue
-			end
 
-			-- skip if already moving / has thinker
-			if doom.thinkers[backsec] then
-				continue
-			end
+			-- require same floor texture
+			if backsec.floorpic ~= sec.floorpic then continue end
 
-			-- skip if we've already enqueued it
-			if visited[backsec] then
-				continue
-			end
+			-- skip if already enqueued
+			if visited[backsec] then continue end
 
-			-- enqueue neighbor with step+1
+			-- enqueue neighbor
 			tail = tail + 1
 			queue[tail] = { sec = backsec, step = step + 1 }
 			visited[backsec] = true
@@ -588,6 +606,130 @@ local function FindNextHighestFromBackups(sec, curHeight)
     end
 
     return best
+end
+
+/*
+//
+// PIT_ChangeSector
+//
+boolean PIT_ChangeSector (mobj_t*	thing)
+{
+    mobj_t*	mo;
+	
+    if (P_ThingHeightClip (thing))
+    {
+	// keep checking
+	return true;
+    }
+    
+
+    // crunch bodies to giblets
+    if (thing->health <= 0)
+    {
+	P_SetMobjState (thing, S_GIBS);
+
+	thing->flags &= ~MF_SOLID;
+	thing->height = 0;
+	thing->radius = 0;
+
+	// keep checking
+	return true;		
+    }
+
+    // crunch dropped items
+    if (thing->flags & MF_DROPPED)
+    {
+	P_RemoveMobj (thing);
+	
+	// keep checking
+	return true;		
+    }
+
+    if (! (thing->flags & MF_SHOOTABLE) )
+    {
+	// assume it is bloody gibs or something
+	return true;			
+    }
+    
+    nofit = true;
+
+    if (crushchange && !(leveltime&3) )
+    {
+	P_DamageMobj(thing,NULL,NULL,10);
+
+	// spray blood in a random direction
+	mo = P_SpawnMobj (thing->x,
+			  thing->y,
+			  thing->z + thing->height/2, MT_BLOOD);
+	
+	mo->momx = (P_Random() - P_Random ())<<12;
+	mo->momy = (P_Random() - P_Random ())<<12;
+    }
+
+    // keep checking (crush other things)	
+    return true;	
+}
+*/
+
+local function P_ThingHeightClipCheck(thing)
+	if thing.ceilingz - thing.floorz < thing.height then
+		return false
+	end
+
+	return true
+end
+
+local function P_SetMobjState(thing, state)
+	thing.state = state
+end
+
+local function PIT_ChangeSector(thing, crushchange)
+	local mo
+
+	if P_ThingHeightClipCheck(thing) then
+		// keep checking
+		return true
+	end
+
+	// crunch bodies to giblets
+	if thing.health <= 0 then
+		P_SetMobjState(thing, S_DOOM_CRUSHGIBS_1)
+	
+		thing.flags = $ & ~MF_SOLID
+		thing.height = 0
+		thing.radius = 0
+
+		// keep checking
+		return true
+	end
+
+	// crunch dropped items
+	if (thing.doom.flags & DF_DROPPED) then
+		P_RemoveMobj(thing)
+	
+		// keep checking
+		return true
+	end
+
+	if not (thing.flags & MF_SHOOTABLE) then
+		// assume it is bloody gibs or something
+		return true
+	end
+
+	if crushchange and not (leveltime&3) then
+		DOOM_DamageMobj(thing, nil, nil, 10)
+
+		// spray blood in a random direction
+		mo = P_SpawnMobj(thing.x,
+				thing.y,
+				thing.z + thing.height/2, MT_DOOM_BLOOD)
+
+		mo.momx = (DOOM_Random() - DOOM_Random()) << 12
+		mo.momy = (DOOM_Random() - DOOM_Random()) << 12
+	end
+
+	// keep checking (crush other things)
+	return true
 end
 
 local thinkers = {
@@ -817,64 +959,51 @@ local thinkers = {
 			end
 		end
 
-		-- TODO: USE sectorHasUnfittableObject() INSTEAD!!
-		if not (leveltime % 4) then
+		local function calculateBounds(sector)
 			local lowestX = INT32_MAX
 			local highestX = INT32_MIN
 			local lowestY = INT32_MAX
 			local highestY = INT32_MIN
+
 			for linenum = 0, #sector.lines - 1 do
 				local line = sector.lines[linenum]
 				for i = 1, 2 do
 					local xPos = line["v" .. i].x
 					local yPos = line["v" .. i].y
-					if xPos < lowestX then
-						lowestX = xPos
-					end
-					if xPos > highestX then
-						highestX = xPos
-					end
-					if yPos < lowestY then
-						lowestY = yPos
-					end
-					if yPos > highestY then
-						highestY = yPos
-					end
+
+					if xPos < lowestX then lowestX = xPos end
+					if xPos > highestX then highestX = xPos end
+					if yPos < lowestY then lowestY = yPos end
+					if yPos > highestY then highestY = yPos end
 				end
 			end
 
-			-- Helper: check if point is inside bounding box
-			local function insideBounds(mobj, minx, maxx, miny, maxy)
-				if not mobj or not mobj.valid then return false end
+			return lowestX, highestX, lowestY, highestY
+		end
 
-				local r = mobj.radius or 0
+		-- Helper: check if point is inside bounding box
+		local function insideBounds(mobj, minx, maxx, miny, maxy)
+			if not mobj or not mobj.valid then return false end
 
-				if (mobj.x + r) < minx then return false end
-				if (mobj.x - r) > maxx then return false end
+			local r = mobj.radius or 0
 
-				if (mobj.y + r) < miny then return false end
-				if (mobj.y - r) > maxy then return false end
+			if (mobj.x + r) < minx then return false end
+			if (mobj.x - r) > maxx then return false end
 
-				return true
-			end
+			if (mobj.y + r) < miny then return false end
+			if (mobj.y - r) > maxy then return false end
 
-			-- Iterate all mobjs and only act on those inside the calculated rectangle.
-			-- This avoids relying on searchBlockmap's refmobj behavior.
-			for mobj in mobjs.iterate() do
-				if not mobj or not mobj.valid then
-					continue
-				else
-					if insideBounds(mobj, lowestX, highestX, lowestY, highestY) then
-						if (mobj.flags & MF_NOCLIP) or (mobj.flags & MF_NOCLIPHEIGHT) then continue end
-						if not (mobj.flags & MF_SHOOTABLE) then continue end
-						local space = abs(mobj.floorz - mobj.ceilingz)
-						-- if object fits, ignore; otherwise crush
-						if (mobj.doom and mobj.doom.height) and mobj.doom.height >= space then
-							data.caughtObject = true
-							DOOM_DamageMobj(mobj, nil, nil, 10)
-						end
-					end
-				end
+			return true
+		end
+
+		-- Iterate all mobjs and only act on those inside the calculated rectangle.
+		-- This avoids relying on searchBlockmap's refmobj behavior.
+		local lowestX, highestX, lowestY, highestY = calculateBounds(sector)
+
+		-- Iterate all mobjs and act on those inside the calculated rectangle
+		for mobj in mobjs.iterate() do
+			if mobj and mobj.valid and insideBounds(mobj, lowestX, highestX, lowestY, highestY) then
+				PIT_ChangeSector(mobj, true)
 			end
 		end
 
@@ -972,9 +1101,16 @@ local thinkers = {
 	end,
 
 	stair = function(sector, data)
+		if data.started then
+			return
+		end
+		data.started = true
+
 		local stepSize = data.amount * FRACUNIT
 		local speed = data.speed == "fast" and FRACUNIT*4 or FRACUNIT/4
 		BuildStairs(sector, stepSize, speed)
+
+		DOOM_StopThinker(sector)
 	end,
 	
 	floor = function(sector, data)
@@ -1303,31 +1439,35 @@ local function thinkFrameIterator(any, data, thinkertable)
 		fn(any, data)
 end
 
+-- compact_thinkerlist: just compacts the numeric list (no single-map; multiple per userdata allowed)
 local function compact_thinkerlist()
-	local newlist = {}
-	local newmap = {}
-	local n = 0
-	for i = 1, #doom.thinkerlist do
-		local entry = doom.thinkerlist[i]
-		if entry and entry.active and entry.key and entry.data then
-			n = n + 1
-			newlist[n] = entry
-			newmap[entry.key] = n
-		end
-	end
-	doom.thinkerlist = newlist
-	doom.thinkermap  = newmap
+    local newlist = {}
+    local n = 0
+    for i = 1, #doom.thinkerlist do
+        local entry = doom.thinkerlist[i]
+        if entry and entry.active and entry.userdata and entry.data then
+            n = n + 1
+            newlist[n] = entry
+        end
+    end
+    doom.thinkerlist = newlist
 end
 
+-- ThinkFrame: iterate entries, set current entry so DOOM_StopThinker(sector) inside a thinker
+-- stops the current entry only (rather than all entries for that userdata).
 addHook("ThinkFrame", function()
-	for i = 1, #doom.thinkerlist do
-		local entry = doom.thinkerlist[i]
-		if entry and entry.active and entry.key and entry.data then
-			thinkFrameIterator(entry.key, entry.data, "thinkers")
-		end
-	end
+    for i = 1, #doom.thinkerlist do
+        local entry = doom.thinkerlist[i]
+        if entry and entry.active and entry.userdata and entry.data then
+            -- set current thinker context so DOOM_StopThinker(userdata) can infer the right entry
+            doom._current_thinker_entry = entry
+            -- call the existing iterator (unchanged)
+            thinkFrameIterator(entry.userdata, entry.data, "thinkers")
+            doom._current_thinker_entry = nil
+        end
+    end
 
-	compact_thinkerlist()
+    compact_thinkerlist()
 end)
 
 addHook("ThinkFrame", function()
@@ -1372,6 +1512,26 @@ addHook("MobjSpawn", function(mobj)
 		mobj.doom.flags = mobj.info.doomflags or 0
 		if MFE_DOOMENEMY then
 			mobj.eflags = $ | MFE_DOOMENEMY
+		end
+
+		-- Handle skin color flags for translation
+		local flags = mobj.doom.flags
+		local color_flags = flags & (DF_SKINCOLOR1|DF_SKINCOLOR2)
+		if color_flags ~= 0 then
+			-- Determine which color combination
+			local color_num
+			if color_flags == (DF_SKINCOLOR1|DF_SKINCOLOR2) then
+				color_num = 3  -- Both flags set
+			elseif color_flags == DF_SKINCOLOR1 then
+				color_num = 1  -- Only first flag
+			elseif color_flags == DF_SKINCOLOR2 then
+				color_num = 2  -- Only second flag
+			end
+			
+			if color_num then
+				-- Convert to MPCOLOR# (like "MPCOLOR1", "MPCOLOR2", etc.)
+				mobj.translation = "MPCOLOR"..color_num
+			end
 		end
 	end
 	mobj.doom.height = mobj.info.height

@@ -311,12 +311,86 @@ local function printTable(data, prefix)
 	end
 end
 
+local function applyDehackedStrings()
+	if not (doom and doom.dehacked and doom.strings) then
+		print("ERROR: doom, doom.dehacked, or doom.strings is missing!")
+		return
+	end
+
+	print("Applying DEHACKED strings...")
+
+	local dehEntries = doom.dehacked.text.entries
+	doom.dehacked.strings = doom.dehacked.strings or {}
+
+	-- lookup: original string -> entry
+	local lookup = {}
+
+	-- track whether an entry was successfully applied
+	local applied = {}
+
+	for i, entry in pairs(dehEntries) do
+		if entry.original and entry.new then
+
+			-- NOTICE: original length mismatch
+			if entry.original_length and #entry.original ~= entry.original_length then
+				print(
+					"NOTICE: Entry "..tostring(i)..
+					" original_length mismatch (expected "..entry.original_length..
+					", got "..#entry.original..")"
+				)
+			end
+
+			-- NOTICE: new length mismatch
+			if entry.new_length and #entry.new ~= entry.new_length then
+				print(
+					"NOTICE: Entry "..tostring(i)..
+					" new_length mismatch (expected "..entry.new_length..
+					", got "..#entry.new..")"
+				)
+			end
+
+			lookup[entry.original] = entry
+			applied[entry.original] = false
+		end
+	end
+
+	-- Apply patches
+	for key, str in pairs(doom.strings) do
+		local entry = lookup[str]
+
+		if entry then
+			doom.dehacked.strings[key] = entry.new
+			applied[str] = true
+
+			print(
+				"Updated string key '"..
+				tostring(key).."': '"..
+				str.."' -> '"..
+				entry.new.."'"
+			)
+		end
+	end
+
+	-- Warn only for entries that failed to apply
+	for original, wasApplied in pairs(applied) do
+		if not wasApplied then
+			print(
+				"WARNING: DEHACKED entry could not be applied (string not found): '"..
+				original.."'"
+			)
+		end
+	end
+
+	print("DEHACKED string application complete.")
+end
+
 -- "This sink is so hard to clean, if only there was an easier way!"
 local function doDehacked()
 	if doom and doom.dehacked then
 		print("applying DEHACKED fields...")
 		local deh = doom.dehacked
 		local pointers = doom.dehackedpointers
+		applyDehackedStrings()
 		if deh.ammo then
 			local map = {
 				[0] = "bullets",
@@ -347,6 +421,7 @@ local function doDehacked()
 				local mobjtype = pointers.things[number]
 				if mobjtype != nil and mobjinfo[mobjtype] then
 					local info = mobjinfo[mobjtype]
+					print("Applying DEHACKED to '" .. tostring(info.doomname) .. "' (Pointer # " .. tostring(number) .. ")...")
 					if data.bits then
 						info.flags = getMFFlagsForNumber(data.bits)
 						info.doomflags = getDFFlagsForNumber(data.bits)
@@ -355,22 +430,148 @@ local function doDehacked()
 							print("WARNING: DEHACKED THING # " .. tostring(number) .. " HAS BITS CORRESPONDING TO MF2 FLAGS!")
 						end
 					end
-					printTable(data)
 					info.doomednum = data["id #"] or info.doomednum
-					if info.doomednum <= 32 then
+					if info.doomednum <= 35 then
 						doom.mthingReplacements[info.doomednum] = pointers.things[number]
 					end
-					info.spawnstate = pointers.frames[data.initialframe] or info.spawnstate
-					info.deathstate = pointers.frames[data.deathframe] or info.deathstate
-					info.seestate = pointers.frames[data.firstmovingframe] or info.seestate
+					
+					-- Spawn state
+					if data.initialframe != nil then
+						local spawnState = pointers.frames[data.initialframe]
+						print("Spawn frame pointer for this actor is now " .. data.initialframe)
+						if spawnState != nil then
+							info.spawnstate = spawnState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid spawn state frame #" .. tostring(data.initialframe))
+						end
+					end
+					
+					-- Death state
+					if data.deathframe != nil then
+						local deathState = pointers.frames[data.deathframe]
+						print("Death frame pointer for this actor is now " .. data.deathframe)
+						if deathState != nil then
+							info.deathstate = deathState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid death state frame #" .. tostring(data.deathframe))
+						end
+					end
+					
+					-- See state (first moving frame)
+					if data.firstmovingframe != nil then
+						local seeState = pointers.frames[data.firstmovingframe]
+						print("See frame pointer for this actor is now " .. data.firstmovingframe)
+						if seeState != nil then
+							info.seestate = seeState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid see state frame #" .. tostring(data.firstmovingframe))
+						end
+					end
+
+					-- Pain state and pain chance
+					if data.painframe != nil then
+						local painState = pointers.frames[data.painframe]
+						print("Pain frame pointer for this actor is now " .. data.painframe)
+						if painState != nil then
+							info.painstate = painState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid pain state frame #" .. tostring(data.painframe))
+						end
+					end
+
+					if data.painchance != nil then
+						info.painchance = data.painchance
+					end
+
+					-- Respawn frame (raisestate)
+					if data.respawnframe != nil then
+						local raiseState = pointers.frames[data.respawnframe]
+						print("Raise frame pointer for this actor is now " .. data.respawnframe)
+						if raiseState != nil then
+							info.raisestate = raiseState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid respawn frame #" .. tostring(data.respawnframe))
+						end
+					end
+
+					-- Melee attack state
+					if data.closeattackframe != nil then
+						local meleeState = pointers.frames[data.closeattackframe]
+						print("Melee frame pointer for this actor is now " .. data.closeattackframe)
+						if meleeState != nil then
+							info.meleestate = meleeState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid melee attack frame #" .. tostring(data.closeattackframe))
+						end
+					end
+
+					-- Ranged attack state
+					if data.farattackframe != nil then
+						local missileState = pointers.frames[data.farattackframe]
+						print("Missile frame pointer for this actor is now " .. data.farattackframe)
+						if missileState != nil then
+							info.missilestate = missileState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid ranged attack frame #" .. tostring(data.farattackframe))
+						end
+					end
+
+					-- Pain sound
+					if data.painsound != nil then
+						local painSound = pointers.sounds[data.painsound]
+						if painSound != nil then
+							info.painsound = painSound
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid pain sound #" .. tostring(data.painsound))
+						end
+					end
+
+					if data.alertsound != nil then
+						local seeSound = pointers.sounds[data.alertsound]
+						if seeSound != nil then
+							info.seesound = seeSound
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid alert sound #" .. tostring(data.alertsound))
+						end
+					end
+					
+					if data.actionsound != nil then
+						local activeSound = pointers.sounds[data.actionsound]
+						if activeSound != nil then
+							info.activesound = activeSound
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid action sound #" .. tostring(data.actionsound))
+						end
+					end
+					
+					if data.deathsound != nil then
+						local activeSound = pointers.sounds[data.deathsound]
+						if activeSound != nil then
+							info.deathsound = activeSound
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid death sound #" .. tostring(data.deathsound))
+						end
+					end
+					
+					-- Basic properties
 					info.spawnhealth = data.hitpoints or info.spawnhealth
 					info.speed = (data.speed and data.speed * FRACUNIT) or info.speed
 					info.radius = data.width or info.radius
 					info.height = data.height or info.height
 					info.mass = data.mass or info.mass
-					info.seesound = pointers.frames[data.alertsound] or info.seesound
-					info.activesound = pointers.frames[data.actionsound] or info.activesound
-					print("Set custom object with doomednum " .. info.doomednum .. "'s hitpoints to " .. tostring(info.spawnhealth))
+					
+					print("Done.")
 				else
 					if mobjtype == nil then
 						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
@@ -387,23 +588,38 @@ local function doDehacked()
 				else
 					if pointers.frames[number] then
 						local frame = states[pointers.frames[number]]
-						local sprite = pointers.sprites[(data.spritenumber or 0) + 1]
+						
+						-- Sprite handling
 						if data.spritenumber != nil then
+							local sprite = pointers.sprites[(data.spritenumber or 0) + 1]
 							if sprite == nil then
-								print("WARNING: SPRITE # " .. tostring(data.spritenumber) .. " HAS NOT BEEN FREESLOTTED YET!")
+								print("WARNING: FRAME #" .. tostring(number) .. 
+									" (state index " .. tostring(pointers.frames[number]) .. 
+									") has invalid sprite #" .. tostring(data.spritenumber) ..
+									" which has not been freeslotted yet!")
 							else
 								frame.sprite = sprite
 							end
 						end
 						
+						-- Frame properties
 						if data.spritesubnumber != nil then
 							frame.frame = data.spritesubnumber
 						end
 						if data.duration != nil then
 							frame.tics = data.duration
 						end
-						if pointers.frames[data.nextframe] != nil then
-							frame.nextstate = pointers.frames[data.nextframe]
+						
+						-- Next frame handling
+						if data.nextframe != nil then
+							local nextState = pointers.frames[data.nextframe]
+							if nextState != nil then
+								frame.nextstate = nextState
+							else
+								print("WARNING: FRAME #" .. tostring(number) .. 
+									" (state index " .. tostring(pointers.frames[number]) .. 
+									") has invalid next frame #" .. tostring(data.nextframe))
+							end
 						end
 					else
 						print("NOTICE: DEHACKED FRAME # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
@@ -415,11 +631,13 @@ local function doDehacked()
 			for number, data in pairs(deh.pointers) do
 				-- Source frame (where the action comes from)
 				local srcFrameIndex = pointers.frames[data.codepframe]
+				print("Frame pointer " .. tostring(number) .. " calls for action from frame pointer # " .. tostring(data.codepframe))
 				if srcFrameIndex == nil then
 					if data.codepframe == nil then
 						print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " has no codepframe defined!")
 					else
-						print("WARNING: DEHACKED Pointer source frame # " .. tostring(data.codepframe) .. " doesn't exist!")
+						print("WARNING: DEHACKED Pointer source frame # " .. tostring(data.codepframe) ..
+							  " doesn't exist! (Attempted by pointer # " .. tostring(number) .. ")")
 					end
 					continue
 				end
@@ -427,7 +645,7 @@ local function doDehacked()
 				local srcState = states[srcFrameIndex]
 				if not srcState or not srcState.action then
 					print("WARNING: DEHACKED Pointer # " .. tostring(number) ..
-						  " is copying from a frame with no action!")
+						  " is copying from a frame with no action! (Attempting to pull from frame pointer # " .. tostring(data.codepframe) .. ")")
 				end
 
 				-- Case 1: normal frame target
@@ -447,14 +665,16 @@ local function doDehacked()
 				if wepPath then
 					local weapon = doom.weapons[wepPath[1]]
 					if not weapon then
-						print("WARNING: INVALID WEAPON NAME '" .. tostring(wepPath[1]) .. "'!")
+						print("WARNING: INVALID WEAPON NAME '" .. tostring(wepPath[1]) ..
+							  "'! (Attempted by pointer # " .. tostring(number) .. ")")
 						continue
 					end
 
 					local wepStates = weapon.states[wepPath[2]]
 					if not wepStates then
 						print("WARNING: INVALID WEAPON STATE '" .. tostring(wepPath[2]) ..
-							  "' FOR WEAPON '" .. tostring(wepPath[1]) .. "'!")
+							  "' FOR WEAPON '" .. tostring(wepPath[1]) ..
+							  "'! (Attempted by pointer # " .. tostring(number) .. ")")
 						continue
 					end
 
@@ -462,7 +682,8 @@ local function doDehacked()
 					if not wepState then
 						print("WARNING: INVALID WEAPON FRAME '" .. tostring(wepPath[3]) ..
 							  "' FOR STATE '" .. tostring(wepPath[2]) ..
-							  "' FOR WEAPON '" .. tostring(wepPath[1]) .. "'!")
+							  "' FOR WEAPON '" .. tostring(wepPath[1]) ..
+							  "'! (Attempted by pointer # " .. tostring(number) .. ")")
 						continue
 					end
 
@@ -485,10 +706,6 @@ local function doLoadingShit()
 
 	if HL then
 		HL.disableTitleScreen = true
-	end
-
-	if doom.isdoom1 then
-		doom.titlemenus.menu.entries[1].goto = "episelect"
 	end
 
 	local currentHash = hashEndoom(doom.endoom.text or {})
@@ -599,17 +816,15 @@ local function doLoadingShit()
 		-- Chex Quest (hopefully counts for Chex Quest 2 aswell)
 		doom.gamemode = "registered"
 
-		print("Loaded Chex Quest!")
-
 		-- Load Chex Quest strings
 		doom.loadStrings("chex")
 		
 		doom.textscreenmaps = {[5] = {text = "$CHEXWIN", secret = false, bg = "EP1CUTSC"}}
-		doom.titlemenus.menu.entries[1].goto = "newgame"
 		doom.dropTable = {}
 		doom.lastmap = 5
 	end
-	print("Matched game ID:" .. tostring(matchedGame), currentHash, EndoomRegistry.chex1)
+
+	doom.matchedGame = matchedGame or $
 end
 
 local function aaa()

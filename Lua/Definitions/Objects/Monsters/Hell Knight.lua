@@ -57,17 +57,70 @@ local states = {
 		{action = A_DoomPain, frame = H, tics = 2, next = "chase"},
 	},
 	die = {
-		{action = nil, frame = I, tics = 5},
-		{action = A_DoomScream, frame = J, tics = 5},
-		{action = nil, frame = K, tics = 5},
-		{action = A_DoomFall, frame = L, tics = 5},
-		{action = nil, frame = M, tics = 5},
-		{action = nil, frame = N, tics = 5},
-		{action = A_DoomBossDeath, frame = O, tics = -1},
+		{action = nil, frame = I, tics = 8},
+		{action = A_DoomScream, frame = J, tics = 8},
+		{action = nil, frame = K, tics = 8},
+		{action = A_DoomFall, frame = L, tics = 8},
+		{action = nil, frame = M, tics = 8},
+		{action = nil, frame = N, tics = 8},
+		{action = nil, frame = O, tics = -1},
 	},
+	raise = {
+		{action = nil, frame = O, tics = 8},
+		{action = nil, frame = N, tics = 8},
+		{action = nil, frame = M, tics = 8},
+		{action = nil, frame = L, tics = 8},
+		{action = nil, frame = K, tics = 8},
+		{action = nil, frame = J, tics = 8},
+		{action = nil, frame = I, tics = 8, next = "chase"},
+	}
 }
 
 DefineDoomActor(name, object, states)
+
+local states = {
+	stand = {
+		{action = A_DoomLook, frame = A, tics = 10},
+		{action = A_DoomLook, frame = B, tics = 10, next = "stand"}
+	},
+	chase = {
+		{action = A_DoomChase, frame = A, tics = 3},
+		{action = A_DoomChase, frame = A, tics = 3},
+		{action = A_DoomChase, frame = B, tics = 3},
+		{action = A_DoomChase, frame = B, tics = 3},
+		{action = A_DoomChase, frame = C, tics = 3},
+		{action = A_DoomChase, frame = C, tics = 3},
+		{action = A_DoomChase, frame = D, tics = 3},
+		{action = A_DoomChase, frame = D, tics = 3, next = "chase"},
+	},
+	attack = {
+		{action = A_DoomFaceTarget, frame = E, tics = 8},
+		{action = A_DoomFaceTarget, frame = F, tics = 8},
+		{action = A_DoomTroopAttack, frame = G, tics = 8, var1 = 0, var2 = 1, next = "chase"},
+	},
+	pain = {
+		{action = nil,        frame = H, tics = 2},
+		{action = A_DoomPain, frame = H, tics = 2, next = "chase"},
+	},
+	die = {
+		{action = nil, frame = I, tics = 8},
+		{action = A_DoomScream, frame = J, tics = 8},
+		{action = nil, frame = K, tics = 8},
+		{action = A_DoomFall, frame = L, tics = 8},
+		{action = nil, frame = M, tics = 8},
+		{action = nil, frame = N, tics = 8},
+		{action = A_DoomBossDeath, frame = O, tics = -1},
+	},
+	raise = {
+		{action = nil, frame = O, tics = 8},
+		{action = nil, frame = N, tics = 8},
+		{action = nil, frame = M, tics = 8},
+		{action = nil, frame = L, tics = 8},
+		{action = nil, frame = K, tics = 8},
+		{action = nil, frame = J, tics = 8},
+		{action = nil, frame = I, tics = 8, next = "chase"},
+	}
+}
 
 SafeFreeSlot("SPR_BOSS", "sfx_brssit", "sfx_brsdth")
 local name = "BaronOfHell"

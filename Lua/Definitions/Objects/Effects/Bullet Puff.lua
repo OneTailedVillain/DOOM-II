@@ -1,6 +1,7 @@
 SafeFreeSlot(
     "SPR_PUFF", "SPR_BLUD",
-    "MT_DOOM_BULLETPUFF"
+    "MT_DOOM_BULLETPUFF",
+	"MT_DOOM_BLOOD"
 )
 
 ---@type StateDefs
@@ -26,5 +27,12 @@ mobjinfo[MT_DOOM_BULLETPUFF] = {
     spawnstate = S_DOOM_BPUFF_PUFF1,
     radius = 1*FRACUNIT,
     height = 1*FRACUNIT,
-    flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP|MF_NOCLIP,
+    flags = MF_SCENERY|MF_NOGRAVITY|MF_NOBLOCKMAP,
+}
+
+mobjinfo[MT_DOOM_BLOOD] = {
+    spawnstate = S_DOOM_BPUFF_BLOOD1,
+    radius = 1*FRACUNIT,
+    height = 1*FRACUNIT,
+    flags = MF_SCENERY|MF_NOBLOCKMAP,
 }

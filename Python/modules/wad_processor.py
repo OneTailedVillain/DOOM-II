@@ -815,7 +815,7 @@ def create_translate_lump_simple_identity(num_rows=34):
 	translate_text = "\n".join(translate_lines)
 	return Lump(translate_text.encode('latin-1'))
 
-def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom", suppresserrors=False):
+def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom", suppresserrors=False, usesrb2conventions=False):
 	"""
 	Create player sprite lumps from PLAY sprite lumps and add P_SKIN lump.
 	Throws an error if angle sets are inconsistent (SRB2 behavior).
@@ -824,22 +824,69 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	out_wad.data["P_SKIN"] = Lump(skin_content)
 	print(f"Created P_SKIN lump with name = {skin_name}")
 
-	frame_mapping = {
-		'STND': [('A', 'A')],
-		'WALK': [('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')],
-		'FIRE': [('E', 'A')],
-		'FLSH': [('F', 'A')],
-		'PAIN': [('G', 'A')],
-		'DYIN': [('H', 'A'), ('I', 'B'), ('J', 'C'), ('K', 'D'), ('L', 'E'), ('M', 'F'), ('N', 'G')],
-		'DEAD': [('N', 'A')],
-		'GIBN': [('O', 'A'), ('P', 'B'), ('Q', 'C'), ('R', 'D'), ('S', 'E'), ('T', 'F'), ('U', 'G'), ('V', 'H'), ('W', 'I')],
-		'GIBD': [('W', 'A')]
+	default_mapping = {
+		"STND": "A",
+		"WALK": "ABCD",
+		"FIRE": "E",
+		"FLSH": "F",
+		"PAIN": "G",
+		"DYIN": "HIJKLMN",
+		"DEAD": "N",
+		"GIBN": "OPQRSTUVW",
+		"GIBD": "W",
 	}
-	
+
+	srb2_mapping = {
+		"STND": "A",
+		"WAIT": "BC",
+		"WALK": "DEFGHIJK",
+		"SPIN": "LMNO",
+		"SPNG": "P",
+		"ROLL": "QRST",
+		"SUPR": "UVWXYZ",
+		"GASP": "[",
+		"PAIN": "\\",
+		"DEAD": "]",
+		"EDGE": "^_",
+		"FALL": "`ab"
+		# TODO
+	}
+
+	def expand_mapping(mapping):
+		expanded = {}
+		for state_name, frames in mapping.items():
+			if isinstance(frames, str):
+				expanded[state_name] = [
+					(src_frame, chr(ord('A') + i))
+					for i, src_frame in enumerate(frames)
+				]
+			else:
+				expanded[state_name] = frames
+		return expanded
+
+	frame_mapping = expand_mapping(srb2_mapping if usesrb2conventions else default_mapping)
+
+	validframes_default = 'ABCDEFGHIJKLMNOPQRSTUVW'
+	validframes_srb2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ab'
+
+	validframes = validframes_srb2 if usesrb2conventions else validframes_default
+
 	# Gather all PLAY lumps
 	play_lumps = {}
 	def is_valid_play_lump(name):
-		return name.startswith("PLAY") and len(name) >= 5 and name[4] in 'ABCDEFGHIJKLMNOPQRSTUVW' and name != 'PLAYPAL'
+		return name.startswith("PLAY") and len(name) >= 5 and name[4] in validframes and name != 'PLAYPAL'
+
+	def parse_play_suffix(suffix):
+		if len(suffix) % 2 != 0:
+			raise ValueError(f"Malformed PLAY lump suffix: {suffix}")
+
+		pairs = [suffix[i:i+2] for i in range(0, len(suffix), 2)]
+		frame = pairs[0][0]
+		if any(p[0] != frame for p in pairs):
+			raise ValueError(f"Inconsistent frame letters in suffix: {suffix}")
+
+		angles = ''.join(p[1] for p in pairs)
+		return frame, angles
 
 	for lump_name, lump in {**src_wad.data, **getattr(src_wad, 'sprites', {})}.items():
 		if is_valid_play_lump(lump_name):
@@ -850,18 +897,29 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 		print("No valid PLAY lumps found in source WAD")
 		return 0
 
-	valid_angles_sets = {"0", "12345678", "123456789ABCDEFG"}
+	valid_angle_sets = [
+		set("0"),
+		set("12345678"),
+		set("123456789ABCDEFG")
+	]
 
 	# Validate angles
 	lump_groups = {}
 	for lump_name in play_lumps:
-		state = lump_name[:4]  # PLAY
-		frame_suffix = lump_name[4:]
-		base_name = state + frame_suffix[0]  # e.g., PLAYA
-		angles = frame_suffix[1:] if len(frame_suffix) > 1 else "0"
+		suffix = lump_name[4:]
 
-		# Check all angles are valid
-		if not any(all(c in s for c in angles) for s in valid_angles_sets):
+		if len(suffix) % 2 != 0:
+			raise ValueError(f"Malformed PLAY lump suffix: {suffix}")
+
+		pairs = [suffix[i:i+2] for i in range(0, len(suffix), 2)]
+
+		frame = pairs[0][0]
+
+		angles = ''.join(p[1] for p in pairs)
+
+		base_name = "PLAY" + frame
+
+		if not any(set(angles).issubset(valid) for valid in valid_angle_sets):
 			if not suppresserrors:
 				raise ValueError(f"Invalid angle set '{angles}' in lump {lump_name}")
 
@@ -872,7 +930,7 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	# Check for completeness
 	for base_name, angles_found in lump_groups.items():
 		angles_found_str = ''.join(sorted(angles_found))
-		if not any(all(c in s for c in angles_found_str) for s in valid_angles_sets):
+		if not any(all(c in s for c in angles_found_str) for s in valid_angle_sets):
 			if not suppresserrors:
 				raise ValueError(f"Incomplete or inconsistent angles for {base_name}: found {angles_found_str}")
 

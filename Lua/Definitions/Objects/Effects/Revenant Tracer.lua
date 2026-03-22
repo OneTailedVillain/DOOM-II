@@ -15,7 +15,7 @@ local freedSprites = FreeDoomStates("RevenantTracer", playerstates)
 SafeFreeSlot("MT_DOOM_REVENANT_TRACER")
 
 mobjinfo[MT_DOOM_REVENANT_TRACER] = {
-    spawnstate = S_DOOM_PUFF1,
+    spawnstate = S_DOOM_BPUFF_PUFF1,
     radius = 1*FRACUNIT,
     height = 1*FRACUNIT,
     flags = MF_SCENERY|MF_NOGRAVITY|MF_NOCLIPHEIGHT|MF_NOBLOCKMAP|MF_NOCLIP|MF_NOCLIPTHING,

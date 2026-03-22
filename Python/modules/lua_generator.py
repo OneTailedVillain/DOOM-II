@@ -250,25 +250,17 @@ def build_structured_lua_deh(structured_deh: dict) -> bytes:
             
             # SPECIAL HANDLING FOR POINTERS: Key by FRAME number instead of pointer index
             if mode.upper() == "POINTER":
-                # Extract frame number from fields (assuming it's stored in a field like 'FRAME' or 'INDEX')
-                # We need to look for the frame number in the fields
                 frame_idx = None
                 for k, v in fields.items():
-                    if k.upper() in ['FRAME', 'FRAME NUMBER', 'FRAMENUMBER', 'INDEX']:
+                    # Also check for CODEP FRAME/CODEPFRAME
+                    if k.upper() in ['FRAME', 'FRAME NUMBER', 'FRAMENUMBER', 'INDEX', 'CODEP FRAME', 'CODEPFRAME']:
                         if isinstance(v, (bytes, bytearray)):
                             try:
                                 frame_idx = int(v.decode('latin-1').strip())
                             except (ValueError, AttributeError):
-                                frame_idx = idx  # Fall back to original idx if can't parse
-                        else:
-                            try:
-                                frame_idx = int(str(v).strip())
-                            except ValueError:
                                 frame_idx = idx
-                        break
+                            break
                 
-                # If no explicit frame field found, assume the id is the frame number
-                # (since in DEHACKED, Pointer sections are indexed by frame number)
                 if frame_idx is None:
                     frame_idx = idx
                 
