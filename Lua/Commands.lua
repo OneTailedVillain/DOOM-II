@@ -436,7 +436,7 @@ doom.cvars.techniColorCorpses = CV_RegisterVar({
 
 doom.cvars.user_hudpref = CV_RegisterVar({
 	name = "doom_hudpreference",
-	defaultvalue = "Off",
+	defaultvalue = "Original",
 	flags = CV_SAVE,
 	PossibleValue = {Original = 1, BOOMStacked = 2, BOOMStacked_Nostats = 3, BOOMDistributed = 4, BOOMDistributed_Nostats = 5}
 })
