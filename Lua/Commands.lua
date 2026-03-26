@@ -83,16 +83,16 @@ end)
 -- Command to display text screens by episode/level number
 COM_AddCommand("doom_dotextscreen", function(player, arg)
 	local funcs = P_GetMethodsForSkin(player)
-	
+
 	-- Check if arg is provided
 	if not arg or arg == "" then
 		DOOM_DoMessage(player, "Usage: doom_dotextscreen <episode/level> (e.g., doomtext e1, doomtext 8)")
 		return
 	end
-	
+
 	arg = string.lower(arg)
 	local textScreen = nil
-	
+
 	-- Handle episode format (e1, e2, e3, e4) for DOOM 1
 	if doom.isdoom1 then
 		if arg == "e1" then
@@ -131,7 +131,7 @@ COM_AddCommand("doom_dotextscreen", function(player, arg)
 			end
 		end
 	end
-	
+
 	-- Display the text screen if found
 	if textScreen then
 		-- Create a copy of the text screen data
@@ -139,10 +139,10 @@ COM_AddCommand("doom_dotextscreen", function(player, arg)
 			text = textScreen.text,
 			bg = textScreen.bg
 		}
-		
+
 		-- Call the existing text screen function
 		DOOM_StartTextScreen(screenData)
-		
+
 		-- Optional: Notify the player
 		if textScreen.secret then
 			DOOM_DoMessage(player, "Showing secret text screen...")
@@ -220,9 +220,11 @@ COM_AddCommand("idclev", function(player, arg)
 	-- If player is promoted or has the same userdata reference as the server...
 	-- Don't specify "command" vs "cheat" here, as we don't know whether we got here
 	-- via the console or the typed-in cheats,
-	if not IsPlayerAdmin(player) or player == server then
-		DOOM_DoMessage(player, "This is restricted to admins only.")
-		return
+	if netgame then
+		if not IsPlayerAdmin(player) or player == server then
+			DOOM_DoMessage(player, "This is restricted to admins only.")
+			return
+		end
 	end
 
 	if funcs.shouldDoCheat then
@@ -431,3 +433,84 @@ doom.cvars.techniColorCorpses = CV_RegisterVar({
 	flags = CV_SAVE,
 	PossibleValue = CV_OnOff
 })
+
+doom.cvars.user_hudpref = CV_RegisterVar({
+	name = "doom_hudpreference",
+	defaultvalue = "Off",
+	flags = CV_SAVE,
+	PossibleValue = {Original = 1, BOOMStacked = 2, BOOMStacked_Nostats = 3, BOOMDistributed = 4, BOOMDistributed_Nostats = 5}
+})
+
+---@class colorpref_nogreenthreshold
+---@field red consvar_t
+---@field yellow consvar_t
+
+---@class colorpref
+---@field red consvar_t
+---@field yellow consvar_t
+---@field green consvar_t
+
+---@class doomusercolorpreferences
+---@field ammo colorpref_nogreenthreshold
+---@field health colorpref
+---@field armor colorpref
+
+local CV_Percent = {MIN = 0, MAX = 100}
+
+---@type doomusercolorpreferences
+doom.cvars.user_colorthresholds = {
+	ammo = {
+		red = CV_RegisterVar({
+			name = "doom_hudthresholds_ammo_red",
+			defaultvalue = 25,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+		yellow = CV_RegisterVar({
+			name = "doom_hudthresholds_ammo_yellow",
+			defaultvalue = 50,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+	},
+	health = {
+		red = CV_RegisterVar({
+			name = "doom_hudthresholds_health_red",
+			defaultvalue = 25,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+		yellow = CV_RegisterVar({
+			name = "doom_hudthresholds_health_yellow",
+			defaultvalue = 50,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+		green = CV_RegisterVar({
+			name = "doom_hudthresholds_health_green",
+			defaultvalue = 100,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+	},
+	armor = {
+		red = CV_RegisterVar({
+			name = "doom_hudthresholds_armor_red",
+			defaultvalue = 25,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+		yellow = CV_RegisterVar({
+			name = "doom_hudthresholds_armor_yellow",
+			defaultvalue = 50,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+		green = CV_RegisterVar({
+			name = "doom_hudthresholds_armor_green",
+			defaultvalue = 100,
+			flags = CV_SAVE,
+			PossibleValue = CV_Percent
+		}),
+	},
+}
