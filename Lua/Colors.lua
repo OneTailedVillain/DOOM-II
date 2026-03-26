@@ -56,6 +56,25 @@ doom.oolors = {
 		4,51,250,251,251,252,252,253,
 		253,254,254,254,109,79,7,0
 	}},
+	-- Port from 2.2
+	{name="CLOUDY", ramp={
+		80,
+		81,
+		83,
+		84,
+		87,
+		88,
+		89,
+		91,
+		92,
+		93,
+		97,
+		98,
+		99,
+		100,
+		101,
+		103,
+	}},
 }
 
 -- Count accessible colors and collect their indices
