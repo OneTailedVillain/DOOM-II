@@ -891,6 +891,7 @@ addHook("PlayerSpawn",function(player)
 	elseif not multiplayer then
 		player.doom.keys = 0
 	end
+	player.doom.frags = $ or {}
 	player.doom.switchtimer = 128
 	player.doom.wishwep = nil
 

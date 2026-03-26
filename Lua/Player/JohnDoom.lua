@@ -44,6 +44,19 @@ customdeaths["johndoom"] = true
 -- Hook for handling player death
 addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 	DOOM_SetState(mobj.player, "lower")
+	local player = mobj.player
+	if player then
+		if not source then
+			player.doom.frags[#player] = ($ or 0) + 1
+		else
+			local assailantplayer = source.player
+			if assailantplayer then
+				assailantplayer.doom = $ or {}
+				assailantplayer.doom.frags = $ or {}
+				assailantplayer.doom.frags[#player] = ($ or 0) + 1
+			end
+		end
+	end
 	if mobj.skin ~= "johndoom" then return end
 
 	local player = mobj.player
@@ -260,19 +273,19 @@ local function DOOM_CalcHeight(player)
 
 	if player.playerstate == PST_LIVE then
 		player.viewheight = $ + player.deltaviewheight
-		
+
 		if player.viewheight > VIEWHEIGHT then
 			player.viewheight = VIEWHEIGHT
 			player.deltaviewheight = 0
 		end
-		
+
 		if player.viewheight < VIEWHEIGHT/2 then
 			player.viewheight = VIEWHEIGHT/2
 			if player.deltaviewheight <= 0 then
 				player.deltaviewheight = 1
 			end
 		end
-		
+
 		if player.deltaviewheight then
 			player.deltaviewheight = $ + FRACUNIT/4
 			if not player.deltaviewheight then
@@ -314,7 +327,7 @@ local function P_PlayerMove(player, doRun)
     // Do not let the player control movement
     //  if not onground.
 	local onground = player.mo.z <= player.mo.floorz
-	
+
 	if cmd.forwardmove and onground then
 		P_Thrust(player.mo, player.mo.angle, cmd.forwardmove*mult)
 	end

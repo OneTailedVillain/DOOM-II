@@ -1,3 +1,5 @@
+local doBOOMHud = dofile("HUD/BoomHUD.lua")
+
 -- Table of face sprite names in Doom IWAD order
 local st_faces = {
 	-- Pain offset 0
@@ -58,14 +60,14 @@ local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 		if player.doom.flashframe < 1 then return false end
 		if not wepDef.states[player.doom.flashstate or "flash"] then print("No flashstate") return false end
 		if not wepDef.states[player.doom.flashstate or "flash"][player.doom.flashframe] then print("Flashframe doesnt exist") return false end
-		
+
 		stateDef = wepDef.states[player.doom.flashstate or "flash"][player.doom.flashframe]
 		sprite = stateDef.sprite == nil and wepDef.flashsprite or stateDef.sprite
 	end
 
 	local whatFrame = stateDef.frame or A
 	if whatFrame < 0 then return false end
-	
+
 	local spriteflags = whatFrame & ~FF_FRAMEMASK
 	whatFrame = $ & FF_FRAMEMASK
 	local patch = v.getSpritePatch(sprite, whatFrame)
@@ -73,7 +75,7 @@ local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 
 	local stateOffsetX = 0
 	local stateOffsetY = 0
-	
+
 	if stateDef then
 		if type(stateDef.offset) == "number" then
 			stateOffsetY = stateDef.offset
@@ -94,13 +96,13 @@ local function drawWeaponState(v, player, stateType, bobx, boby, offset)
 	local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
 	local extraflag = (player.mo.doom.flags & DF_SHADOW) and (V_ADD|V_10TRANS) or 0
 	local lightlevel = sector.lightlevel
-	
+
 	if spriteflags & FF_FULLBRIGHT then
 		lightlevel = 255
 	elseif spriteflags & FF_FULLDARK then
 		lightlevel = 0
 	end
-	
+
 	local colormap = IsAboveVersion(202, 14)
 		and v.getSectorColormap(sector, player.mo.x, player.mo.y, player.mo.z, lightlevel)
 		or nil
@@ -290,7 +292,7 @@ end
 local whatRenderer = "opengl"
 
 rawset(_G, "DOOM_IsPaletteRenderer", function()
-	return whatRenderer == "software" or (whatRenderer == "opengl" and CV_FindVar("gr_paletterendering").value == 1) 
+	return whatRenderer == "software" or (whatRenderer == "opengl" and CV_FindVar("gr_paletterendering").value == 1)
 end)
 
 local function DrawFlashes(v, ply)
@@ -326,7 +328,7 @@ local function DrawFlashes(v, ply)
 		color_flash = 116
 		color_flash_intensity = hazardsuit_flash
 	end
-	
+
 	if color_flash then
 		v.fadeScreen(color_flash, max(min(color_flash_intensity, 10), 0))
 	end
@@ -390,6 +392,17 @@ local srb2hud = {
 	end,
 }
 
+doom.hudWeaponOffsets = {
+	[0] = 38,
+	[1] = 16,
+	[2] = 38,
+	[3] = 38,
+	[4] = 38,
+	[5] = 38,
+	[6] = 38,
+	[7] = 38,
+}
+
 hud.add(function(v, player)
 	hud.disable("score")
 	hud.disable("time")
@@ -424,8 +437,17 @@ hud.add(function(v, player)
 		return
 	end
 
-	drawWeapon(v, player, 16)
-	drawStatusBar(v, player)
+
+	local hudPref = doom.cvars.user_hudpref.value
+	local isActuallyBoom = hudPref <= 5 and hudPref > 1
+
+	drawWeapon(v, player, doom.hudWeaponOffsets[hudPref])
+
+	if isActuallyBoom then
+		doBOOMHud(v, player)
+	elseif
+		drawStatusBar(v, player)
+	end
 	DrawFlashes(v, player)
 end, "game")
 
@@ -446,7 +468,7 @@ hud.add(function(v, player)
 	local statusBarScreenHeight = v.cachePatch("STBAR").height
 	local flags = V_SNAPTOLEFT|V_SNAPTOTOP
 	local scale = automapzoom or FRACUNIT
-	
+
 	local dohires = CV_FindVar("doom_hiresautomap")
 
 	if dohires.value then
@@ -520,7 +542,7 @@ hud.add(function(v, player)
 				print("WARNING: clipLine time-out! What are you doing to cause that?!")
 				break
 			end
-			
+
 			if (outcode1 | outcode2) == 0 then
 				accept = true
 				break
