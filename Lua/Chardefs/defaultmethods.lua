@@ -1,10 +1,3 @@
--- Shared utilities and base character support definitions
--- This file used to live inside CustChar.lua; it now provides
--- common helpers and establishes the doom.charSupport table.
-
--- Ensure the charSupport table exists
-doom.charSupport = doom.charSupport or {}
-
 -- helper exposed for use by other modules (previously local)
 function doom.resolvePlayerAndMobj(target)
     if not target then return nil, nil end
@@ -357,7 +350,13 @@ function doom.charSupportFinalize()
     doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
 	doom.charSupport["johndoom"].css = {
 		name = "John Doom",
-		sequence = {A, 4}
+		sequence = {A, 4},
+		description = {
+		"The vanilla experience.",
+		"No strengths or weaknesses",
+		"Reliable in any situation",
+		"But lacks any defining advantages"
+		}
 	}
     setmetatable(doom.charSupport, {
         __index = function(t, key) return t.other end

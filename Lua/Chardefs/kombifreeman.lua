@@ -1,9 +1,5 @@
--- Kombifreeman character support definition
--- Relies on the base methods exported by base.lua
-
 local baseMethods = doom.charSupportBaseMethods
 
--- helper originally from CustChar.lua
 local function normalizeAmmoType(aType)
     if type(aType) == "string" then
         local t = {}
@@ -33,7 +29,6 @@ local function SimpleWeightedPick(list)
 
     if total == 0 then return nil end
 
-    -- probabilistic selection using P_RandomChance + FixedDiv
     for i = 1, #candidates do
         local chance = FixedDiv(candidates[i].weight * FRACUNIT, total * FRACUNIT)
         if P_RandomChance(chance) then
@@ -44,7 +39,6 @@ local function SimpleWeightedPick(list)
     return candidates[#candidates].entry
 end
 
--- Convert a simple def entry into the HL-style stats table
 local function SimpleDefToStats(entry)
     if not entry or type(entry[1]) ~= "string" then return nil end
     local id = entry[1]
@@ -63,10 +57,6 @@ local function SimpleDefToStats(entry)
     end
 end
 
--- Public helper: pick from simple defs and return ready-to-apply stats
--- defs: array of entries, each entry either {"weapon_x", weight} or {"ammo_y", count, weight}
--- player: player_t
--- bonusFactor: multiplier for items the player doesn't have (default 3)
 local function RandomizeFromSimpleDefs(defs, player, bonusFactor)
     bonusFactor = bonusFactor or 3
 

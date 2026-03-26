@@ -24,15 +24,89 @@ doom.charSupport.sonic = {
 	-- Custom CSS bullshit
 	css = {
 		name = "Sonic the Hedgehog",
+		description = {
+			"Able to fire weapons faster",
+			"than everyone else",
+			"However has weaker defense",
+			"And lowered attacking power"
+		},
 		sprite = SPR2_WALK,
 		sequence = {A, 8}
 	},
 
 	properties = {
+		sounds = {
+			--[sfx_plpain] = sfx_sd2pai,
+			--[sfx_pdiehi] = sfx_sd2dhi,
+			--[sfx_pldeth] = sfx_sd2die,
+		},
+
+		dealdamagefactor = FRACUNIT*3/4,
+
 		damagefactor = {
 			all = FRACUNIT*5/4,
 		},
-		movefactor = 2048 + 512 -- Used only for doom movement
+
+		movefactor = 2048 + 512,
+		walkfactor = FRACUNIT/2,
+		jumpfactor = FRACUNIT,
+		mass = 70,
+
+		starthealth = 75,
+
+		-- "maxsoulsphere" will be derived by (maxhealth*2)
+		-- If it's unspecified
+		maxhealth = 75,
+
+		-- The maximum value that Armor Bonuses
+		-- And Megaspheres can get Armor to
+		armormax = 200,
+
+		armorproperties = {
+			armorclassmult = 100, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
+			armorclass1prot = FRACUNIT/4, -- How much armor protection armor class 1 gives you
+			armorclass2prot = FRACUNIT/3, -- How much armor protection armor class 2 (and up, as for some reason DOOM considers armor classes > 2 as 50% protection) gives you
+		},
+
+		-- Ammo is only valid for characters under the vanilla
+		-- DOOM system
+		startammo = {
+			bullets = 30,
+			shells = 0,
+			cells = 0,
+			rockets = 0,
+		},
+
+		maxammo = {
+			bullets = 150,
+			shells = 40,
+			cells = 200,
+			rockets = 40,
+		},
+
+		-- Multipliers of what pick-ups will give to the player
+		-- "all" and a specific type will multiply the type factor with the "all" multiplier
+		pickupfactors = {
+			ammo = {
+				all = FRACUNIT,
+				bullets = FRACUNIT,
+				shells = FRACUNIT,
+				cells = FRACUNIT,
+				rockets = FRACUNIT,
+			},
+			health = {
+				all = FRACUNIT,
+				medikit = FRACUNIT,
+				stimpack = FRACUNIT
+			},
+			powerups = {
+				all = FRACUNIT,
+				invisibility = FRACUNIT,
+				infrared = FRACUNIT,
+				radsuit = FRACUNIT,
+				invulnerability = FRACUNIT
+			},
+		},
 	},
 
 	-- Vanilla overrides
@@ -44,9 +118,6 @@ doom.charSupport.sonic = {
 			cells   = {max = 150},
 			rockets = {max = 30}
 		},
-		maxhealth = 200,
-		maxarmor = 200,
-		maxsoulsphere = 400,
 		soulspheregive = 127,
 		megaspheregive = 400,
 
@@ -201,17 +272,47 @@ doom.charSupport.tails = {
 	css = {
 		name = 'Miles "Tails" Prower',
 		sprite = SPR2_WALK,
-		sequence = {A, 8}
+		sequence = {A, 8},
+		description = {
+			"Balanced stats with higher survivability",
+			"Carries more ammo than others",
+			"Reliable in extended fights",
+			"But lacks any strong specialization"
+		}
+	},
+
+	properties = {
+		mass = 100,
+		starthealth = 100,
+		maxhealth = 125,
+		armormax = 250,
+		movefactor = 2048,
+		walkfactor = FRACUNIT/2,
+
+		dealdamagefactor = FRACUNIT,
+		damagefactor = {
+			all = FRACUNIT,
+		},
+
+		armorproperties = {
+			armorclassmult = 100,
+			armorclass1prot = FRACUNIT/3,
+			armorclass2prot = FRACUNIT/2,
+		},
+
+		maxammo = {
+			bullets = 250,
+			shells = 64,
+			cells = 375,
+			rockets = 64,
+		},
 	},
 
 	-- Vanilla overrides
 	-- Only valid if you're using vanilla stuff
 	vanillaoverrides = {
-		maxhealth = 200,
-		maxarmor = 200,
-		maxsoulsphere = 400,
-		soulspheregive = 127,
-		megaspheregive = 400,
+		soulspheregive = 125,
+		megaspheregive = 250,
 
 		weapons = {
 			brassknuckles = {
@@ -253,20 +354,44 @@ doom.charSupport.knuckles = {
 	css = {
 		name = 'Knuckles the Echidna',
 		sprite = SPR2_WALK,
-		sequence = {A, 8}
+		sequence = {A, 8},
+		description = {
+			"Stronger attacks deal increased damage",
+			"Higher health and durability",
+			"Excels in close-range combat",
+			"But slower movement limits mobility"
+		}
+	},
+
+	properties = {
+		mass = 120,
+		starthealth = 125,
+		maxhealth = 125,
+		armormax = 250,
+		movefactor = 1920,
+		walkfactor = FRACUNIT/2,
+
+		dealdamagefactor = FRACUNIT*5/4,
+		damagefactor = {
+			all = FRACUNIT,
+		},
+
+		armorproperties = {
+			armorclassmult = 100,
+			armorclass1prot = FRACUNIT/3,
+			armorclass2prot = FRACUNIT/2,
+		},
 	},
 
 	-- Vanilla overrides
 	-- Only valid if you're using vanilla stuff
 	vanillaoverrides = {
-		maxhealth = 200,
-		maxarmor = 200,
-		maxsoulsphere = 400,
-		soulspheregive = 127,
-		megaspheregive = 400,
+		soulspheregive = 125,
+		megaspheregive = 250,
 
 		weapons = {
 			brassknuckles = {
+				damage = {4, 40},
 				sprite = SPR_SD2_KNUXFISTS,
 				states = {attack = {
 					{tics = 1},
@@ -312,10 +437,38 @@ doom.charSupport.metalsonic = {
 		sprite = SPR2_WALK,
 		sequence = {A, 1},
 		description = {
-			"No soul. No hesitation.",
-			"Built to surpass.",
-			"Execution is inevitable."
+			"High speed and increased damage output",
+			"Relentless offensive pressure",
+			"However takes more damage",
+			"And has lower maximum survivability"
 		}
+	},
+
+	properties = {
+		mass = 90,
+		starthealth = 90,
+		maxhealth = 90,
+		armormax = 150,
+		movefactor = 2304,
+		walkfactor = FRACUNIT/2,
+
+		dealdamagefactor = FRACUNIT*5/4,
+		damagefactor = {
+			all = FRACUNIT*5/4,
+		},
+
+		armorproperties = {
+			armorclassmult = 100,
+			armorclass1prot = FRACUNIT/4,
+			armorclass2prot = FRACUNIT/3,
+		},
+
+		maxammo = {
+			bullets = 150,
+			shells = 30,
+			cells = 250,
+			rockets = 30,
+		},
 	},
 
 	-- Vanilla overrides
@@ -327,11 +480,9 @@ doom.charSupport.metalsonic = {
 			cells   = {max = 150},
 			rockets = {max = 30}
 		},
-		maxhealth = 200,
-		maxarmor = 200,
-		maxsoulsphere = 400,
-		soulspheregive = 127,
-		megaspheregive = 400,
+
+		soulspheregive = 100,
+		megaspheregive = 180,
 
 		weapons = {
 			pistol = {

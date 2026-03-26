@@ -6,14 +6,40 @@ dofile("Freeslots.lua")
 dofile("Specials.lua")
 dofile("Colors.lua")
 
+function doom.resolvePlayerAndMobj(target)
+    if not target then return nil, nil end
+    if target.player then
+        return target.player, target
+    end
+    return target, target.mo
+end
 
-dofile("CharSupport/base.lua")
-dofile("CharSupport/other.lua")
-dofile("CharSupport/kombifreeman.lua")
-dofile("CharSupport/metalman.lua")
-dofile("CharSupport/sonicdoomtwo.lua")
+dofile("Chardefs/defaultmethods.lua")
+dofile("Chardefs/other.lua")
+dofile("Chardefs/kombifreeman.lua")
+dofile("Chardefs/sonicdoomtwo.lua")
 
-doom.charSupportFinalize()
+for charName, charTable in pairs(doom.charSupport) do
+	if charName ~= "other" and charTable.methods then
+		charTable.methods = doom.mergeCharSupportMethods(doom.charSupportBaseMethods, charTable.methods)
+	end
+end
+
+-- duplicate "other" for johndoom and apply metatable fallback
+doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
+doom.charSupport["johndoom"].css = {
+	name = "John Doom",
+	sequence = {A, 4},
+	description = {
+	"The vanilla experience.",
+	"No strengths or weaknesses",
+	"Reliable in any situation",
+	"But lacks any defining advantages"
+	}
+}
+setmetatable(doom.charSupport, {
+	__index = function(t, key) return t.other end
+})
 
 dofile("WADString.lua")
 dofile("WADLoad.lua")
@@ -116,7 +142,7 @@ dofile("Obituaries.lua")
 ---| "shellbox"       -- Source: Shell Box (ammo box).
 ---| "rocket"         -- Source: Rocket (pickup).
 ---| "rocketbox"      -- Source: Rocket Box (ammo box).
----| "cell"           -- Source: Cell Pack (pickup).
+---| "cells"          -- Source: Cell Pack (pickup).
 ---| "cellpack"       -- Source: Cell Pack (large pack).
 ---| "pistol"         -- Source: Pistol weapon (extensible; not explicitly called by pick-ups).
 ---| "chaingun"       -- Source: Chaingun weapon (extensible; not explicitly called by pick-ups).
@@ -129,7 +155,7 @@ dofile("Obituaries.lua")
 -- Engine default behavior for ammo gifts:
 --   When the engine gives ammo automatically, it uses doom.ammoTypeGifts[ammoType].
 --   *Single pickups* use doom.ammos[...].pickupamount and *box/pack* variants normally multiply by 5.
---   Weapon-based defaults often multiply that value (e.g. chaingun: *2).  
+--   Weapon-based defaults often multiply that value (e.g. chaingun: *2).
 --   These defaults do NOT account for dropped weapons, Deathmatch, or skill modifiers;
 --   giveAmmoFor should be used to implement any such special logic or to override defaults.
 
