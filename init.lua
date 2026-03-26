@@ -25,21 +25,7 @@ for charName, charTable in pairs(doom.charSupport) do
 	end
 end
 
--- duplicate "other" for johndoom and apply metatable fallback
-doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
-doom.charSupport["johndoom"].css = {
-	name = "John Doom",
-	sequence = {A, 4},
-	description = {
-	"The vanilla experience.",
-	"No strengths or weaknesses",
-	"Reliable in any situation",
-	"But lacks any defining advantages"
-	}
-}
-setmetatable(doom.charSupport, {
-	__index = function(t, key) return t.other end
-})
+doom.charSupportFinalize()
 
 dofile("WADString.lua")
 dofile("WADLoad.lua")

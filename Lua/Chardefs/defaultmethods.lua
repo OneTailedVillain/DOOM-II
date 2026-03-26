@@ -355,7 +355,7 @@ function doom.charSupportFinalize()
 		"The vanilla experience.",
 		"No strengths or weaknesses",
 		"Reliable in any situation",
-		"But lacks any defining advantages"
+		"But has no defining advantages"
 		}
 	}
     setmetatable(doom.charSupport, {
