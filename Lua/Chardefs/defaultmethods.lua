@@ -352,7 +352,7 @@ function doom.charSupportFinalize()
 		name = "John Doom",
 		sequence = {A, 4},
 		description = {
-		"The vanilla experience.",
+		"The vanilla experience",
 		"No strengths or weaknesses",
 		"Reliable in any situation",
 		"But has no defining advantages"

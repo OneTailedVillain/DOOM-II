@@ -274,10 +274,12 @@ doom.charSupport.tails = {
 		sprite = SPR2_WALK,
 		sequence = {A, 8},
 		description = {
-			"Balanced stats with higher survivability",
+			"Balanced stats",
+			"with higher survivability",
 			"Carries more ammo than others",
 			"Reliable in extended fights",
-			"But lacks any strong specialization"
+			"But lacks any",
+			"strong specialization"
 		}
 	},
 
@@ -356,10 +358,11 @@ doom.charSupport.knuckles = {
 		sprite = SPR2_WALK,
 		sequence = {A, 8},
 		description = {
-			"Stronger attacks deal increased damage",
+			"Deals increased damage overall",
 			"Higher health and durability",
 			"Excels in close-range combat",
-			"But slower movement limits mobility"
+			"But slower movement",
+			"limits mobility"
 		}
 	},
 
