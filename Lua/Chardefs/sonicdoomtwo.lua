@@ -427,7 +427,7 @@ doom.charSupport.knuckles = {
     methods = methods
 }
 
-freeslot("SPR_SD2_MECHACHAINGUN", "SPR_SD2_MECHACHAINGUNFLASH",
+freeslot("SPR_SD2_MECHACHAINGUN",
 "SPR_SD2_MECHAPLASMARIFLE", "SPR_SD2_MECHAPLASMARIFLEFLASH")
 
 doom.charSupport.metalsonic = {
@@ -494,7 +494,13 @@ doom.charSupport.metalsonic = {
 			},
 			chaingun = {
 				sprite = SPR_SD2_MECHACHAINGUN,
-				flashsprite = SPR_SD2_MECHACHAINGUNFLASH,
+				flashsprite = SPR_SD2_MECHACHAINGUN,
+				states = {
+					flash = {
+						{frame = 2|FF_FULLBRIGHT, tics = 4},
+						{frame = 3|FF_FULLBRIGHT, tics = 4}
+					}
+				}
 			},
 
 			plasmarifle = {
