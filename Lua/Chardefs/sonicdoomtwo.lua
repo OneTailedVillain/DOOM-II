@@ -437,10 +437,11 @@ doom.charSupport.metalsonic = {
 		sprite = SPR2_WALK,
 		sequence = {A, 1},
 		description = {
-			"High speed and increased damage output",
+			"High speed and damage output",
 			"Relentless offensive pressure",
 			"However takes more damage",
-			"And has lower maximum survivability"
+			"And has lower",
+			"maximum survivability"
 		}
 	},
 
