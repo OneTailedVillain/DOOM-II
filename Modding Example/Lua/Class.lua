@@ -38,6 +38,70 @@ methods.doPowerUp = function (player, powername)
 	return true
 end
 
+local function SkillMaskFor(skill)
+	if skill <= 2 then
+		return 1
+	elseif skill == 3 then
+		return 2
+	end
+	return 4
+end
+
+addHook("MapLoad", function()
+	local toCheckFor = {
+		keycards = {MT_DOOM_BLUEKEYCARD, MT_DOOM_YELLOWKEYCARD, MT_DOOM_REDKEYCARD},
+		skulls = {MT_DOOM_BLUESKULL, MT_DOOM_YELLOWSKULL, MT_DOOM_REDSKULL},
+	}
+
+	doom.zsnes_keycardexistent = false
+	doom.zsnes_skullkeyexistent = false
+
+	for mthing in mapthings.iterate do
+		if (mthing.z & 1) and not multiplayer then
+			continue
+		end
+
+		local needed = SkillMaskFor(doom.gameskill)
+		if not (mthing.options & needed) then
+			continue
+		end
+
+		-- "unfortunately the game is an asshole and sets"
+		-- "[the multiplayer] spawnpoint mapthing IDs to zero, ambiguating them"
+		-- There is literally no way to know exactly what mapthing ID is what,
+		-- So they're all mapthing 33 now :3
+		if not tth_doombuild then
+			if mthing.type == 0 then
+				mthing.type = 34
+			end
+		end
+
+		local override = doom.callHook(
+			"MapThingSpawn",
+			doom.hookTypes.lastfunc,
+			mthing
+		)
+
+		if override == false then
+			continue -- block spawn completely
+		elseif override != nil then
+			mthing.type = override -- override doomednum
+		end
+
+		for k, v in ipairs(toCheckFor.keycards) do
+			if mthing.type == mobjinfo[v].doomednum then
+				doom.zsnes_keycardexistent = true
+			end
+		end
+
+		for k, v in ipairs(toCheckFor.skulls) do
+			if mthing.type == mobjinfo[v].doomednum then
+				doom.zsnes_skullkeyexistent = true
+			end
+		end
+	end
+end)
+
 methods.getMaxFor = function(player, aType)
 	if not player or not aType then return nil end
 	local properties = P_GetPlayerSkinProperties(player)

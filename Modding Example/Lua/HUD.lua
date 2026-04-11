@@ -75,41 +75,45 @@ hud.add(function(v, player)
 
 	-- This is sm BULLLSHIIIIT!! but we can do it later
 	-- (unintentionally dooming those socks to stiffen by the time they dry)
-	local wishval = doom.KEY_BLUE
-	local patchname = "ZSNESHUDBKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNKEY"
+	if doom.zsnes_keycardexistent then
+		local wishval = doom.KEY_BLUE
+		local patchname = "ZSNESHUDBKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNKEY"
+		end
+		v.draw(32 + 96 + 40 + 16, 15, v.cachePatch(patchname), V_SNAPTOTOP)
+		local wishval = doom.KEY_YELLOW
+		local patchname = "ZSNESHUDYKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNKEY"
+		end
+		v.draw(32 + 96 + 40 + 16 + 8, 15, v.cachePatch(patchname), V_SNAPTOTOP)
+		local wishval = doom.KEY_RED
+		local patchname = "ZSNESHUDRKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNKEY"
+		end
+		v.draw(32 + 96 + 40 + 16 + 16, 15, v.cachePatch(patchname), V_SNAPTOTOP)
 	end
-	v.draw(32 + 96 + 40 + 16, 15, v.cachePatch(patchname), V_SNAPTOTOP)
-	local wishval = doom.KEY_YELLOW
-	local patchname = "ZSNESHUDYKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNKEY"
-	end
-	v.draw(32 + 96 + 40 + 16 + 8, 15, v.cachePatch(patchname), V_SNAPTOTOP)
-	local wishval = doom.KEY_RED
-	local patchname = "ZSNESHUDRKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNKEY"
-	end
-	v.draw(32 + 96 + 40 + 16 + 16, 15, v.cachePatch(patchname), V_SNAPTOTOP)
 
-	local wishval = doom.KEY_SKULLBLUE
-	local patchname = "ZSNESHUDBSKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNSKEY"
+	if doom.zsnes_skullkeyexistent then
+		local wishval = doom.KEY_SKULLBLUE
+		local patchname = "ZSNESHUDBSKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNSKEY"
+		end
+		v.draw(32 + 96 + 40 + 16, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
+		local wishval = doom.KEY_SKULLYELLOW
+		local patchname = "ZSNESHUDYSKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNSKEY"
+		end
+		v.draw(32 + 96 + 40 + 16 + 8, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
+		local wishval = doom.KEY_SKULLRED
+		local patchname = "ZSNESHUDRSKEY"
+		if (player.doom.keys & (wishval)) != wishval then
+			patchname = "ZSNESHUDNSKEY"
+		end
+		v.draw(32 + 96 + 40 + 16 + 16, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
 	end
-	v.draw(32 + 96 + 40 + 16, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
-	local wishval = doom.KEY_SKULLYELLOW
-	local patchname = "ZSNESHUDYSKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNSKEY"
-	end
-	v.draw(32 + 96 + 40 + 16 + 8, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
-	local wishval = doom.KEY_SKULLRED
-	local patchname = "ZSNESHUDRSKEY"
-	if (player.doom.keys & (wishval)) != wishval then
-		patchname = "ZSNESHUDNSKEY"
-	end
-	v.draw(32 + 96 + 40 + 16 + 16, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
 end)
