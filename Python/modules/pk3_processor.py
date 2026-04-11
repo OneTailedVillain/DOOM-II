@@ -8,7 +8,7 @@ import zipfile
 import tempfile
 from pathlib import Path
 from modules.wad_processor import (
-    make_fw_sequence, convert_exmx_maps, create_cutscene_graphics,
+    make_cycle_sequence, convert_exmx_maps, create_cutscene_graphics,
     patch_linedefs_add, process_udmf_map_linedefs,
     convert_flat_to_graphic, is_doom1_wad
 )

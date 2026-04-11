@@ -21,6 +21,8 @@ from modules.pk3_processor import *
 from modules.umapinfo_processor import *
 # Import PC speaker converter
 from modules.pcspeaker_converter import replace_ds_with_dp
+from modules.carouselspriteshit import createCarouselGraphics
+from modules.prepack_resolver import resolve_prepacked_carousel
 
 # Add UMAPINFO parser import
 try:
@@ -35,6 +37,72 @@ try:
     from omg import WAD, WadIO, Lump, Flat, Graphic
 except Exception as e:
     raise SystemExit("Please install omgifol (pip install omgifol). Import error: %s" % e)
+
+# Known carousel weapon families.
+# Adjust source_prefix/source_frame if your source sprite names differ.
+VALID_WEAPONS = [
+    "SMCSAW",
+    "SMFIST",
+    "SMPISG",
+    "SMSHOT",
+    "SMSGN2",
+    "SMMGUN",
+    "SMLAUN",
+    "SMPLAS",
+    "SMBFGG",
+    "SMUNKN",
+]
+
+WEAPON_CAROUSEL_SPECS = {
+    # weapon_key: source sprite family, frame to extract, and output prefix
+    "SMCSAW": {"source_prefix": "CSAWA", "source_frame": "0", "output_prefix": "SMCSAW"},
+    "SMFIST": {"source_prefix": "PUNGA", "source_frame": "0", "output_prefix": "SMFIST"},
+    "SMPISG": {"source_prefix": "PISGA", "source_frame": "0", "output_prefix": "SMPISG"},
+    "SMSHOT": {"source_prefix": "SHOTA", "source_frame": "0", "output_prefix": "SMSHOT"},
+    "SMSGN2": {"source_prefix": "SGN2A", "source_frame": "0", "output_prefix": "SMSGN2"},
+    "SMMGUN": {"source_prefix": "MGUNA", "source_frame": "0", "output_prefix": "SMMGUN"},
+    "SMLAUN": {"source_prefix": "LAUNA", "source_frame": "0", "output_prefix": "SMLAUN"},
+    "SMPLAS": {"source_prefix": "PLASA", "source_frame": "0", "output_prefix": "SMPLAS"},
+    "SMBFGG": {"source_prefix": "BFUGA", "source_frame": "0", "output_prefix": "SMBFGG"},
+    "SMUNKN": {"source_prefix": "UNKNA", "source_frame": "0", "output_prefix": "SMUNKN"},
+}
+
+def process_weapon_carousels(src_wad, out_wad):
+    """
+    For each known weapon family:
+    1) Try to use a matching prepack from ./modules/prepacked-assets/<pack>/<weapon>/
+    2) If no prepack matches, generate the carousel graphics normally
+    """
+    created_total = 0
+    reference_lump = next(iter(out_wad.sprites.values()), None)
+
+    for weapon_key in VALID_WEAPONS:
+        spec = WEAPON_CAROUSEL_SPECS[weapon_key]
+
+        used_prepack, pack_name, installed = resolve_prepacked_carousel(
+            out_wad,
+            weapon_key=weapon_key,
+            pack_root="./modules/prepacked-assets",
+            reference_lump=reference_lump,
+        )
+
+        if used_prepack:
+            print(
+                f"Using prepacked {weapon_key} assets from {pack_name}: "
+                f"{', '.join(installed)}"
+            )
+            continue
+
+        print(f"No matching prepack for {weapon_key}; generating carousel sprites...")
+        count, created = createCarouselGraphics(
+            out_wad,
+            spec["source_prefix"],
+            spec["source_frame"],
+            spec["output_prefix"],
+        )
+        created_total += count
+
+    return created_total
 
 def create_deh_only_wad(deh_files, out_path):
     """
@@ -128,13 +196,17 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
     # Copy all data from source to output WAD
     out_wad.from_file(src_path)
 
+    print("Processing weapon carousel graphics...")
+    weapon_carousel_created = process_weapon_carousels(src_wad, out_wad)
+    print(f"Weapon carousel graphics created: {weapon_carousel_created}")
+
     # --- PC Speaker sound conversion (if requested) ---
     if options.get('use_pcspeaker', False):
         print("Converting PC Speaker (DP) sounds to DMX format...")
         converted = replace_ds_with_dp(out_wad, options.get('pcspeaker_sample_rate', 11025))
         print(f"Converted {converted} PC speaker sounds to DMX format")
     
-    created = make_fw_sequence(src_wad, out_wad)
+    created = make_cycle_sequence(src_wad, out_wad, "FWATER", 1, 16, 1, 4)
     print(f"FWATER created: {created}")
 
     converted = convert_exmx_maps(src_wad, out_wad, src_path, deh_files)
@@ -180,6 +252,12 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
     if options.get('stcfn_uppercase_to_lowercase', True):
         print("Copying STCFN uppercase graphics to lowercase letter codes...")
         append_stcfn_uppercase_to_lowercase(out_wad)
+
+    created = make_cycle_sequence(src_wad, out_wad, "COMP", 4, 6, 4, 4)
+    print(f"COMP created: {created}")
+
+    created = make_cycle_sequence(src_wad, out_wad, "RED", 1, 3, 1, 1)
+    print(f"RED created: {created}")
 
     # MIDI to OGG conversion (optional)
     if options.get('midi_to_ogg', False):

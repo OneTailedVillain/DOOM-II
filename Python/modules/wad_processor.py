@@ -188,41 +188,160 @@ def get_endoom_md5(src_wadio):
 	
 	return None
 
-def make_fw_sequence(src_wad, out_wad):
-	"""Create FWATER1..FWATER16 from FWATER1..FWATER4."""
+# TODO: Redundant, probably
+# You'll just have to... Wait, and see, Doctor Freeman
+def parse_textures_lump(text):
+	textures = {}
+	lines = text.splitlines()
+
+	i = 0
+	while i < len(lines):
+		line = lines[i].strip()
+
+		if line.startswith("WallTexture"):
+			# Parse header
+			header = line
+			name = header.split('"')[1]
+
+			parts = header.split(',')
+			width = int(parts[1])
+			height = int(parts[2])
+
+			i += 1  # move to next line (should be "{")
+
+			# Skip until opening brace
+			while i < len(lines) and "{" not in lines[i]:
+				i += 1
+			i += 1  # move past "{"
+
+			# Read patches until closing brace
+			patches = []
+
+			while i < len(lines) and "}" not in lines[i]:
+				l = lines[i].strip()
+
+				if l.startswith("Patch"):
+					pname = l.split('"')[1]
+					coords = l.split('"')[2].strip().strip(',')
+					x, y = coords.split(',')
+					patches.append({
+						"name": pname,
+						"x": int(x),
+						"y": int(y)
+					})
+
+				i += 1
+
+			textures[name] = {
+				"width": width,
+				"height": height,
+				"patches": patches
+			}
+
+		i += 1
+
+	return textures
+
+def textures_to_text(textures: dict) -> str:
+	lines = []
+
+	for name, tex in textures.items():
+		lines.append(f'WallTexture "{name}", {tex["width"]}, {tex["height"]}')
+		lines.append("{")
+
+		for p in tex["patches"]:
+			lines.append(f'\tPatch "{p["name"]}", {p["x"]}, {p["y"]}')
+
+		lines.append("}")
+		lines.append("")
+
+	return "\n".join(lines)
+
+def make_cycle_sequence(src_wad, out_wad, prefix, start, end, base_start, base_end):
 	src_flats = getattr(src_wad, "flats", {})
 	out_flats = getattr(out_wad, "flats", {})
 
-	# Remove existing FWATER1..FWATER16 in out
-	for i in range(1, 17):
-		fname = f"FWATER{i}"
-		if fname in out_flats:
-			del out_flats[fname]
+	src_textures = {}
+	out_textures = getattr(out_wad, "textures", {})
 
-	# collect FWATER1..4 bases
+	# Parse TEXTURES lump if present
+	# Use out_wad here, as we already
+	# Do a conversion to TEXTURES on it
+	if hasattr(out_wad, "data") and "TEXTURES" in out_wad.data:
+		raw = out_wad.data["TEXTURES"].data.decode("utf-8", errors="ignore")
+		src_textures = parse_textures_lump(raw)
+		print("Parsed textures:", list(src_textures.keys())[:10])
+
+	# Remove existing outputs
+	for i in range(start, end + 1):
+		name = f"{prefix}{i}"
+		out_flats.pop(name, None)
+		out_textures.pop(name, None)
+
+	# Collect base assets (flats OR textures)
 	base = {}
-	for b in range(1, 5):
-		bn = f"FWATER{b}"
-		if bn in src_flats:
-			base[b] = src_flats[bn].copy()
-			print("Found base flat:", bn)
-		else:
-			print("Base flat missing:", bn)
 
-	def base_for(n): return ((n - 1) // 4) + 1
+	for b in range(base_start, base_end + 1):
+		bn = f"{prefix}{b}"
+
+		if bn in src_flats:
+			base[b] = ("flat", src_flats[bn].copy())
+			print("Found flat:", bn)
+
+		elif bn in src_textures:
+			base[b] = ("texture", src_textures[bn].copy())
+			print("Found texture:", bn)
+
+		else:
+			print("Base missing:", bn)
+
+	base_count = base_end - base_start + 1
+
+	def base_for(n):
+		return base_start + ((n - start) % base_count)
 
 	created = 0
-	for n in range(1, 17):
-		dest = f"FWATER{n}"
+	created_textures = {}
+
+	for n in range(start, end + 1):
+		dest = f"{prefix}{n}"
 		b = base_for(n)
-		if b in base:
-			out_flats[dest] = base[b].copy()
-			created += 1
-			print(f"Created {dest} from FWATER{b}")
-		else:
-			print(f"Skipping {dest} (no FWATER{b} in source)")
+
+		if b not in base:
+			print(f"Skipping {dest} (no base)")
+			continue
+
+		kind, data = base[b]
+
+		if kind == "flat":
+			out_flats[dest] = data.copy()
+			print(f"Created flat {dest} from {prefix}{b}")
+
+		elif kind == "texture":
+			out_textures[dest] = data.copy()
+			created_textures[dest] = data.copy()
+			print(f"Created texture {dest} from {prefix}{b}")
+
+		created += 1
 
 	out_wad.flats = out_flats
+	out_wad.textures = out_textures
+
+	if created_textures:
+		# Convert only the new textures to TEXTURES-format text
+		new_defs = textures_to_text(created_textures).encode("utf-8")
+
+		# Ensure the TEXTURES lump exists
+		if not hasattr(out_wad, "data"):
+			out_wad.data = {}
+		if "TEXTURES" not in out_wad.data:
+			out_wad.data["TEXTURES"] = Lump(b"")
+
+		# Append directly to the existing lump's data
+		out_wad.data["TEXTURES"].data += b"\n\n// Added by cycle generator\n" + new_defs
+
+		print(f"Appended {len(created_textures)} textures to TEXTURES lump")
+
 	return created
 
 def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None):
