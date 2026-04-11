@@ -181,7 +181,7 @@ doom.charSupport.alttplinkdpexamp = {
 
 	-- Custom CSS bullshit
 	css = {
-		name = "John Ringslinger",
+		name = "Link",
 		description = {
 			"Fighter with tools for every range",
 			"Strikes hard up close and can easily",
