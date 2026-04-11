@@ -26,7 +26,8 @@ methods.doPowerUp = function (player, powername)
 	if powername == "berserk" then
 		player.doom.zsnes_pieceofpower = 60*TICRATE
 		player.doom.ammo["magic"] = $ * 2
-		P_PlayJingleMusic(player, "ZGBPOP", 0, true)
+		player.doom.properties.dealdamagefactor = ($ or FRACUNIT) * 2
+		P_PlayJingleMusic(player, "ZGBPOW", 0, true)
 	elseif powername == "invisibility" then
 		doom.giveInventory(player, "magiccape")
 	elseif powername == "invulnerability" then
@@ -143,26 +144,17 @@ end
 
 -- Piece of Power ticker
 addHook("PlayerThink", function(player)
-	-- Mooching off this thinker
-	local mult = 1
-	if player.doom.backpack then
-		mult = $ << 1
-	end
-
-	if player.doom.zsnes_pieceofpower then
-		mult = $ << 1
-	end
-
-	print(player.doom.zsnes_pieceofpower)
-
-	player.doom.zsnes_magicmult = mult
-
 	if not player.doom.zsnes_pieceofpower then return end
 	if player.doom.zsnes_pieceofpower <= 0 then return end
+	print(player.doom.zsnes_pieceofpower)
 	player.doom.zsnes_pieceofpower = $ - 1
+	if player.doom.zsnes_pieceofpower <= TICRATE*2 then
+		P_RestoreMusic(player)
+	end
 	if player.doom.zsnes_pieceofpower <= 0 then
 		-- Revert magic when the Piece of Power has run dry
-		player.ammos["magic"] = $ / 2
+		player.doom.ammo["magic"] = $ / 2
+		player.doom.properties.dealdamagefactor = $ / 2
 	end
 end)
 
