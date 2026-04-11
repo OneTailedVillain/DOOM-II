@@ -52,12 +52,20 @@ hud.add(function(v, player)
 	local bombAmmo = player.doom.ammo and player.doom.ammo["bombs"] or 0
 	local magicAmmo = player.doom.ammo and player.doom.ammo["magic"] or 0
 
+	local mult = 1
+	if player.doom.backpack then
+		mult = $ << 1
+	end
+
+	if player.doom.zsnes_pieceofpower then
+		mult = $ << 1
+	end
+
 	v.draw(-16, 0, leftpiece, V_SNAPTOTOP|V_SNAPTOLEFT)
 	v.draw(64 - 8, 15, v.cachePatch("ZSNESHUDRUPEEICON"), V_SNAPTOTOP|V_SNAPTOLEFT)
-	v.draw(8, 3 * 8, v.cachePatch("ZSNESHUDMAGICMETER" .. player.doom.zsnes_magicmult), V_SNAPTOTOP|V_SNAPTOLEFT)
-	drawNumber(v, 64 - 16, 24, rupeeAmmo, 3, V_SNAPTOTOP)
-	drawMagicMeter(v, 3 * 8 - 16, 7 * 8, (magicAmmo * 32) / (player.doom.zsnes_magicmult * 100), V_SNAPTOTOP|V_SNAPTOLEFT)
+	v.draw(8, 3 * 8, v.cachePatch("ZSNESHUDMAGICMETER" .. mult), V_SNAPTOTOP|V_SNAPTOLEFT)
 	drawNumber(v, 64 - 16, 24, rupeeAmmo, 3, V_SNAPTOTOP|V_SNAPTOLEFT)
+	drawMagicMeter(v, 3 * 8 - 16, 7 * 8, (magicAmmo * 32) / (mult * 100), V_SNAPTOTOP|V_SNAPTOLEFT)
 	v.draw(-16, 0, centpiece, V_SNAPTOTOP|V_SNAPTOLEFT)
 	drawNumber(v, 128 - 48, 24, bombAmmo, 2, V_SNAPTOTOP|V_SNAPTOLEFT)
 	drawNumber(v, 128 + 24 - 48, 24, arrowAmmo, 2, V_SNAPTOTOP|V_SNAPTOLEFT)
