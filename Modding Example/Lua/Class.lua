@@ -1,4 +1,5 @@
-freeslot("SPR_LINK_SSG", "SPR_LINK_FIREROD", "sfx_lttpbd", "sfx_lttpbb", "sfx_lttpaf")
+freeslot("SPR_LINK_SSG", "SPR_LINK_FIREROD", "sfx_lttpbd", "sfx_lttpbb", "sfx_lttpaf",
+"sfx_lttplh", "sfx_lttpld")
 
 ---@type doommethods_t
 local methods = deepcopy(doom.charSupportBaseMethods)
