@@ -36,19 +36,24 @@ mobjinfo[MT_DOOM_LINKSLINGSHOT] = {
 
 SafeFreeSlot(
     "SPR_BAL2","SPR_MISL",
-    "MT_DOOM_LINKBOMB"
+    "MT_DOOM_LINKBOMB",
+	"SPR_LINK_BOMB"
 )
 
 local plasmastates = {
     shot = {
-        {sprite = SPR_BAL2, frame = A|FF_FULLBRIGHT, tics = 6},
-        {sprite = SPR_BAL2, frame = B|FF_FULLBRIGHT, tics = 6, next = "shot"},
+        {sprite = SPR_LINK_BOMB, frame = A|FF_FULLBRIGHT, tics = -1, next = "shot"},
     },
 
     explode = {
-        {sprite = SPR_BAL2, frame = B|FF_FULLBRIGHT, tics = 8},
-        {sprite = SPR_BAL2, frame = C|FF_FULLBRIGHT, tics = 6},
-        {sprite = SPR_BAL2, frame = D|FF_FULLBRIGHT, tics = 4},
+        {sprite = SPR_LINK_BOMB, frame = 1|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 2|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 3|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 4|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 5|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 6|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 7|FF_FULLBRIGHT, tics = 2},
+        {sprite = SPR_LINK_BOMB, frame = 8|FF_FULLBRIGHT, tics = 2},
     },
 }
 
@@ -62,12 +67,17 @@ mobjinfo[MT_DOOM_LINKBOMB] = {
     deathstate = states.explode[1],
 
     speed      = 40*FRACUNIT,
-    radius     = 6*FRACUNIT,
-    height     = 8*FRACUNIT,
-    damage     = 3,
+    radius     = 20*FRACUNIT,
+    height     = 16*FRACUNIT,
+    damage     = 20,
 
     flags = MF_MISSILE|MF_GRENADEBOUNCE,
 }
+
+addHook("MobjSpawn", function(mobj)
+	mobj.spritexscale = FRACUNIT*5/2
+	mobj.spriteyscale = FRACUNIT*5/2
+end, MT_DOOM_LINKBOMB)
 
 function A_DoomFireSlingshot(actor, var1, var2, wepdef)
 	local player = actor.mo and actor or actor.player
@@ -87,6 +97,15 @@ function A_DoomFireSlingshot(actor, var1, var2, wepdef)
 	local vertSpread  = FixedMul(MAXVERT,  refireFactor)
 
 	DOOM_Fire(actor, MISSILERANGE, horizSpread, vertSpread, 1, nil, nil, nil, MT_DOOM_LINKSLINGSHOT)
+end
+
+function A_DoomFireBomb(actor, var1, var2, wepdef)
+	local player = actor.mo and actor or actor.player
+	if not player then return end
+	local pd = player.doom
+	pd.ammo[doom.weapons[pd.curwep].ammotype] = $ - wepdef.shotcost
+
+	DOOM_Fire(actor, MISSILERANGE, true, true, 1, nil, nil, nil, MT_DOOM_LINKBOMB)
 end
 
 doom.addWeapon("fighterssword", {
@@ -194,4 +213,39 @@ doom.addWeapon("slingshot", {
 		}
 	},
 	ammotype = "rupees",
+})
+
+doom.addWeapon("bomb", {
+	sprite = SPR_LINK_SLINGSHOT_WEP,
+	weaponslot = 5,
+	order = 1,
+	priority = 1900,
+	damage = {5, 15},
+	noinitfirespread = true,
+	pellets = 1,
+	firesound = sfx_pistol,
+	shotcost = 1,
+	spread = {
+		horiz = FRACUNIT*59/10,
+		vert = 0,
+	},
+	carouselicon = "SMMGUN",
+	states = {
+		idle = {
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
+		},
+		attack = {
+			{frame = B, tics = 10, action = A_DoomFireBomb},
+			{frame = C, tics = 4},
+			{frame = D, tics = 4},
+			{frame = A, tics = 1, action = A_DoomReFire},
+		}
+	},
+	ammotype = "bombs",
 })
