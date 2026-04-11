@@ -139,9 +139,9 @@ doom.charSupport.alttplinkdpexamp = {
 
 	properties = {
 		sounds = {
-			--[sfx_plpain] = sfx_sd2pai,
-			--[sfx_pdiehi] = sfx_sd2dhi,
-			--[sfx_pldeth] = sfx_sd2die,
+			[sfx_plpain] = sfx_lttplh,
+			[sfx_pdiehi] = sfx_lttpld,
+			[sfx_pldeth] = sfx_lttpld,
 		},
 
 		damagefactor = {
