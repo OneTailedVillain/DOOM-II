@@ -184,8 +184,8 @@ doom.charSupport.alttplinkdpexamp = {
 		name = "Link",
 		description = {
 			"Fighter with tools for every range",
-			"Strikes hard up close and can easily",
-			"turn defense into pressure",
+			"Strikes hard up close and can",
+			"Easily turn defense into pressure",
 			"Manages ammo and magic for peak output",
 			"But careless resource use leaves him exposed"
 		},
