@@ -513,7 +513,8 @@ local ST_DrawCarousel = dofile("HUD/Modules/Carousel.lua")
 local whatRenderer = "opengl"
 
 rawset(_G, "DOOM_IsPaletteRenderer", function()
-	return whatRenderer == "software" or (whatRenderer == "opengl" and CV_FindVar("gr_paletterendering").value == 1)
+	local palrender = CV_FindVar("gr_paletterendering") or {value = 0}
+	return whatRenderer == "software" or (whatRenderer == "opengl" and palrender.value == 1)
 end)
 
 doom.hudWeaponOffsets = {
