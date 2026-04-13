@@ -133,8 +133,8 @@ local function manualBuildAMMNUM(v, font)
 end
 
 -- Either creates or caches a fontset
-rawset(_G, "cacheFont", function(v, font)
-	if not cacheShit.fonts[font] then
+rawset(_G, "cacheFont", function(v, font, force)
+	if not cacheShit.fonts[font] or force then
 		if font == "STT" then
 			manualBuildSTT(v)
 		elseif font == "AMMNUM" then
@@ -215,8 +215,10 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
 	if not lineHeight then
 		lineHeight = 0
 		for _, info in pairs(ftable) do
-			if info.patch then
+			if (info.patch and info.patch.valid) then
 				lineHeight = max(lineHeight, info.patch.height * FRACUNIT)
+			else
+				ftable = cacheFont(v, font, true)
 			end
 		end
 	else
