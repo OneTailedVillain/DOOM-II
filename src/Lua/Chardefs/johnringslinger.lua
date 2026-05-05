@@ -94,8 +94,6 @@ doom.charSupport.johnringslinger = {
 	},
 
 	properties = {
-		forceRingspill = true,
-		ringspillObject = MT_DOOM_SCATTEREDRING,
 		doomDeathanim = true,
 
 		sounds = {
