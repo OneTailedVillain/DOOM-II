@@ -297,7 +297,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
         local spawnz = P_FloorzAtPos(spawnpoint.x, spawnpoint.y, INT32_MIN, 0)
         local new = P_SpawnMobj(spawnpoint.x, spawnpoint.y, spawnz, mobj.type)
         P_SpawnMobj(spawnpoint.x, spawnpoint.y, spawnz, MT_DOOM_TELEFOG)
-        mobj.state = S_TELEFOG1
+        mobj.state = S_DOOM_TELEFOG_SPAWN1
         --mobj.type = MT_DOOM_TELEFOG
 		mobj.flags = $ & ~(MF_SHOOTABLE|MF_SOLID)
 		mobj.target = nil
@@ -402,7 +402,7 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 				toucher.player.doom.bonuscount = ($ or 0) + 6
 				if mo.doom.flags & DF_COUNTITEM then
 					if (mo.doom and mo.doom.flags and (mo.doom.flags & DF_DROPPED)) then return res end
-					doom.items = ($ or 0) + 1
+					toucher.player.doom.items = ($ or 0) + 1
 				end
 			end
 
@@ -620,7 +620,7 @@ end)
 ---@return doomcharsupport_t
 rawset(_G, "P_GetSupportsForSkin", function(player)
 	if not player.mo then return {} end
-	return doom.charSupport[player.mo.skin] or {}
+	return doom.charSupport[skins[player.skin].name] or {}
 end)
 
 ---@param player player_t
@@ -636,7 +636,7 @@ rawset(_G, "P_GetPlayerSkinProperties", function(player)
 	if not player.mo then return {} end
 	local support = P_GetSupportsForSkin(player)
 	---@type doomcharproperties_t
-	return support.properties or doom.baseCharProperties
+	return player.doom.properties or support.properties or doom.baseCharProperties
 end)
 
 -- Merge state frames with override support
@@ -700,7 +700,11 @@ local function mergeStateFrames(originalFrames, overrideFrames)
 				newFrame.tics = originalFrame.tics
 			end
 
-			if newFrame.action == nil and originalFrame then
+			if newFrame.action == A_None then
+				newFrame.action = nil
+				newFrame.var1 = nil
+				newFrame.var2 = nil
+			elseif newFrame.action == nil and originalFrame then
 				newFrame.action = originalFrame.action
 				newFrame.var1 = originalFrame.var1
 				newFrame.var2 = originalFrame.var2
@@ -734,41 +738,42 @@ local function mergeStateFrames(originalFrames, overrideFrames)
 	return result
 end
 
--- Apply vanilla overrides to weapon definitions
+-- Generic shallow+deep merge
+local function mergeTables(base, overrides)
+	for k, v in pairs(overrides) do
+		if type(v) == "table" then
+			base[k] = base[k] or {}
+			mergeTables(base[k], v)
+		else
+			base[k] = v
+		end
+	end
+end
+
+-- Apply overrides to weapon definitions
 local function applyWeaponOverrides(weaponName, baseWeapon, overrides)
 	if not overrides then return baseWeapon end
 
 	local modifiedWeapon = deepcopy(baseWeapon)
 
-	local simpleFields = {
-		"damage", "firesound", "pellets", "shotcost", "raycaster", "shootmobj",
-		"hitsound", "priority", "weaponslot", "order", "noinitfirespread",
-		"wimpyweapon", "sprite", "flashsprite", "ammotype"
-	}
-
-	for _, field in ipairs(simpleFields) do
-		if overrides[field] ~= nil then
-			modifiedWeapon[field] = overrides[field]
+	for field, value in pairs(overrides) do
+		if field == "states" then
+			local sourceStates = modifiedWeapon.statesraw or modifiedWeapon.states or {}
+			modifiedWeapon.states = deepcopy(sourceStates)
+			for stateName, stateOverrides in pairs(value) do
+				modifiedWeapon.states[stateName] =
+					mergeStateFrames(modifiedWeapon.states[stateName] or {}, stateOverrides)
+			end
+			modifiedWeapon.statesasslots = false
+		elseif field == "spread" then
+			modifiedWeapon.spread = modifiedWeapon.spread or {}
+			mergeTables(modifiedWeapon.spread, value)
+		elseif type(value) == "table" then
+			modifiedWeapon[field] = modifiedWeapon[field] or {}
+			mergeTables(modifiedWeapon[field], value)
+		else
+			modifiedWeapon[field] = value
 		end
-	end
-
-	if overrides.spread then
-		modifiedWeapon.spread = modifiedWeapon.spread or {}
-		for k, v in pairs(overrides.spread) do
-			modifiedWeapon.spread[k] = v
-		end
-	end
-
-	if overrides.states then
-		local sourceStates = modifiedWeapon.statesraw or modifiedWeapon.states or {}
-		modifiedWeapon.states = deepcopy(sourceStates)
-
-		for stateName, stateOverrides in pairs(overrides.states) do
-			modifiedWeapon.states[stateName] =
-				mergeStateFrames(modifiedWeapon.states[stateName] or {}, stateOverrides)
-		end
-
-		modifiedWeapon.statesasslots = false
 	end
 
 	return modifiedWeapon
@@ -877,6 +882,7 @@ function doom.callHook(name, returnmode, target, ...)
     if not resolver then return nil end
 
     local state = resolver.init()
+	local stop
 
     for i = 1, #hooks do
         local hook = hooks[i]
@@ -1108,7 +1114,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             -- Handle kill counting
             if source and source.player then
                 if target.doom.flags & DF_COUNTKILL then
-                    source.player.doom.killcount = ($ or 0) + 1
+                    source.player.doom.kills = ($ or 0) + 1
 					local funcs = P_GetMethodsForSkin(source.player)
 					if funcs.onKill then
 						funcs.onKill(source.player, target)
@@ -1135,7 +1141,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             if target.tics < 1 then target.tics = 1 end
 
             -- Handle item drops
-            local itemtype = doom.dropTable[target.type]
+            local itemtype = doom.dropTable and doom.dropTable[target.type]
 
             if itemtype then
                 local mo = P_SpawnMobj(target.x, target.y, ONFLOORZ, itemtype)
@@ -1242,8 +1248,29 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
     frame = frame or 1
 
     local psp = DOOM_GetPSprite(player, slot)
+
+	if wepDef.prestatechange then
+		local targst, targfr = wepDef.prestatechange(player, psp.state, psp.frame, state, frame, slot, wepDef)
+		if targst != nil and type(targst) == "string" then
+			state = targst
+		end
+		if targfr != nil and type(targst) == "number" then
+			frame = targfr
+		end
+	end
+
     psp.state = state
     psp.frame = frame
+
+	if wepDef.poststatechange then
+		local targst, targfr = wepDef.poststatechange(player, psp.state, psp.frame, slot, wepDef)
+		if targst != nil and type(targst) == "string" then
+			psp.state = targst
+		end
+		if targfr != nil and type(targst) == "number" then
+			psp.frame = targfr
+		end
+	end
 
     local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
     if not stateDef then
@@ -1272,6 +1299,14 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	local funcs = P_GetMethodsForSkin(player)
 	local curWep = DOOM_GetWeaponDef(player)
 	local curAmmo = funcs.getCurAmmo(player)
+
+	if curWep.ontryfire then
+		local shouldfire = curWep.ontryfire(player, curWep, curAmmo)
+	end
+
+	if shouldfire != nil then
+		if not shouldfire then return end
+	end
 
 	if type(curAmmo) != "boolean" then
 		if curAmmo - curWep.shotcost < 0 then return end
@@ -1391,6 +1426,8 @@ rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 	if not player.doom then return end
 	if not player.doom.weapons[wepname] then return end -- player must own it
 	if player.doom.curwep == wepname then return end -- Ignore if same
+	local support = P_GetSupportsForSkin(player)
+	if support.noWeapons then return end
 
 	-- Find which slot + order this weapon belongs to
 	for slot, weplist in pairs(doom.weaponnames) do
@@ -1499,7 +1536,7 @@ rawset(_G, "saveStatus", function(player)
     }
 
 	if doom.cvars.multiDontLowHealth.value then
-		local multiplayerHealthBS = 50 + (player.mo.doom.health / 2)
+		local multiplayerHealthBS = funcs.getMaxHealth(player) / 2
 		if expectedValues.health < multiplayerHealthBS then
 			expectedValues.health = multiplayerHealthBS
 		end
@@ -1585,6 +1622,12 @@ end)
 
 rawset(_G, "DOOM_ExitLevel", function()
 	if doom.intermission then return end
+
+	local leaving = doom.textscreenmaps[gamemap] and doom.isdoom1
+	if not leaving then
+		leaving = doom.lastmap and gamemap == doom.lastmap
+	end
+	if doom.callHook("ShouldExit", doom.hookTypes.anyfalse, leaving) == false then return end
 	local targetTextScreen = doom.textscreenmaps[gamemap]
 	if doom.textscreenmaps[gamemap] and doom.isdoom1 then
 		for player in players.iterate do
@@ -1594,6 +1637,7 @@ rawset(_G, "DOOM_ExitLevel", function()
 			else
 				player.doom.laststate = {}
 			end
+			player.doom.intpause = TICRATE
 		end
 		DOOM_StartTextScreen(targetTextScreen)
 	else
@@ -1647,8 +1691,14 @@ rawset(_G, "DOOM_NextLevel", function()
 			nextLev = 1100 -- aka "nextLev = TITLE" (i don't trust SRB2's constants for this)
 		end
 	end
-	G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
-	G_ExitLevel()
+	if not multiplayer then
+		G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
+		G_ExitLevel()
+	else
+		-- Multiplayer is a point of contention for this mod for some reason,
+		-- Use commands instead and don't even bother doing a proper fix
+		COM_BufInsertText(server, "map " .. nextLev .. " -f")
+	end
 end)
 
 rawset(_G, "DOOM_DoMessage", function(player, text)
@@ -1747,7 +1797,6 @@ end)
 function doom.giveWeapon(player, wepname, dflags)
 	local properties = P_GetPlayerSkinProperties(player)
 	local funcs = P_GetMethodsForSkin(player)
-	print(wepname)
 	if properties and properties.weaponremapping and properties.weaponremapping[wepname] then
 		wepname = properties.weaponremapping[wepname]
 	end

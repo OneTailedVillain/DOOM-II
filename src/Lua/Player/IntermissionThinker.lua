@@ -55,11 +55,62 @@ doom.secretExits = $ or {
 	[31] = 32,
 }
 
+---@class doommethods_t
+---@field intermissionPlaySound? fun(player: player_t, soundname: integer, phasename: string, curPhaseVal: integer, maxVal: integer): integer|boolean|nil Called whenever the intermission thinker tries to play a sound. Return value is the sound ID to play, nil to play the original sound, or falsy to not play any sound at all. maxVal will always be the maximum achievable value (or the level's par time)
+
+-- Function to defer intermission sounds
+-- calls intermissionPlaySound internally to get a retargetting, passing the same parameters as it gets
+local function tryPlaySound(player, soundname, phasename, curPhaseVal, maxVal)
+	if player != displayplayer then return end
+	local support = P_GetSupportsForSkin(player)
+	if support.silenceVanillaIntermission then
+		return
+	end
+
+	local funcs = P_GetMethodsForSkin(player)
+	local soundToPlay = soundname
+	if funcs.intermissionPlaySound then
+		soundToPlay = funcs.intermissionPlaySound(player, soundname, phasename, curPhaseVal, maxVal)
+		-- If nil, replace with original ID
+		if soundToPlay == nil then
+			soundToPlay = soundname
+		-- If falsy, don't play any sound
+		elseif not soundToPlay then
+			return
+		end
+	end
+	S_StartSound(nil, soundToPlay, player)
+end
+local function AllPlayersReadyForExit()
+	for p in players.iterate do
+		if p and p.doom and p.doom.intstate < 12 then
+			return false
+		end
+	end
+	return true
+end
+
 addHook("PlayerThink", function(player)
+	local support = P_GetSupportsForSkin(player)
+
+	local silent = support.silenceVanillaIntermission
+
 	if not doom.intermission or player.doom.intstate < 0 then
 		player.doom.cnt_time = 0
 		player.doom.cnt_par = 0
 		player.cnt_kills = {1, 1, 1}
+
+		-- Hack! fixes an oddity of everything being 1% for a frame
+		-- Even if you did jack shit
+		if player.doom.kills == 0 and doom.killcount > 0 then
+			player.cnt_kills[1] = 0
+		end
+		if player.doom.items == 0 and doom.itemcount > 0 then
+			player.cnt_kills[2] = 0
+		end
+		if player.doom.secrets == 0 and doom.secretcount > 0 then
+			player.cnt_kills[3] = 0
+		end
 		return
 	end
 	if player.doom.intstate == 2 then
@@ -68,16 +119,18 @@ addHook("PlayerThink", function(player)
 		if doom.killcount <= 0 then
 			max = 100
 		else
-			max = (player.doom.killcount * 100) / (doom.killcount)
+			max = (player.doom.kills * 100) / (doom.killcount)
 		end
 
-		if not (player.doom.bcnt & 3) then
-			S_StartSound(nil, sfx_pistol, player)
+		if not silent and not (player.doom.bcnt & 3) then
+			tryPlaySound(player, sfx_pistol, "killpct", player.cnt_kills[1], 100)
 		end
 		
 		if player.cnt_kills[1] >= max then
 			player.cnt_kills[1] = max
-			S_StartSound(nil, sfx_barexp)
+			if not silent then
+				tryPlaySound(player, sfx_barexp, "killpct", player.cnt_kills[1], 100)
+			end
 			player.doom.intstate = $ + 1
 		end
 	elseif player.doom.intstate == 4 then
@@ -86,16 +139,18 @@ addHook("PlayerThink", function(player)
 		if doom.itemcount <= 0 then
 			max = 100
 		else
-			max = (doom.items * 100) / (doom.itemcount)
+			max = (player.doom.items * 100) / (doom.itemcount)
 		end
 
-		if not (player.doom.bcnt & 3) then
-			S_StartSound(nil, sfx_pistol, player)
+		if not silent and not (player.doom.bcnt & 3) then
+			tryPlaySound(player, sfx_pistol, "itempct", player.cnt_kills[2], 100)
 		end
 		
 		if player.cnt_kills[2] >= max then
 			player.cnt_kills[2] = max
-			S_StartSound(nil, sfx_barexp, player)
+			if not silent then
+				tryPlaySound(player, sfx_barexp, "itempct", player.cnt_kills[2], 100)
+			end
 			player.doom.intstate = $ + 1
 		end
 	elseif player.doom.intstate == 6 then
@@ -104,16 +159,18 @@ addHook("PlayerThink", function(player)
 		if doom.secretcount <= 0 then
 			max = 100
 		else
-			max = (doom.secrets * 100) / (doom.secretcount)
+			max = (player.doom.secrets * 100) / (doom.secretcount)
 		end
 
-		if not (player.doom.bcnt & 3) then
-			S_StartSound(nil, sfx_pistol, player)
+		if not silent and not (player.doom.bcnt & 3) then
+			tryPlaySound(player, sfx_pistol, "secretpct", player.cnt_kills[3], 100)
 		end
 		
 		if player.cnt_kills[3] >= max then
 			player.cnt_kills[3] = max
-			S_StartSound(nil, sfx_barexp, player)
+			if not silent then
+				tryPlaySound(player, sfx_barexp, "secretpct", player.cnt_kills[3], 100)
+			end
 			player.doom.intstate = $ + 1
 		end
 	elseif player.doom.intstate == 8 then
@@ -125,8 +182,8 @@ addHook("PlayerThink", function(player)
 			player.doom.cnt_time = player.doom.wintime / TICRATE
 		end
 
-		if not (player.doom.bcnt & 3) then
-			S_StartSound(nil, sfx_pistol, player)
+		if not silent and not (player.doom.bcnt & 3) then
+			tryPlaySound(player, sfx_pistol, "timepct", player.cnt_kills[4], 100)
 		end
 
 		if doom.isdoom1 then
@@ -135,13 +192,15 @@ addHook("PlayerThink", function(player)
 			local mis = Doom1Map.map
 			parTarg = doom.doom1Pars[ep] and doom.doom1Pars[ep][mis] or 0
 		else
-			parTarg = doom.doom2Pars[gamemap] or $
+			parTarg = doom.doom2Pars[gamemap] or 0
 		end
 		if player.doom.cnt_par >= parTarg then
 			player.doom.cnt_par = parTarg
 			if player.doom.cnt_time >= player.doom.wintime / TICRATE then
 				player.doom.cnt_time = player.doom.wintime / TICRATE
-				S_StartSound(nil, sfx_barexp, player)
+				if not silent then
+					tryPlaySound(player, sfx_barexp, "timepar", player.cnt_kills[4], parTarg)
+				end
 				player.doom.intstate = $ + 1
 			end
 		end
@@ -150,7 +209,9 @@ addHook("PlayerThink", function(player)
 		if funcs.onNowEntering then
 			funcs.onNowEntering(player)
 		end
-		S_StartSound(nil, sfx_sgcock, player)
+		if not silent then
+			tryPlaySound(player, sfx_sgcock, "entering")
+		end
 		player.doom.intstate = $ + 1
 		-- I don't actually have a surefire way to get this done during THIS specific intstate,
 		-- So defer to an intstate not present originally
@@ -161,7 +222,7 @@ addHook("PlayerThink", function(player)
 		end
 	elseif player.doom.intstate == 12 then
 		player.doom.intpause = TICRATE
-		if doom.intermission then
+		if doom.intermission and AllPlayersReadyForExit() then
 			player.doom.notrigger = true
 			DOOM_NextLevel()
 		end

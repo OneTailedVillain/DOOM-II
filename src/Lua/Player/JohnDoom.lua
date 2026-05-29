@@ -34,13 +34,6 @@ mobjinfo[MT_FREEMCORPSE] = {
     dispoffset = 4,
 }
 
--- Fix some other chuckler's code
-if not customdeaths then
-	rawset(_G, "customdeaths", {})
-end
-
-customdeaths["johndoom"] = true
-
 -- Hook for handling player death
 addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 	DOOM_SetState(mobj.player, "lower")
@@ -355,11 +348,15 @@ end
 ---@param player player_t
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
-	local support = P_GetSupportsForSkin(player)
-	if support.useDoomMovement then
+	local support = P_GetSupportsForSkin(player) or {}
+	if not support.properties then support.properties = {} end
+	local doesDoomMovement = support.useDoomMovement or support.properties.useDoomMovement
+	if doesDoomMovement then
 		player.thrustfactor = 0
 		player.charability = CA_NONE
 		player.charability2 = CA2_NONE
+	else
+		return
 	end
 	local run = DOOM_GetConfigStoreValue(player, "autorun") != 0
 	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0

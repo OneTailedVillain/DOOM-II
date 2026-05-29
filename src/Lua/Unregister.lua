@@ -37,3 +37,14 @@ rawset(_G, "S_StartSound", function(origin, soundnum, player)
 	end
 	OGSoundPlay(origin, soundnum, player)
 end)
+
+addHook("PostThinkFrame", function()
+	for player in players.iterate() do
+		if not player.doom.oldskin then player.doom.oldskin = player.skin end
+		if player.skin != player.doom.oldskin then
+			CONS_Printf(player, "Your skin will change on the next respawn.")
+			player.doom.oldskin = player.skin
+			player.doom.wishskin = player.skin
+		end
+	end
+end)

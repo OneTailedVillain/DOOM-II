@@ -128,7 +128,8 @@ local baseMethods = {
 					end
 				end
 				if numax == nil then
-					print("Ammo type " .. tostring(aType) .. " is unsupported by this skin!")
+					if not doom.ammos[aType] then return numax end
+					-- print("Ammo type " .. tostring(aType) .. " is unsupported by this skin!")
 				end
 				return numax
 			else
@@ -384,6 +385,7 @@ function doom.charSupportFinalize()
     -- duplicate "other" for johndoom and apply metatable fallback
     doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
 	doom.charSupport["johndoom"].properties = {useDoomMovement = true}
+	doom.charSupport["johndoom"].useDoomMovement = true
 	doom.charSupport["johndoom"].css = {
 		name = "John Doom",
 		sequence = {A, 4},

@@ -249,6 +249,9 @@ local function WI_drawTime(v, x, y, t)
 	end
 end
 
+local hudDir = "HUD/Modules/"
+local MPR = dofile(hudDir .. "MP Results.lua")
+
 local function drawIntermission(v, player)
 	local inter = player.doom.intstate
 	local levPatch = doom.isdoom1 and doom1MapToPatch or doom2MapToPatch
@@ -270,27 +273,31 @@ local function drawIntermission(v, player)
 	y = y + (5*levelname.height)/4
 	local finpatch = v.cachePatch("WIF")
 	v.draw((320 - finpatch.width)/2, y, finpatch)
-	
-	local killspatch = v.cachePatch("WIOSTK")
-	local x = SP_STATSX
-	local y = SP_STATSY
-	v.draw(x, y, killspatch)
-	if inter >= 2 then
-		drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[1] .. "%", 0, "right")
-	end
 
-	local killspatch = v.cachePatch("WIOSTI")
-	y = $ + lh
-	v.draw(x, y, killspatch)
-	if inter >= 4 then
-		drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[2] .. "%", 0, "right")
-	end
+	if not multiplayer then
+		local killspatch = v.cachePatch("WIOSTK")
+		local x = SP_STATSX
+		local y = SP_STATSY
+		v.draw(x, y, killspatch)
+		if inter >= 2 then
+			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[1] .. "%", 0, "right")
+		end
 
-	local killspatch = v.cachePatch("WISCRT2")
-	y = $ + lh
-	v.draw(x, y, killspatch)
-	if inter >= 6 then
-		drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[3] .. "%", 0, "right")
+		local killspatch = v.cachePatch("WIOSTI")
+		y = $ + lh
+		v.draw(x, y, killspatch)
+		if inter >= 4 then
+			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[2] .. "%", 0, "right")
+		end
+
+		local killspatch = v.cachePatch("WISCRT2")
+		y = $ + lh
+		v.draw(x, y, killspatch)
+		if inter >= 6 then
+			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[3] .. "%", 0, "right")
+		end
+	else
+		MPR(v, player)
 	end
 
 	local time =  v.cachePatch("WITIME")
@@ -320,6 +327,8 @@ end
 hud.add(function(v, player)
 	if not doom.intermission then return end
 	if doom.textscreen and doom.textscreen.active then return end
+	local support = P_GetSupportsForSkin(player)
+	if support.dontDrawVanillaIntermission then return end
 	v.drawFill(nil, nil, nil, nil, 0)
 	if doom.isdoom1 then
 		local internalEpisode = gamemap/10

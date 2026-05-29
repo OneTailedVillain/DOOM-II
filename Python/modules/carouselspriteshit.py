@@ -10,6 +10,13 @@ import sys
 import os
 from io import BytesIO
 
+import zlib
+from PIL import Image
+from modules.pngtopatch import read_png_grab, write_png_grab
+from omg import Lump
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
 # Add parent directory to path to import patch_t
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from classes.patch_t import patch_t, toPatchClass
@@ -141,6 +148,126 @@ def find_closest_palette_color_all(r: int, g: int, b: int, palette: bytes) -> in
 				break
 	
 	return best_index
+
+
+def is_png_lump(data: bytes) -> bool:
+    return data.startswith(PNG_SIGNATURE)
+
+
+def patch_or_png_to_image_and_offsets(lump_data: bytes, palette: bytes):
+    """
+    Returns:
+        image (RGBA PIL image),
+        xoff,
+        yoff
+    """
+    if is_png_lump(lump_data):
+        image = Image.open(BytesIO(lump_data)).convert("RGBA")
+        xoff, yoff = read_png_grab(lump_data)
+        return image, xoff, yoff, True
+
+    original_patch = toPatchClass(lump_data)
+    image = patch_to_pil_image(original_patch, palette)
+    if image is None:
+        raise ValueError("Could not convert patch to image")
+    return image, original_patch.leftoffset, original_patch.topoffset, False
+
+
+def downscale_image_3_4(image: Image.Image) -> Image.Image:
+    try:
+        resample = Image.Resampling.LANCZOS
+    except AttributeError:
+        resample = Image.LANCZOS
+
+    new_w = max(1, int(round(image.width * 3 / 4)))
+    new_h = max(1, int(round(image.height * 3 / 4)))
+    scaled = image.resize((new_w, new_h), resample=resample)
+
+    rgba_data = bytearray(scaled.tobytes())
+    for i in range(3, len(rgba_data), 4):
+        if rgba_data[i] < 128:
+            rgba_data[i] = 0
+
+    return Image.frombytes("RGBA", (new_w, new_h), bytes(rgba_data))
+
+
+def monochromize_image(image: Image.Image, palette: bytes) -> Image.Image:
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+
+    width, height = image.size
+    src = image.tobytes()
+    out = bytearray()
+
+    for y in range(height):
+        for x in range(width):
+            i = (y * width + x) * 4
+            r, g, b, a = src[i], src[i + 1], src[i + 2], src[i + 3]
+            if a == 0:
+                out.extend([0, 0, 0, 0])
+                continue
+
+            gray = rgb_to_grayscale(r, g, b)
+            red_r, red_g, red_b = grayscale_to_redscale(gray)
+            idx = find_closest_palette_color_all(red_r, red_g, red_b, palette)
+            pr = palette[idx * 3]
+            pg = palette[idx * 3 + 1]
+            pb = palette[idx * 3 + 2]
+            out.extend([pr, pg, pb, 255])
+
+    return Image.frombytes("RGBA", (width, height), bytes(out))
+
+
+def add_outline_to_image(image: Image.Image, palette: bytes, outline_color):
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+
+    width, height = image.size
+    pixels = image.load()
+
+    solid = [[pixels[x, y][3] != 0 for x in range(width)] for y in range(height)]
+
+    outline_index = find_closest_palette_color(
+        outline_color[0], outline_color[1], outline_color[2], palette
+    )
+    outline_rgb = tuple(palette[outline_index * 3:outline_index * 3 + 3])
+
+    new_w, new_h = width + 2, height + 2
+    out = Image.new("RGBA", (new_w, new_h), (0, 0, 0, 0))
+    out_px = out.load()
+
+    for y in range(height):
+        for x in range(width):
+            if solid[y][x]:
+                out_px[x + 1, y + 1] = pixels[x, y]
+
+    for y in range(new_h):
+        for x in range(new_w):
+            if out_px[x, y][3] != 0:
+                continue
+
+            should_outline = False
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    nx, ny = x + dx - 1, y + dy - 1
+                    if 0 <= nx < width and 0 <= ny < height and solid[ny][nx]:
+                        should_outline = True
+                        break
+                if should_outline:
+                    break
+
+            if should_outline:
+                out_px[x, y] = outline_rgb + (255,)
+
+    return out
+
+
+def image_to_png_lump(image: Image.Image, xoff: int, yoff: int) -> bytes:
+    bio = BytesIO()
+    image.save(bio, format="PNG")
+    return write_png_grab(bio.getvalue(), xoff, yoff)
 
 
 def patch_to_pil_image(patch: patch_t, palette: bytes) -> Optional[Image.Image]:
@@ -568,43 +695,40 @@ def createCarouselGraphics(wad, spriteprefix: str, spriteframe: str,
 	for source_lump_name in matching_lumps:
 		try:
 			lump_data = wad.sprites[source_lump_name].data
-			original_patch = toPatchClass(lump_data)
 
-			# 1) Downscale first, and save that step as prefix + "S"
-			scaled_patch = downscale_patch_3_4(original_patch, palette)
+			try:
+				image, xoff, yoff, was_png = patch_or_png_to_image_and_offsets(lump_data, palette)
+			except Exception as e:
+				print(f"  Failed to load {source_lump_name}: {e}")
+				continue
 
-			output_name_s = f"{outputprefix}S"
-			output_lumps[output_name_s] = type(wad.sprites[source_lump_name])(
-				scaled_patch.toBytes()
-			)
-			created_lumps.append(output_name_s)
-			created_count += 1
-			print(f"  Created {output_name_s} (downscaled 3/4, {scaled_patch.width}x{scaled_patch.height})")
+			# 1) Downscale first
+			scaled_image = downscale_image_3_4(image)
+			xoff = int(round(xoff * 3 / 4))
+			yoff = int(round(yoff * 3 / 4))
 
-			# 2) Everything else uses the downscaled patch
-			monochrome_patch = monochromize_patch(scaled_patch, palette)
+			# 2) Monochrome
+			monochrome_image = monochromize_image(scaled_image, palette)
 
 			# Version 0
 			print(f"  Adding outline to {source_lump_name} (dark red)...")
-			outlined_patch_0 = add_outline_to_patch(monochrome_patch, palette, OUTLINE_COLOR_0)
+			outlined_image_0 = add_outline_to_image(monochrome_image, palette, OUTLINE_COLOR_0)
+			png_bytes_0 = image_to_png_lump(outlined_image_0, xoff + 1, yoff + 1)
 			output_name_0 = f"{outputprefix}0"
-			output_lumps[output_name_0] = type(wad.sprites[source_lump_name])(
-				outlined_patch_0.toBytes()
-			)
+			output_lumps[output_name_0] = Lump(png_bytes_0)
 			created_lumps.append(output_name_0)
 			created_count += 1
-			print(f"  Created {output_name_0} (dark red outline, {outlined_patch_0.width}x{outlined_patch_0.height})")
+			print(f"  Created {output_name_0} (dark red outline, {outlined_image_0.width}x{outlined_image_0.height})")
 
 			# Version 1
 			print(f"  Adding outline to {source_lump_name} (gold)...")
-			outlined_patch_1 = add_outline_to_patch(monochrome_patch, palette, OUTLINE_COLOR_1)
+			outlined_image_1 = add_outline_to_image(monochrome_image, palette, OUTLINE_COLOR_1)
+			png_bytes_1 = image_to_png_lump(outlined_image_1, xoff + 1, yoff + 1)
 			output_name_1 = f"{outputprefix}1"
-			output_lumps[output_name_1] = type(wad.sprites[source_lump_name])(
-				outlined_patch_1.toBytes()
-			)
+			output_lumps[output_name_1] = Lump(png_bytes_1)
 			created_lumps.append(output_name_1)
 			created_count += 1
-			print(f"  Created {output_name_1} (gold outline, {outlined_patch_1.width}x{outlined_patch_1.height})")
+			print(f"  Created {output_name_1} (gold outline, {outlined_image_1.width}x{outlined_image_1.height})")
 
 		except Exception as e:
 			print(f"  Failed to process {source_lump_name}: {e}")

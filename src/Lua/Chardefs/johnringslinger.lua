@@ -1,84 +1,6 @@
 ---@type doommethods_t
 local methods = deepcopy(doom.charSupportBaseMethods)
 
-SafeFreeSlot(
-    "MT_DOOM_SCATTEREDRING",
-	"SPR_FRNG"
-)
-
-local plasmastates = {
-    active = {
-        {sprite = SPR_FRNG, frame = A|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = B|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = C|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = D|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = E|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = F|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = G|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = H|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = I|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = J|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = K|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = L|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = M|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = N|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = O|FF_FULLBRIGHT, tics = 2},
-        {sprite = SPR_FRNG, frame = P|FF_FULLBRIGHT, tics = 2, next = "active"},
-    },
-}
-
-local mtSt = FreeDoomStates("ScatteredRing", plasmastates)
-
-mobjinfo[MT_DOOM_SCATTEREDRING] = {
-    spawnstate = mtSt.active[1],
-    seesound   = sfx_firsht,
-    deathsound = sfx_firxpl,
-
-    speed      = 20*FRACUNIT,
-    radius     = 16*FRACUNIT,
-    height     = 20*FRACUNIT,
-    damage     = 8,
-
-    flags = mobjinfo[MT_FLINGRING].flags,
-}
-
-local function GiveHealthCompat(funcs, player, heal, clampMax)
-	-- Prefer skin-provided giveHealth if available
-	if funcs.giveHealth then
-		-- expectedMaxHealth is used for clamping inside giveHealth
-		return funcs.giveHealth(player, heal, clampMax)
-	end
-
-	-- Fallback: manual get/set
-	local health = funcs.getHealth(player)
-	local newhealth = min(health + heal, clampMax)
-
-	if newhealth <= health then
-		return false
-	end
-
-	funcs.setHealth(player, newhealth)
-	return true
-end
-
--- Act like a health bonus
----@param mobj mobj_t
----@param item mobj_t
-addHook("TouchSpecial", function(item, mobj)
-	if not mobj.player then return true end
-
-	local player = mobj.player
-	if item.fuse > 29*TICRATE then return end
-
-	local funcs = P_GetMethodsForSkin(player)
-
-	local maxhealth = funcs.getMaxHealth(player)
-	local clampMax = maxhealth * 2
-
-	GiveHealthCompat(funcs, player, 1, clampMax)
-	DOOM_DoMessage(player, "$GOTHTHBONUS")
-end, MT_DOOM_SCATTEREDRING)
-
 doom.charSupport.johnringslinger = {
 	-- Custom CSS bullshit
 	css = {
@@ -95,6 +17,7 @@ doom.charSupport.johnringslinger = {
 
 	properties = {
 		doomDeathanim = true,
+		noHUD = true,
 
 		sounds = {
 			--[sfx_plpain] = sfx_sd2pai,
@@ -166,7 +89,7 @@ doom.charSupport.johnringslinger = {
 
 		startweapon = "matchring",
 		startweapons = {
-			brassknuckles = true,
+			rs_brassknuckles = true,
 			matchring = true
 		},
 
@@ -200,7 +123,7 @@ doom.charSupport.johnringslinger = {
 			GOTCHAINGUN = "You got the Automatic Ring!",
 			GOTLAUNCHER = "You got the Explosion Ring!",
 			GOTPLASMA = "You got the Homing Ring!",
-			GOTBFG9000 = "You got the Rail Ring! Oh, yes.",
+			GOTBFG9000 = "You got the Rail Ring!  Oh, yes.",
 		}
 	},
 

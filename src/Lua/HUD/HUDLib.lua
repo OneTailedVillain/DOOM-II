@@ -132,6 +132,40 @@ local function manualBuildAMMNUM(v, font)
 	cacheShit.fonts[font] = fontTable
 end
 
+local function b(char)
+	return string.byte(char, 1, 1)
+end
+
+local function manualBuildS2FONT(v)
+	local fontTable = {}
+	local patches = {
+		S2FONTMINUS  = b("-"),
+		S2FONT0      = b("0"),
+		S2FONT1      = b("1"),
+		S2FONT2      = b("2"),
+		S2FONT3      = b("3"),
+		S2FONT4      = b("4"),
+		S2FONT5      = b("5"),
+		S2FONT6      = b("6"),
+		S2FONT7      = b("7"),
+		S2FONT8      = b("8"),
+		S2FONT9      = b("9"),
+		S2FONTPERC   = b("%"),
+		S2FONTCOLON  = b(":"),
+		S2FONTPERIOD = b("."),
+	}
+	local width = v.cachePatch("S2FONT0").width
+	for patch, code in pairs(patches) do
+		local pdata = v.cachePatch(patch)
+		fontTable[code] = {
+			patch = pdata,
+			patchname = patch,
+			width = width,
+		}
+	end
+	cacheShit.fonts["S2FONT"] = fontTable
+end
+
 -- Either creates or caches a fontset
 rawset(_G, "cacheFont", function(v, font, force)
 	if not cacheShit.fonts[font] or force then
@@ -139,6 +173,8 @@ rawset(_G, "cacheFont", function(v, font, force)
 			manualBuildSTT(v)
 		elseif font == "AMMNUM" then
 			manualBuildAMMNUM(v, font)
+		elseif font == "S2FONT" then
+			manualBuildS2FONT(v, font)
 		elseif font == "STYSNUM" then
 			manualBuildAMMNUM(v, font)
 		elseif font == "STGNUM" then
@@ -183,19 +219,10 @@ rawset(_G, "cacheFont", function(v, font, force)
 	return cacheShit.fonts[font]
 end)
 
--- TODO: maybe extend this a bit?
-/*
-drawInFont(v,
-x, y,
-scale,
-font,
-str,
-flags, alignment, cmap,
-maxChars,
-lineHeight)
-*/
 rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
-    str = tostring(str)
+	str = tostring(str)
+
+	-- Validate flags
 	if type(flags) != "number" then
 		if not cacheShit.lastwarned.flag.typemismatch[tostring(flags)] then
 			print("\82WARNING:\80 Flag type mismatch! (number expected, got " .. type(flags))
@@ -203,138 +230,178 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
 		end
 		flags = 0
 	end
-    if not ((flags or 0) & V_ALLOWLOWERCASE) then
+
+	-- Handle lowercase
+	if not (flags & V_ALLOWLOWERCASE) then
 		str = str:upper()
 	end
-    flags = flags & ~V_ALLOWLOWERCASE
+	flags = flags & ~V_ALLOWLOWERCASE
 
-    -- Grab the relevant info (or build if new)
-    local ftable = cacheFont(v, font)
+	-- Get font
+	local ftable = cacheFont(v, font)
+	if not ftable then return end
 
-    -- Find maximum character height for line stepping, if line height was not already defined
-	if not lineHeight then
-		lineHeight = 0
+	-- Cache line height per font (do this once)
+	if not cacheShit.fontHeights then cacheShit.fontHeights = {} end
+	if not cacheShit.fontHeights[font] then
+		local h = 0
 		for _, info in pairs(ftable) do
-			if (info.patch and info.patch.valid) then
-				lineHeight = max(lineHeight, info.patch.height * FRACUNIT)
-			else
-				ftable = cacheFont(v, font, true)
+			if info.patch and info.patch.valid then
+				h = max(h, info.patch.height)
 			end
 		end
-	else
-		lineHeight = $ * scale
+		cacheShit.fontHeights[font] = h * FRACUNIT
 	end
 
-    local maxWidth = 320*FRACUNIT
+	lineHeight = lineHeight and (lineHeight * scale) or cacheShit.fontHeights[font]
 
-    local lines = {}
-    for line in str:gmatch("[^\n]+") do
-        table.insert(lines, line)
-    end
+	local maxWidth = 320*FRACUNIT
 
-    local wrappedLines = {}
-    
-    -- Function to measure string width
-    local function getWidth(str)
-        local totalWidth = 0
-        for i = 1, #str do
-            local info = ftable[str:byte(i)]
-            if info then
-                totalWidth = totalWidth + FixedMul(info.width * FRACUNIT, scale)
-            end
-        end
-        return totalWidth
-    end
+	-- Precompute glyph advances
+	if not cacheShit.fontAdvance then cacheShit.fontAdvance = {} end
+	if not cacheShit.fontAdvance[font] then
+		local adv = {}
+		for code, info in pairs(ftable) do
+			if info.width then
+				adv[code] = info.width * FRACUNIT
+			end
+		end
+		cacheShit.fontAdvance[font] = adv
+	end
+	local advance = cacheShit.fontAdvance[font]
 
-    for _, line in ipairs(lines) do
-        local words = {}
-        for w in line:gmatch("%S+") do 
-            table.insert(words, w) 
-        end
+	-- Helper: measure word once
+	local function measureWord(word)
+		local w = 0
+		for i = 1, #word do
+			local a = advance[word:byte(i)]
+			if a then
+				w = $ + FixedMul(a, scale)
+			end
+		end
+		return w
+	end
 
-        local current = ""
-        for _, w in ipairs(words) do
-            local test = (current == "" and w) or (current .. " " .. w)
-            if getWidth(test) <= maxWidth then
-                current = test
-            else
-                table.insert(wrappedLines, current)
-                current = w
-            end
-        end
+	-- Split lines
+	local rawLines = {}
+	for line in str:gmatch("[^\n]+") do
+		rawLines[#rawLines+1] = line
+	end
 
-        if current ~= "" then
-            table.insert(wrappedLines, current)
-        end
-    end
+	-- Wrap lines efficiently
+	local wrapped = {}
+	for _, line in ipairs(rawLines) do
+		local currentWords = {}
+		local currentWidth = 0
 
-    -- Apply maxChars limit if specified
-    if maxChars and maxChars > 0 then
-        local charCount = 0
-        local newWrapped = {}
-        local done = false
+		for word in line:gmatch("%S+") do
+			local wWidth = measureWord(word)
+			local spaceWidth = advance[32] and FixedMul(advance[32], scale) or 0
 
-        for _, line in ipairs(wrappedLines) do
-            if done then break end
-            local keep = ""
-            for i = 1, #line do
-                if charCount >= maxChars then
-                    done = true
-                    break
-                end
-                keep = keep .. line:sub(i, i)
-                charCount = charCount + 1
-            end
+			local newWidth = currentWidth
+			if #currentWords > 0 then
+				newWidth = $ + spaceWidth
+			end
+			newWidth = $ + wWidth
 
-            if #keep > 0 then
-                table.insert(newWrapped, keep)
-            elseif not done then
-                table.insert(newWrapped, "")
-            end
-        end
-        wrappedLines = newWrapped
-    end
+			if newWidth <= maxWidth then
+				currentWords[#currentWords+1] = word
+				currentWidth = newWidth
+			else
+				if #currentWords > 0 then
+					wrapped[#wrapped+1] = currentWords
+				end
+				currentWords = {word}
+				currentWidth = wWidth
+			end
+		end
 
-    -- Draw all wrapped lines (keeping the original rendering logic)
-    for _, line in ipairs(wrappedLines) do
-        -- compute total width for alignment
-        local totalWidth = 0
-        for i = 1, #line do
-            local info = ftable[line:byte(i)]
-            if info then
-                totalWidth = totalWidth + FixedMul(info.width * FRACUNIT, scale)
-            end
-        end
+		if #currentWords > 0 then
+			wrapped[#wrapped+1] = currentWords
+		end
+	end
 
-        -- adjust x for alignment
-        local xpos = x
-        if alignment == "center" then
-            xpos = xpos - totalWidth / 2
-        elseif alignment == "right" then
-            xpos = xpos - totalWidth
-        end
+	-- Apply maxChars limit
+	if maxChars and maxChars > 0 then
+		local count = 0
+		local newWrapped = {}
+		local done = false
 
-        -- draw each char
-        for i = 1, #line do
-            local code = line:byte(i)
-            local info = ftable[code]
-            if info then
-                local pname = info.patchname
-                if pname and patchExists(v, tostring(pname)) then
-                    v.drawScaled(xpos, y, scale, info.patch, flags, cmap)
-                end
-                xpos = xpos + FixedMul(info.width * FRACUNIT, scale)
-                
-                -- DOOM-style: stop if we hit screen edge
-                if xpos > maxWidth then
-                    break
-                end
-            end
-        end
+		for _, words in ipairs(wrapped) do
+			if done then break end
 
-        -- Move to next line
-        y = y + FixedMul(lineHeight, scale)
-    end
+			local newWords = {}
+			for _, word in ipairs(words) do
+				if done then break end
+
+				local cut = ""
+				for i = 1, #word do
+					if count >= maxChars then
+						done = true
+						break
+					end
+					cut = cut .. word:sub(i,i)
+					count = $ + 1
+				end
+
+				if #cut > 0 then
+					newWords[#newWords+1] = cut
+				end
+			end
+
+			if #newWords > 0 then
+				newWrapped[#newWrapped+1] = newWords
+			end
+		end
+
+		wrapped = newWrapped
+	end
+
+	-- === RENDER ===
+	for _, words in ipairs(wrapped) do
+		-- Compute total width once
+		local totalWidth = 0
+		local spaceWidth = advance[32] and FixedMul(advance[32], scale) or 0
+
+		for i = 1, #words do
+			totalWidth = $ + measureWord(words[i])
+			if i < #words then
+				totalWidth = $ + spaceWidth
+			end
+		end
+
+		-- Alignment
+		local xpos = x
+		if alignment == "center" then
+			xpos = xpos - totalWidth/2
+		elseif alignment == "right" then
+			xpos = xpos - totalWidth
+		end
+
+		-- Draw words/characters
+		for wi = 1, #words do
+			local word = words[wi]
+
+			for i = 1, #word do
+				local code = word:byte(i)
+				local info = ftable[code]
+
+				if info and info.patch then
+					v.drawScaled(xpos, y, scale, info.patch, flags, cmap)
+					xpos = xpos + FixedMul(advance[code], scale)
+				end
+
+				if xpos > maxWidth then break end
+			end
+
+			-- Space between words
+			if wi < #words then
+				xpos = xpos + spaceWidth
+			end
+		end
+
+		y = y + FixedMul(lineHeight, scale)
+	end
 end)
 
 -- Bresenham-based line drawing (with bailout)

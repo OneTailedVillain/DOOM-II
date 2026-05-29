@@ -1,5 +1,8 @@
 doom.addAmmo("none", {
-	max = -1
+	max = -1,
+	pickupamount = 0,
+	smallpickupName = "none",
+	bigpickupName = "nothing"
 })
 
 doom.addAmmo("bullets", {

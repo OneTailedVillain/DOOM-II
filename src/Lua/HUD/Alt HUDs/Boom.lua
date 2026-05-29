@@ -216,6 +216,23 @@ local function drawBOOMString(v, x, y, str, cr, f)
     end
 end
 
+function doom.getFrags(player)
+	local fragcount = 0
+	for otherplayer in players.iterate() do
+		if otherplayer.spectator then continue end
+
+		local fragdiffs
+		local frags = player.doom.frags[#otherplayer] or 0
+		if #player != #otherplayer then
+			fragdiffs = frags
+		else
+			fragdiffs = -frags
+		end
+		fragcount = $ + fragdiffs
+	end
+	return fragcount
+end
+
 ---@param v videolib
 ---@param player player_t
 local function DoBOOMHud(v, player)
@@ -344,9 +361,9 @@ local function DoBOOMHud(v, player)
 
 		hud_armorstr = $ .. armorstr
 
-		local health_red = hudPref.t_health_red
-		local health_yellow = hudPref.t_health_yellow
-		local health_green = hudPref.t_health_green
+		local health_red = tonumber(hudPref.t_health_red) or 25
+		local health_yellow = tonumber(hudPref.t_health_yellow) or 50
+		local health_green = tonumber(hudPref.t_health_green) or 100
 
 		if healthpct < health_red then
 			w_armor.cr = CR_RED
@@ -452,19 +469,7 @@ local function DoBOOMHud(v, player)
 			for player in players.iterate() do
 				if player.spectator then continue end
 
-				fragcount = 0
-				for otherplayer in players.iterate() do
-					if otherplayer.spectator then continue end
-
-					local fragdiffs
-					local frags = player.doom.frags[#otherplayer] or 0
-					if #player != #otherplayer then
-						fragdiffs = frags
-					else
-						fragdiffs = -frags
-					end
-					fragcount = $ + fragdiffs
-				end
+				fragcount = doom.getFrags(player)
 
 				if fragcount > top1 then
 					top4 = top3

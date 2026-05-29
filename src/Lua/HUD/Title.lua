@@ -542,9 +542,14 @@ local function drawMenuEntry(v, entry, x, y)
 	end
 end
 
+local lastleveltime
+
 ---@param v videolib
 local function DrawTitleScreen(v, player)
-	hudtime = hudtime + 1
+	if lastleveltime != leveltime then
+		hudtime = hudtime + 1
+		lastleveltime = leveltime
+	end
 
 	local currentMenuKey = menustatus.menu
 	local menuDef = doom.titlemenus[currentMenuKey]
@@ -621,6 +626,8 @@ hud.add(function(v, player)
 		DrawTitleScreen(v, consoleplayer)
 	end
 end, "title")
+
+doom.DrawTitleScreen = DrawTitleScreen
 
 hud.add(function(v, player)
 	DrawTitleScreen(v, player)

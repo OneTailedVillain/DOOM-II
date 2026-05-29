@@ -2,6 +2,7 @@ local hudDir = "HUD/Alt HUDs/"
 
 local doBOOMHud = dofile(hudDir .. "Boom.lua")
 local srb2hud = dofile(hudDir .. "SRB2.lua")
+local doomleghud = dofile(hudDir .. "DOOM Legacy.lua")
 
 -- Table of face sprite names in Doom IWAD order
 local st_faces = {
@@ -217,27 +218,36 @@ local function drawBigNum(v, x, y, num, maxnum, thresholdset, flags, percent, pl
     local offsetpatch = v.cachePatch("STTNUM0")
     local offset = offsetpatch.width
 
-    -- Calculate percent for color thresholds
-    local numpct = (maxnum == 0) and 100 or (num * 100) / maxnum
+	local digitColor = "R"
+    local numberColorization
+    local grayPercenting
+	local numpct
+	local t_red, t_yellow, t_green = 0, 0, 0
 
-    -- Access HUD threshold config via new system
-    local t_red, t_yellow, t_green = 0, 0, 0
-    if thresholdset == "ammo" then
-        t_red    = DOOM_GetConfigResolveValue(player, "t_ammo_red") or 25
-        t_yellow = DOOM_GetConfigResolveValue(player, "t_ammo_yellow") or 50
-    elseif thresholdset == "health" then
-        t_red    = DOOM_GetConfigResolveValue(player, "t_health_red") or 25
-        t_yellow = DOOM_GetConfigResolveValue(player, "t_health_yellow") or 50
-        t_green  = DOOM_GetConfigResolveValue(player, "t_health_green") or 100
-    elseif thresholdset == "armor" then
-        t_red    = DOOM_GetConfigResolveValue(player, "t_armor_red") or 25
-        t_yellow = DOOM_GetConfigResolveValue(player, "t_armor_yellow") or 50
-        t_green  = DOOM_GetConfigResolveValue(player, "t_armor_green") or 100
-    end
+	if not maxnum or not thresholdset then
+		numberColorization = 0
+		grayPercenting = 0
+	else
+		-- Calculate percent for color thresholds
+		numpct = (maxnum == 0) and 100 or (num * 100) / maxnum
 
-    local digitColor = "R"
-    local numberColorization = DOOM_GetConfigResolveValue(player, "hudColorization") or 0
-    local grayPercenting = DOOM_GetConfigResolveValue(player, "hudGrayPercenting") or 0
+		-- Access HUD threshold config via new system
+		if thresholdset == "ammo" then
+			t_red    = DOOM_GetConfigResolveValue(player, "t_ammo_red") or 25
+			t_yellow = DOOM_GetConfigResolveValue(player, "t_ammo_yellow") or 50
+		elseif thresholdset == "health" then
+			t_red    = DOOM_GetConfigResolveValue(player, "t_health_red") or 25
+			t_yellow = DOOM_GetConfigResolveValue(player, "t_health_yellow") or 50
+			t_green  = DOOM_GetConfigResolveValue(player, "t_health_green") or 100
+		elseif thresholdset == "armor" then
+			t_red    = DOOM_GetConfigResolveValue(player, "t_armor_red") or 25
+			t_yellow = DOOM_GetConfigResolveValue(player, "t_armor_yellow") or 50
+			t_green  = DOOM_GetConfigResolveValue(player, "t_armor_green") or 100
+		end
+
+		numberColorization = DOOM_GetConfigResolveValue(player, "hudColorization") or 0
+		grayPercenting = DOOM_GetConfigResolveValue(player, "hudGrayPercenting") or 0
+	end
 
     if numberColorization ~= 0 then
         if t_green then
@@ -313,51 +323,55 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 
 	drawBigNum(v, 90, 171, myHealth, myMaxHealth, "health", V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, true, player)
 
-	if player.doom.prefs.weaponlightupbehavior == "Original" then
-		local whatToCheck = {
-			"brassknuckles",
-			"pistol",
-			"shotgun",
-			"chaingun",
-			"rocketlauncher",
-			"plasmarifle",
-			"bfg9000"
-		}
-		for i = 0, 5 do
-			local whatToIndex = whatToCheck[i + 2]
-			local doIHaveIt = funcs.hasWeapon(player, whatToIndex)
-			local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
-			drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
-		end
-	else
-		local wepcats = {
-			[2] = {},
-			[3] = {},
-			[4] = {},
-			[5] = {},
-			[6] = {},
-			[7] = {}
-		}
-
-		---@param wepdef weapondef_t
-		for wepname, wepdef in ipairs(doom.weapons) do
-			if wepdef.weaponslot and wepdef.weaponslot >= 2 and wepdef.weaponslot <= 7 then
-				wepcats[wepdef.weaponslot][wepname] = true
+	if not G_RingSlingerGametype() then
+		if player.doom.prefs.weaponlightupbehavior == "Original" then
+			local whatToCheck = {
+				"brassknuckles",
+				"pistol",
+				"shotgun",
+				"chaingun",
+				"rocketlauncher",
+				"plasmarifle",
+				"bfg9000"
+			}
+			for i = 0, 5 do
+				local whatToIndex = whatToCheck[i + 2]
+				local doIHaveIt = funcs.hasWeapon(player, whatToIndex)
+				local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
+				drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
 			end
-		end
+		else
+			local wepcats = {
+				[2] = {},
+				[3] = {},
+				[4] = {},
+				[5] = {},
+				[6] = {},
+				[7] = {}
+			}
 
-		for i = 0, 5 do
-			local whatToIndex = i + 2
-			local doIHaveAWeaponInThisSlot = false
-			for wepname, _ in pairs(wepcats[whatToIndex]) do
-				if funcs.hasWeapon(player, wepname) then
-					doIHaveAWeaponInThisSlot = true
-					break
+			---@param wepdef weapondef_t
+			for wepname, wepdef in pairs(doom.weapons) do
+				if wepdef.weaponslot and wepdef.weaponslot >= 2 and wepdef.weaponslot <= 7 then
+					wepcats[wepdef.weaponslot][wepname] = true
 				end
 			end
-			local whatFont = doIHaveAWeaponInThisSlot and "STYSNUM" or "STGNUM"
-			drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
+
+			for i = 0, 5 do
+				local whatToIndex = i + 2
+				local doIHaveAWeaponInThisSlot = false
+				for wepname, _ in pairs(wepcats[whatToIndex]) do
+					if funcs.hasWeapon(player, wepname) then
+						doIHaveAWeaponInThisSlot = true
+						break
+					end
+				end
+				local whatFont = doIHaveAWeaponInThisSlot and "STYSNUM" or "STGNUM"
+				drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
+			end
 		end
+	else
+		drawBigNum(v, 138, 171, doom.getFrags(player), false, nil, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, false, player)
 	end
 
 	if noSBar then
@@ -491,7 +505,9 @@ local function drawStatusBar(v, player, hudPref)
 			xOffset = -53
 		end
 		v.draw(xOffset, 168, statusBarPatch, V_PERPLAYER|V_SNAPTOBOTTOM)
-		v.draw(104, 168, v.cachePatch("STARMS"), V_PERPLAYER|V_SNAPTOBOTTOM)
+		if not G_RingSlingerGametype() then
+			v.draw(104, 168, v.cachePatch("STARMS"), V_PERPLAYER|V_SNAPTOBOTTOM)
+		end
 	end
 	if netgame then
 		v.draw(143, 169, v.cachePatch("STFB0"), V_PERPLAYER|V_SNAPTOBOTTOM, v.getColormap("johndoom", player.mo.color))
@@ -527,6 +543,23 @@ doom.hudWeaponOffsets = {
 	[6] = 38,
 	[7] = 38,
 }
+
+local function drawDoomLegacyHud(v, player)
+	local funcs = P_GetMethodsForSkin(player)
+
+	local myHealth = funcs.getHealth(player) or 0
+	local myArmor  = funcs.getArmor(player) or 0
+	local myAmmo   = funcs.getCurAmmo(player)
+	local myFrags  = (doom.getFrags and doom.getFrags(player)) or 0
+	local myWeapon = player.doom and (player.doom.curwep or player.readyweapon) or player.readyweapon or 0
+	local myKeys   = player.doom and (player.doom.keys or 0) or 0
+
+	doomleghud.keys(v, player, myKeys)
+	doomleghud.ammo(v, player, myAmmo, myWeapon)
+	doomleghud.health(v, player, myHealth)
+	doomleghud.armor(v, player, myArmor)
+	doomleghud.frags(v, player, myFrags)
+end
 
 hud.add(function(v, player)
 	hud.disable("score")
@@ -564,7 +597,7 @@ hud.add(function(v, player)
 	if player.doom.message and player.doom.messageclock then
 		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
-	if support.noHUD then
+	if support.noHUD or (support.properties and support.properties.noHUD) then
 		DrawFlashes(v, player)
 		if not support.noWeapons then
 			drawWeapon(v, player, 38)
@@ -590,14 +623,16 @@ hud.add(function(v, player)
 	end
 
 
-	local hudPref = DOOM_GetConfigStoreValue(player, "hudstyle") or 0
+	local hudPref = tonumber(DOOM_GetConfigStoreValue(player, "hudstyle")) or 1
 	local isActuallyBoom = hudPref <= 5 and hudPref > 1
 
-	drawWeapon(v, player, doom.hudWeaponOffsets[hudPref])
+	drawWeapon(v, player, doom.hudWeaponOffsets[hudPref] or 38)
 
-	if isActuallyBoom then
+	if hudPref == 8 then
+		drawDoomLegacyHud(v, player)
+	elseif isActuallyBoom then
 		doBOOMHud(v, player)
-	elseif
+	else
 		drawStatusBar(v, player, hudPref)
 	end
 	DrawFlashes(v, player)
@@ -611,3 +646,178 @@ hud.add(function(v, player)
 	end
 	doom.patchesLoaded = true
 end, "game")
+
+local patchcache = {}
+
+local function getPatch(v, name)
+	local p = patchcache[name]
+	if not p then
+		p = v.cachePatch(name)
+		patchcache[name] = p
+	end
+	return p
+end
+
+local function getWeaponSelectYOffset(delay)
+	local q = delay or 0
+	local del = 0
+	local p = 16
+
+	while q > 0 do
+		if q > p then
+			del = $ + p
+			q = (q - p) / 2
+			if p > 1 then
+				p = p / 2
+			end
+		else
+			del = $ + q
+			break
+		end
+	end
+
+	return del
+end
+
+local function getCurrentWeaponDelay(player)
+	local psp = DOOM_GetPSprite(player, PSP_WEAPON)
+	local wepDef = DOOM_GetWeaponDef(player)
+
+	if not psp or not wepDef then
+		return 0
+	end
+
+	-- Only animate the cursor while the weapon is in its attack state.
+	if psp.state ~= "attack" then
+		return 0
+	end
+
+	local attack = wepDef.states and wepDef.states.attack
+	if not attack then
+		return 0
+	end
+
+	local delay = psp.tics or 0
+	local frame = (psp.frame or 1) + 1
+
+	for i = frame, #attack do
+		delay = $ + (attack[i].tics or 0)
+	end
+
+	return delay
+end
+
+local function drawWeaponSelect(v, xoffs, y, delay)
+	local del = getWeaponSelectYOffset(delay)
+	v.draw(6 + xoffs, y - 2 - (del / 2), v.cachePatch("CURWEAP"), V_PERPLAYER|V_SNAPTOBOTTOM)
+end
+
+---@param v videolib
+hud.add(function(v, player)
+	local funcs = P_GetMethodsForSkin(player)
+	local ammo = funcs.getCurAmmo(player)
+	local weapon = player.doom.curwep
+	local weaponDelay = getCurrentWeaponDelay(player)
+	local health = funcs.getHealth(player)
+	local armor = funcs.getArmor(player)
+
+	local hudflags = V_PERPLAYER|V_SNAPTOTOP|V_SNAPTOLEFT
+	v.draw(17, 11, v.cachePatch("STTHEALT"), hudflags)
+	drawInFont(v, (100) * FRACUNIT, (11) * FRACUNIT, FRACUNIT, "S2FONT", tostring(health) .. "%", hudflags, "right")
+	v.draw(17, 11 + 16, v.cachePatch("STTARMOR"), hudflags)
+	drawInFont(v, (100) * FRACUNIT, (11 + 16) * FRACUNIT, FRACUNIT, "S2FONT", tostring(armor) .. "%", hudflags, "right")
+
+
+	if altArmsDisplay then
+		drawInFont(v, 248 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", "ARMS", V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+		if ammo ~= false then
+			local myWep = doom.weapons[weapon]
+			local myAmmoType = myWep and myWep.ammotype
+			local myAmmoDef = doom.ammos[myAmmoType]
+
+			drawInFont(v, 32 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", tostring(myAmmoDef.name), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+			drawInFont(v, 48 * FRACUNIT, 184 * FRACUNIT, FRACUNIT, "SRBFN", tostring(ammo), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+			v.draw(16 + 22, 176 + 10, getPatch(v, "STLIVEX"), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+
+			if myAmmoDef and myAmmoDef.icon then
+				v.draw(16, 176, getPatch(v, myAmmoDef.icon), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM)
+			end
+		end
+	else
+		local shit = {
+			{"matchring", "rs_brassknuckles"},
+			{"automaticring"},
+			{"homingring", "bouncering"},
+			{"scatterring"},
+			{"grenadering"},
+			{"explosionring"},
+			{"railring"}
+		}
+
+		local ypos = 176
+		local xpos = (BASEVIDWIDTH / 2) - (7 * 10) - 6
+
+		for slot, entries in ipairs(shit) do
+			local weaponcount = 0
+
+			for _, name in ipairs(entries) do
+				local myWep = doom.weapons[name]
+				if not myWep then
+					continue
+				end
+
+				local myAmmoType = myWep.ammotype
+				local iHasIt = player.doom.weapons[name]
+				local ammolessWeapon = myWep.shotcost <= 0
+
+				if not iHasIt and not player.doom.ammo[myAmmoType] then
+					continue
+				end
+
+				local flags = V_SNAPTOBOTTOM
+				local textflags = V_SNAPTOBOTTOM
+				local max = funcs.getMaxFor(player, myAmmoType) or 0
+				local cur = player.doom.ammo[myAmmoType] or 0
+
+				if not ammolessWeapon then
+					if cur >= max then
+						textflags = $|V_YELLOWMAP
+					end
+				end
+
+				if not iHasIt then
+					flags = $|V_80TRANS
+					textflags = $|V_TRANSLUCENT
+				elseif not cur then
+					flags = $|V_TRANSLUCENT
+					textflags = false
+				end
+
+				if ammolessWeapon then
+					textflags = false
+				end
+
+				local x = xpos + ((slot - 1) * 20)
+				local y = ypos - (weaponcount * 20)
+
+				v.draw(x, y, v.cachePatch(myWep.user_johnringslingericon), flags)
+
+				if name == player.doom.curwep then
+					drawWeaponSelect(v, x - 8, y, weaponDelay)
+				end
+
+				weaponcount = $ + 1
+
+				if not textflags then
+					continue
+				end
+
+				local translation = nil
+				if (textflags & V_YELLOWMAP) then
+					translation = "SRB2YELLOWMAP"
+				end
+				drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
+			end
+		end
+	end
+end)

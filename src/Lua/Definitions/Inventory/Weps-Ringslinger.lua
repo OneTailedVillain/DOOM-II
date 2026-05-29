@@ -40,7 +40,8 @@ end
 doom.addWeapon("infinityring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
-    order = 3,
+	user_johnringslingericon = "INFNIND",
+    order = 1,
     damage = {25, 25},
     noinitfirespread = true,
     pellets = 1,
@@ -52,7 +53,8 @@ doom.addWeapon("infinityring", {
 doom.addWeapon("matchring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
-    order = 4,
+	user_johnringslingericon = "RINGIND",
+    order = 2,
     damage = {15, 15},
     noinitfirespread = true,
     pellets = 1,
@@ -62,9 +64,49 @@ doom.addWeapon("matchring", {
     ammotype = "bullets",
 })
 
+doom.addWeapon("rs_brassknuckles", {
+	sprite = SPR_PUNG,
+	weaponslot = 1,
+	user_johnringslingericon = "RINGIND",
+	order = 3,
+	priority = 3700,
+	damage = {2, 20},
+	raycaster = true,
+	wimpyweapon = true,
+	hitsound = sfx_punch,
+	pellets = 1,
+	shotcost = 0,
+	anglesnapbehavior = "fists",
+	carouselicon = "SMFIST",
+	spread = {
+		horiz = FRACUNIT*59/10,
+		vert = 0,
+	},
+	states = {
+		idle = {
+			{frame = A, tics = 1, action = A_DoomWeaponReady},
+		},
+		lower = {
+			{frame = A, tics = 1, action = A_DoomLower}
+		},
+		raise = {
+			{frame = A, tics = 1, action = A_DoomRaise}
+		},
+		attack = {
+			{frame = B, tics = 4},
+			{frame = C, tics = 4, action = A_DoomPunch},
+			{frame = D, tics = 5},
+			{frame = C, tics = 4},
+			{frame = B, tics = 5, action = A_DoomReFire},
+		}
+	},
+	ammotype = "none",
+})
+
 doom.addWeapon("automaticring", {
     sprite = SPR_WRNG,
     weaponslot = 2,
+	user_johnringslingericon = "AUTOIND",
     order = 2,
     damage = {8, 8},
     noinitfirespread = true,
@@ -79,6 +121,7 @@ doom.addWeapon("automaticring", {
 doom.addWeapon("bouncering", {
     sprite = SPR_WRNG,
     weaponslot = 3,
+	user_johnringslingericon = "BNCEIND",
     order = 3,
     damage = {17, 17},
 	shotcost = 2,
@@ -95,6 +138,7 @@ doom.addWeapon("bouncering", {
 doom.addWeapon("scatterring", {
     sprite = SPR_WRNG,
     weaponslot = 4,
+	user_johnringslingericon = "SCATIND",
     order = 2,
     damage = {19, 19},
     noinitfirespread = true,
@@ -232,6 +276,7 @@ doom.addWeapon("scatterring", {
 doom.addWeapon("grenadering", {
     sprite = SPR_WRNG,
     weaponslot = 5,
+	user_johnringslingericon = "GRENIND",
     order = 2,
     damage = {15, 15}, -- Relies on blast damage
     noinitfirespread = true,
@@ -247,6 +292,7 @@ doom.addWeapon("grenadering", {
 doom.addWeapon("explosionring", {
     sprite = SPR_WRNG,
     weaponslot = 6,
+	user_johnringslingericon = "BOMBIND",
     order = 2,
     damage = {4, 4}, -- Relies on blast damage
     noinitfirespread = true,
@@ -261,6 +307,7 @@ doom.addWeapon("explosionring", {
 doom.addWeapon("railring", {
     sprite = SPR_WRNG,
     weaponslot = 7,
+	user_johnringslingericon = "RAILIND",
     order = 2,
     damage = {250, 250},
 	shotcost = 20,
@@ -726,6 +773,7 @@ addHook("MobjThinker", HomingRingThinker, MT_DOOM_THROWNHOMING)
 doom.addWeapon("homingring", {
     sprite = SPR_WRNG,
     weaponslot = 3,
+	user_johnringslingericon = "HOMGIND",
     order = 4,
     damage = {19, 19},
 	shotcost = 2,
@@ -736,3 +784,32 @@ doom.addWeapon("homingring", {
     states = setupWeaponDelay(TICRATE/4, I),
     ammotype = "cells",
 })
+
+-- At the bottom of your weapon definitions file
+local function finalizeWeaponDelays()
+    local weaponsToProcess = {
+        "infinityring", "matchring", "rs_brassknuckles", 
+        "automaticring", "bouncering", "scatterring", 
+        "grenadering", "explosionring", "railring", "homingring"
+    }
+    
+    for _, wepname in ipairs(weaponsToProcess) do
+        local weapon = doom.weapons[wepname]
+        if weapon then
+            local delay = nil
+
+            if weapon.states and weapon.states.attack then
+            	delay = 0
+        		for _, frame in ipairs(weapon.states.attack) do
+            		delay = delay + (frame.tics or 0)
+        		end
+            end
+
+            if delay and delay > 0 then
+                weapon.user_firedelay = delay
+            end
+        end
+    end
+end
+
+finalizeWeaponDelays()

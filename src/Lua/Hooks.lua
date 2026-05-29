@@ -63,22 +63,22 @@ local SLOWDARK = 35
 
 local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
 
-    local flash = {
-        type = "strobe",
-        darktime = fastOrSlow,
-        brighttime = STROBEBRIGHT,
-        maxlight = sector.lightlevel,
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        count = 0
-    }
+	local flash = {
+		type = "strobe",
+		darktime = fastOrSlow,
+		brighttime = STROBEBRIGHT,
+		maxlight = sector.lightlevel,
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		count = 0
+	}
 
-    if flash.minlight == flash.maxlight then
-        flash.minlight = 0
-    end
+	if flash.minlight == flash.maxlight then
+		flash.minlight = 0
+	end
 
-    flash.count = inSync and 1 or ((DOOM_Random() & 7) + 1)
+	flash.count = inSync and 1 or ((DOOM_Random() & 7) + 1)
 
-    DOOM_AddThinker(sector, flash)
+	DOOM_AddThinker(sector, flash)
 end
 
 local SCROLL_SHIFT = 5
@@ -116,28 +116,28 @@ doom.onMaploadHandlers = {
 
 local function P_SpawnGlowingLight(sector)
 
-    local glow = {
-        type = "glow",
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        maxlight = sector.lightlevel,
-        direction = -1
-    }
+	local glow = {
+		type = "glow",
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		maxlight = sector.lightlevel,
+		direction = -1
+	}
 
-    DOOM_AddThinker(sector, glow)
+	DOOM_AddThinker(sector, glow)
 end
 
 local function P_SpawnLightFlash(sector)
 
-    local flash = {
-        type = "flash",
-        maxlight = sector.lightlevel,
-        minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
-        maxtime = 64,
-        mintime = 7,
-        count   = (DOOM_Random() & 64) + 1,
-    }
+	local flash = {
+		type = "flash",
+		maxlight = sector.lightlevel,
+		minlight = P_FindMinSurroundingLight(sector, sector.lightlevel),
+		maxtime = 64,
+		mintime = 7,
+		count   = (DOOM_Random() & 64) + 1,
+	}
 
-    DOOM_AddThinker(sector, flash)
+	DOOM_AddThinker(sector, flash)
 end
 
 local function SkillMaskFor(skill)
@@ -306,10 +306,10 @@ addHook("MapLoad", function(mapid)
 		-- "unfortunately the game is an asshole and sets"
 		-- "[the multiplayer] spawnpoint mapthing IDs to zero, ambiguating them"
 		-- There is literally no way to know exactly what mapthing ID is what,
-		-- So they're all mapthing 33 now :3
+		-- So they're all mapthing 34 now :3
 		if not tth_doombuild then
 			if mthing.type == 0 then
-				mthing.type = 33
+				mthing.type = 34
 			end
 		end
 
@@ -381,7 +381,9 @@ addHook("MapLoad", function(mapid)
 
 	for player in players.iterate do
 		player.doom = $ or {}
-		player.doom.killcount = 0
+		player.doom.kills = 0
+		player.doom.secrets = 0
+		player.doom.items = 0
 		player.doom.intstate = -1
 		player.doom.notrigger = 0
 		player.doom.frags = {}
@@ -612,7 +614,7 @@ local function BuildStairs(startsec, stairsize, speed)
 		local floorTemplate = {
 			type = "floor",   -- thinker type
 			speed = speed,
-			target = dest,    -- final floor height
+			target = dest,	-- final floor height
 			action = "raise", -- default action
 		}
 
@@ -650,23 +652,23 @@ local function BuildStairs(startsec, stairsize, speed)
 end
 
 local function FindNextHighestFromBackups(sec, curHeight)
-    local best = curHeight
+	local best = curHeight
 
-    for i = 0, #sec.lines-1 do
-        local other = getNextSector(sec.lines[i], sec)
-        if other then
-            local h = doom.sectorbackups[other].lastTicFloorHeight
+	for i = 0, #sec.lines-1 do
+		local other = getNextSector(sec.lines[i], sec)
+		if other then
+			local h = doom.sectorbackups[other].lastTicFloorHeight
 			if h == nil then
 				h = other.floorheight
 			end
-			print("Considering floorheight " .. h/FRACUNIT .. " compared to " .. best/FRACUNIT .. "...")
-            if h > best then
-                best = h
-            end
-        end
-    end
 
-    return best
+			if h > best then
+				best = h
+			end
+		end
+	end
+
+	return best
 end
 
 /*
@@ -675,18 +677,18 @@ end
 //
 boolean PIT_ChangeSector (mobj_t*	thing)
 {
-    mobj_t*	mo;
+	mobj_t*	mo;
 
-    if (P_ThingHeightClip (thing))
-    {
+	if (P_ThingHeightClip (thing))
+	{
 	// keep checking
 	return true;
-    }
+	}
 
 
-    // crunch bodies to giblets
-    if (thing->health <= 0)
-    {
+	// crunch bodies to giblets
+	if (thing->health <= 0)
+	{
 	P_SetMobjState (thing, S_GIBS);
 
 	thing->flags &= ~MF_SOLID;
@@ -695,27 +697,27 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 
 	// keep checking
 	return true;
-    }
+	}
 
-    // crunch dropped items
-    if (thing->flags & MF_DROPPED)
-    {
+	// crunch dropped items
+	if (thing->flags & MF_DROPPED)
+	{
 	P_RemoveMobj (thing);
 
 	// keep checking
 	return true;
-    }
+	}
 
-    if (! (thing->flags & MF_SHOOTABLE) )
-    {
+	if (! (thing->flags & MF_SHOOTABLE) )
+	{
 	// assume it is bloody gibs or something
 	return true;
-    }
+	}
 
-    nofit = true;
+	nofit = true;
 
-    if (crushchange && !(leveltime&3) )
-    {
+	if (crushchange && !(leveltime&3) )
+	{
 	P_DamageMobj(thing,NULL,NULL,10);
 
 	// spray blood in a random direction
@@ -725,10 +727,10 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 
 	mo->momx = (P_Random() - P_Random ())<<12;
 	mo->momy = (P_Random() - P_Random ())<<12;
-    }
+	}
 
-    // keep checking (crush other things)
-    return true;
+	// keep checking (crush other things)
+	return true;
 }
 */
 
@@ -751,7 +753,6 @@ local function PIT_ChangeSector(thing, crushchange)
 
 	if P_ThingHeightClipCheck(thing) then
 		// keep checking
-		print("fail clip check")
 		return true
 	end
 
@@ -1590,33 +1591,33 @@ end
 
 -- compact_thinkerlist: just compacts the numeric list (no single-map; multiple per userdata allowed)
 local function compact_thinkerlist()
-    local newlist = {}
-    local n = 0
-    for i = 1, #doom.thinkerlist do
-        local entry = doom.thinkerlist[i]
-        if entry and entry.active and entry.userdata and entry.data then
-            n = n + 1
-            newlist[n] = entry
-        end
-    end
-    doom.thinkerlist = newlist
+	local newlist = {}
+	local n = 0
+	for i = 1, #doom.thinkerlist do
+		local entry = doom.thinkerlist[i]
+		if entry and entry.active and entry.userdata and entry.data then
+			n = n + 1
+			newlist[n] = entry
+		end
+	end
+	doom.thinkerlist = newlist
 end
 
 -- ThinkFrame: iterate entries, set current entry so DOOM_StopThinker(sector) inside a thinker
 -- stops the current entry only (rather than all entries for that userdata).
 addHook("ThinkFrame", function()
-    for i = 1, #doom.thinkerlist do
-        local entry = doom.thinkerlist[i]
-        if entry and entry.active and entry.userdata and entry.data then
-            -- set current thinker context so DOOM_StopThinker(userdata) can infer the right entry
-            doom._current_thinker_entry = entry
-            -- call the existing iterator (unchanged)
-            thinkFrameIterator(entry.userdata, entry.data, "thinkers")
-            doom._current_thinker_entry = nil
-        end
-    end
+	for i = 1, #doom.thinkerlist do
+		local entry = doom.thinkerlist[i]
+		if entry and entry.active and entry.userdata and entry.data then
+			-- set current thinker context so DOOM_StopThinker(userdata) can infer the right entry
+			doom._current_thinker_entry = entry
+			-- call the existing iterator (unchanged)
+			thinkFrameIterator(entry.userdata, entry.data, "thinkers")
+			doom._current_thinker_entry = nil
+		end
+	end
 
-    compact_thinkerlist()
+	compact_thinkerlist()
 end)
 
 addHook("ThinkFrame", function()
@@ -1636,7 +1637,7 @@ addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if not player.mo then return end
 		if player.mo.doom.flags & DF_SHADOW then
-            if not P_GetSupportsForSkin(player).noPartialInvisEffect then
+			if not P_GetSupportsForSkin(player).noPartialInvisEffect then
 				player.mo.frame = $ | FF_ADD | FF_TRANS10
 			end
 		end

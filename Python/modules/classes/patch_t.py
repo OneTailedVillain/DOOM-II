@@ -203,7 +203,7 @@ def toPatchClass(data: bytes) -> patch_t:
     Parse a raw Doom patch lump into a patch_t.
     """
     width, height, leftoffset, topoffset = struct.unpack_from("<HHhh", data, 0)
-    columnofs = struct.unpack_from(f"<{width}I", data, 8)
+    columnofs = struct.unpack_from(f"<{width}I", data, 8)  # Use 'width', not 'self.width'
 
     patch = patch_t(width, height, leftoffset, topoffset)
 

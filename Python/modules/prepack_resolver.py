@@ -304,6 +304,9 @@ def compile_prepack_rules(
 
 PREPACK_RULES = compile_prepack_rules(PACK_FIRST_PREPACK_RULES)
 
+# Track which rules have already had their hashes dumped
+_DUMPED_RULES: Set[Tuple[str, str]] = set()  # (weapon_key, rule_pack)
+
 # -----------------------------------------------------------------------------
 # Hashing / lookup helpers
 # -----------------------------------------------------------------------------
@@ -317,7 +320,7 @@ def _get_lump_container(wad: Any, name: str) -> Optional[Any]:
 	container = getattr(wad, name, None)
 	return container if isinstance(container, dict) else None
 
-def dump_failed_rule_hashes(wad: Any, rule: PrepackRule) -> str:
+def dump_failed_rule_hashes(wad: Any, rule: PrepackRule, weapon_key: str) -> str:
 	"""Return a JSON-like dump of the hashes for one failed rule.
 
 	Format:
@@ -327,6 +330,16 @@ def dump_failed_rule_hashes(wad: Any, rule: PrepackRule) -> str:
 		"SHOTB0": ["<sha256>"]
 	  }
 	"""
+	global _DUMPED_RULES
+	
+	# Check if we've already dumped this rule
+	rule_id = (weapon_key, rule.pack)
+	if rule_id in _DUMPED_RULES:
+		return ""
+	
+	# Mark as dumped
+	_DUMPED_RULES.add(rule_id)
+	
 	payload: Dict[str, List[str]] = {}
 
 	for lump_name in rule.expected.keys():
@@ -505,15 +518,23 @@ def resolve_prepacked_carousel(
 		)
 		return True, rule.pack, installed
 
-	if True:
-		for rule in rules:
-			if not _any_expected_lumps_exist(wad, rule):
-				continue
+	# Dump hashes for non-matching rules (only once per rule set)
+	for rule in rules:
+		if not _any_expected_lumps_exist(wad, rule):
+			continue
 
+		dump_output = dump_failed_rule_hashes(wad, rule, weapon_key)
+		if dump_output:  # Only print if we haven't dumped this rule before
 			print(f"# Failed rule: {weapon_key} / {rule.pack}")
-			print(dump_failed_rule_hashes(wad, rule))
+			print(dump_output)
 
 	return False, "", []
+
+
+def reset_dumped_rules():
+	"""Reset the dumped rules tracking (useful for testing)."""
+	global _DUMPED_RULES
+	_DUMPED_RULES.clear()
 
 
 # -----------------------------------------------------------------------------

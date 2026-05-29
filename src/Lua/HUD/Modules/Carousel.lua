@@ -266,6 +266,7 @@ end
 ---@param v videolib
 ---@param player player_t
 local function ST_DrawCarousel(v, player, x, y, elem)
+	if not player.doom.wepcarousel then return end
 	if not player.doom.wepcarousel.showtimer then
 		return
 	end

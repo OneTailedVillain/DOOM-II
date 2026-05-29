@@ -4,6 +4,22 @@ local function P_GiveArmor(player, class)
 	if health >= class*100 then return false end
 
 	local properties = P_GetPlayerSkinProperties(player)
+	if not properties.armorproperties then
+		properties.armorproperties = {
+			armorclassmult = 100,
+			armorclass1prot = FRACUNIT/3,
+			armorclass2prot = FRACUNIT/2
+		}
+	end
+	if properties.armorproperties.armorclassmult == nil then
+		properties.armorproperties.armorclassmult = 100
+	end
+	if properties.armorproperties.armorclass1prot == nil then
+		properties.armorproperties.armorclass1prot = FRACUNIT/3
+	end
+	if properties.armorproperties.armorclass1prot == nil then
+		properties.armorproperties.armorclass2prot = FRACUNIT/2
+	end
 
 	local classarmorval = properties.armorproperties.armorclassmult
 	local efficiency = properties.armorproperties.armorclass1prot

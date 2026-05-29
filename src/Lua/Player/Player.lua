@@ -762,7 +762,7 @@ addHook("PlayerThink", function(player)
 		end
 	elseif spec == 9 then
 		doom.sectorspecials[player.mo.subsector.sector] = 0
-		doom.secrets = ($ or 0) + 1
+		player.doom.secrets = ($ or 0) + 1
 		S_StartSound(nil, sfx_secret)
 	end
 end)
@@ -877,6 +877,7 @@ addHook("PlayerSpawn",function(player)
 		camera.chase = false
 	end
 	player.doom = $ or {}
+	player.doom.prefs = $ or {}
 	player.doom.damagecount = 0
 	player.doom.bonuscount = 0
 	player.doom.facecount = 0
@@ -992,6 +993,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.frags = $ or {}
 	player.doom.switchtimer = 128
 	player.doom.wishwep = nil
+	player.doom.properties = properties
 
 	DOOM_SetState(player, "raise")
 
@@ -1183,7 +1185,7 @@ end, MT_PLAYER)
 addHook("ShouldDamage", function(mobj, inf, src, dmg, dt)
 	if dt == DMG_CRUSHED and not (inf or src) then return false end
 end)
-
+/*
 addHook("PlayerThink", function(player)
 	local mobj = player.mo
 	if not mobj then return end
@@ -1212,3 +1214,4 @@ addHook("PlayerThink", function(player)
 
 	-- print(mobj.momx / FU, (player.rmomx) / FU)
 end)
+*/

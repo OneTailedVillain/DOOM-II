@@ -53,6 +53,8 @@ end)
 if not doom then
 	rawset(_G, "doom", {})
 end
+rawset(_G, "A_None", "none")
+
 ---@type doomglobal_t
 doom = doom or {}
 
@@ -391,8 +393,8 @@ end
 
 function doom.addAmmo(ammoname, properties)
     setmetatable(properties, mt)
-    doom.ammos[ammoname] = properties
 
+	properties.name = ammoname
     if not properties.pickupamount then
         warn("Ammo '" .. ammoname .. "' is missing pickupamount property! Defaulting to 1...")
         properties.pickupamount = 1
@@ -410,6 +412,9 @@ function doom.addAmmo(ammoname, properties)
         warn("Ammo '" .. ammoname .. "' is missing bigpickupName property! Defaulting to '" .. ammoname .. "box'...")
         doom.ammonameToPickupDef[ammoname .. "box"] = {ammoname, properties.bigpickupAmount or 5}
     end
+
+
+    doom.ammos[ammoname] = properties
 end
 
 doom.textscreen = {

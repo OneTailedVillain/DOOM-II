@@ -288,7 +288,7 @@ local function AutomapThinkerDown(keyevent)
 	if name == "down arrow"  then keyState.down  = true; return keyState.automap end
 	if name == "="           then keyState.zoomIn  = true; return keyState.automap end
 	if name == "-"           then keyState.zoomOut = true; return keyState.automap end
-	if name == "f" and input.gameControlDown(GC_SCORES) then
+	if name == "f" and keyState.automap then
 		automaplocked = not automaplocked
 		DOOM_DoMessage(consoleplayer, automaplocked and "AMSTR_FOLLOWON" or "AMSTR_FOLLOWOFF")
 	end
@@ -309,7 +309,8 @@ addHook("KeyDown", AutomapThinkerDown)
 addHook("KeyUp",   AutomapThinkerUp)
 
 addHook("ThinkFrame", function()
-	if not input.gameControlDown(GC_SCORES) then return end
+	consoleplayer.doom.ks = keyState
+	if not keyState.automap then return end
 
 	movingx = (keyState.left and 1 or 0) - (keyState.right and 1 or 0)
 	movingy = (keyState.up   and 1 or 0) - (keyState.down  and 1 or 0)
