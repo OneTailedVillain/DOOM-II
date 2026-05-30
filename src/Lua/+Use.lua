@@ -26,8 +26,8 @@ mobjinfo[MT_DOOM_USERAYCAST] = {
 	spawnhealth = 100,
 	deathstate = S_ONETICINVIS,
 	speed = 4*FRACUNIT,
-	radius = 1*FRACUNIT,
-	height = 2*FRACUNIT,
+	radius = FRACUNIT/2,
+	height = 1*FRACUNIT,
 	dispoffset = 4,
 	flags = MF_MISSILE|MF_NOGRAVITY,
 }
@@ -37,8 +37,8 @@ mobjinfo[MT_DOOM_BULLETRAYCAST] = {
 	spawnhealth = 100,
 	deathstate = S_ONETICINVIS,
 	speed = 4*FRACUNIT,
-	radius = 1*FRACUNIT,
-	height = 2*FRACUNIT,
+	radius = FRACUNIT/2,
+	height = 1*FRACUNIT,
 	dispoffset = 4,
 	flags = MF_MISSILE|MF_NOGRAVITY,
 }
