@@ -154,7 +154,7 @@ rawset(_G, "DOOM_TryUse", function(player)
 
 	ray.angle = mo.angle
 
-	local speed = ray.info.speed * ray.scale
+	local speed = FixedMul(ray.info.speed, ray.scale)
 	ray.momx = FixedMul(cos(ray.angle), speed)
 	ray.momy = FixedMul(sin(ray.angle), speed)
 	ray.momz = 0
