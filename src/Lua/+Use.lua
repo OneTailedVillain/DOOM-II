@@ -139,23 +139,32 @@ end
 
 local MAX_USE_DIST = USERANGE -- How far the check can go before it's too far
 rawset(_G, "DOOM_TryUse", function(player)
-    if not (player and player.mo) then return end
-	local oldpitch = player.pitch
-	player.pitch = 0
-    local ray = P_SpawnPlayerMissile(player.mo, MT_DOOM_USERAYCAST)
-	player.pitch = oldpitch
-    if not (ray and ray.valid) then return end
+	if not (player and player.mo) then return end
 
-    ray.scale = player.mo.scale
-    ray.target = player.mo
-    ray.dist = MAX_USE_DIST
+	local mo = player.mo
+
+	local ray = P_SpawnMobjFromMobj(mo, 0, 0, mo.height - (8*mo.scale), MT_DOOM_USERAYCAST)
+	if not (ray and ray.valid) then return end
+
+	ray.scale = mo.scale
+	ray.target = mo
+	ray.dist = MAX_USE_DIST
 	ray.doom = $ or {}
 	ray.doom.damage = 0
 
-    DOOM_GenericRaycast(ray, { maxdist = MAX_USE_DIST,
-	onfinish = function(ray, hit)
-		P_KillMobj(ray)
-	end
+	ray.angle = mo.angle
+
+	local speed = ray.info.speed * ray.scale
+	ray.momx = FixedMul(cos(ray.angle), speed)
+	ray.momy = FixedMul(sin(ray.angle), speed)
+	ray.momz = 0
+
+	DOOM_GenericRaycast(ray, {
+		maxdist = MAX_USE_DIST,
+
+		onfinish = function(ray, hit)
+			P_KillMobj(ray)
+		end
 	})
 end)
 
