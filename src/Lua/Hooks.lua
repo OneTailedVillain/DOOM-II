@@ -918,6 +918,7 @@ local thinkers = {
 
 			if sector.ceilingheight >= openTarget then
 				sector.ceilingheight = openTarget
+				data.lastDirection = 1
 
 				if data.stay or data.closewaitopen then
 					doom.stopThinker(sector)
@@ -962,6 +963,7 @@ local thinkers = {
 
 			if sector.ceilingheight <= closedTarget then
 				sector.ceilingheight = closedTarget
+				data.lastDirection = -1
 
 				if data.closewaitopen then
 					data.direction = 0
@@ -1617,37 +1619,27 @@ local function thinkFrameIterator(any, data, thinkertable)
 		fn(any, data)
 end
 
+local function restartDoorOpposite(sector, data)
+	-- If we're waiting, use the last real movement direction.
+	-- Otherwise, flip the current movement direction.
+	local dir = data.direction
+	if dir == 0 or dir == nil then
+		dir = data.lastDirection or (data.closewaitopen and -1 or 1)
+	end
+
+	data.lastDirection = dir
+	data.direction = -dir
+	data.waitClock = nil
+
+	-- Force the correct startup sound for the new direction on the next tick.
+	-- open  = init false
+	-- close = init true
+	data.init = (data.direction == -1)
+end
+
 local onThinkerRepeat = {
 	door = function(sector, data)
-		if not data.direction then
-			-- reset state if somehow idle but thinker exists
-			data.direction = data.closewaitopen and -1 or 1
-			data.waitClock = nil
-			return
-		end
-
-		if data.direction == 1 then
-			-- opening -> close immediately
-			data.direction = -1
-			data.waitClock = nil
-
-		elseif data.direction == -1 then
-			-- closing -> open immediately
-			data.direction = 1
-			data.waitClock = nil
-
-		elseif data.direction == 0 then
-			-- waiting -> go opposite of the automatic resume
-			if data.closewaitopen then
-				-- normally opens after waiting, so trigger close
-				data.direction = -1
-			else
-				-- normally closes after waiting, so trigger open
-				data.direction = 1
-			end
-
-			data.waitClock = nil
-		end
+		restartDoorOpposite(sector, data)
 	end
 }
 
