@@ -208,10 +208,6 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 					return true
 				end
 			end
-
-			doom.didSecretExit = whatIs.secret
-			DOOM_ExitLevel()
-			return true
 		end
 
 		local switchThinker = {
@@ -227,6 +223,9 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 			onSound = whatIs.onSound,
 			offSound = whatIs.offSound,
 			delay = whatIs.delay,
+			-- Exit-specific shit
+			willExit = whatIs.type == "exit",
+			exitSecret = whatIs.secret,
 		}
 
 		DOOM_AddThinker(usedLine, switchThinker)
@@ -289,7 +288,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         whatIs.newSectorSpecial = sector.special
     end
 
-    -- Immediate exit
+    -- Probably kill the player
     if whatIs.type == "exit" then
         if G_RingSlingerGametype() then
             if not doom.cvars.dmExit.value then
@@ -298,26 +297,19 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
                 return interacted, activated
             end
         end
-
-        doom.didSecretExit = whatIs.secret
-        DOOM_ExitLevel()
-        return interacted, activated
     end
 
     -- Build thinker
     local switchThinker = {
         type = "switch",
-        victimData = whatIs,
-        owner = whatIs.owner,
         switcher = ray.target,
         victimLine = usedLine,
-        victimTag = usedLine.tag,
-        allowOff = whatIs.repeatable,
-        lock = whatIs.lock,
-        denyMessage = whatIs.denyMessage,
         onSound = whatIs.onSound,
         offSound = whatIs.offSound,
         delay = whatIs.delay,
+		-- Exit-specific shit
+        willExit = whatIs.type == "exit",
+        exitSecret = whatIs.secret,
     }
 
     DOOM_AddThinker(usedLine, switchThinker)

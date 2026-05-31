@@ -387,7 +387,7 @@ addHook("MapLoad", function(mapid)
 		player.doom.intstate = -1
 		player.doom.notrigger = 0
 		player.doom.frags = {}
-		if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+		if G_RingSlingerGametype() then
 			player.doom.keys = UINT32_MAX
 		else
 			player.doom.keys = 0
@@ -860,19 +860,30 @@ local thinkers = {
 		end
 
 		if not data.started then
-			if not data.owner then
-				for sector in sectors.tagged(data.victimTag) do
-					DOOM_AddThinker(sector, data.victimData)
+			-- Play sound and exit
+			if data.willExit then
+				if data.switcher and data.switcher.valid then
+					local onSound = data.onSound or sfx_swtchn
+					S_StartSound(data.switcher, onSound)
 				end
-			else
-				DOOM_AddThinker(data.victimLine.backsector, data.victimData)
-			end
-			data.started = true
-			if data.victimTextureArea then
-				S_StartSound(data.switcher, data.onSound)
-				line.frontside[data.victimTextureArea] = data.onTexture
-			else
 				DOOM_StopThinker(line)
+				DOOM_ExitLevel()
+				return
+			else
+				if not data.owner then
+					for sector in sectors.tagged(data.victimTag) do
+						DOOM_AddThinker(sector, data.victimData)
+					end
+				else
+					DOOM_AddThinker(data.victimLine.backsector, data.victimData)
+				end
+				data.started = true
+				if data.victimTextureArea then
+					S_StartSound(data.switcher, data.onSound)
+					line.frontside[data.victimTextureArea] = data.onTexture
+				else
+					DOOM_StopThinker(line)
+				end
 			end
 		end
 
