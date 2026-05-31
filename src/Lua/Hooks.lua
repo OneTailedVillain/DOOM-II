@@ -869,21 +869,25 @@ local thinkers = {
 				DOOM_StopThinker(line)
 				DOOM_ExitLevel()
 				return
+			end
+
+			print("Shitballs")
+			if not data.owner then
+				for sector in sectors.tagged(data.victimTag) do
+					print("Adding thinker (no owner)", data.victimTag)
+					DOOM_AddThinker(sector, data.victimData)
+				end
 			else
-				if not data.owner then
-					for sector in sectors.tagged(data.victimTag) do
-						DOOM_AddThinker(sector, data.victimData)
-					end
-				else
-					DOOM_AddThinker(data.victimLine.backsector, data.victimData)
-				end
-				data.started = true
-				if data.victimTextureArea then
-					S_StartSound(data.switcher, data.onSound)
-					line.frontside[data.victimTextureArea] = data.onTexture
-				else
-					DOOM_StopThinker(line)
-				end
+				print("Adding thinker (backsector)")
+				DOOM_AddThinker(data.victimLine.backsector, data.victimData)
+			end
+			data.started = true
+			if data.victimTextureArea then
+				S_StartSound(data.switcher, data.onSound)
+				line.frontside[data.victimTextureArea] = data.onTexture
+			else
+				DOOM_StopThinker(line)
+				return
 			end
 		end
 
@@ -1632,6 +1636,122 @@ local function thinkFrameIterator(any, data, thinkertable)
 
 		fn(any, data)
 end
+
+local onThinkerRepeat = {
+	door = function(sector, data)
+		if not data.direction then
+			-- reset state if somehow idle but thinker exists
+			data.direction = data.closewaitopen and -1 or 1
+			data.waitClock = nil
+			return
+		end
+
+		if data.direction == 1 then
+			-- opening -> close immediately
+			data.direction = -1
+			data.waitClock = nil
+
+		elseif data.direction == -1 then
+			-- closing -> open immediately
+			data.direction = 1
+			data.waitClock = nil
+
+		elseif data.direction == 0 then
+			-- waiting -> go opposite of the automatic resume
+			if data.closewaitopen then
+				-- normally opens after waiting, so trigger close
+				data.direction = -1
+			else
+				-- normally closes after waiting, so trigger open
+				data.direction = 1
+			end
+
+			data.waitClock = nil
+		end
+	end
+}
+
+doom.thinkerlist = doom.thinkerlist or {}
+
+rawset(_G, "DOOM_AddThinker", function(any, thinkTable)
+    if not any or thinkTable == nil then return end
+
+    -- Check for existing thinker with same userdata and type
+    for i, thinker in ipairs(doom.thinkerlist) do
+        if thinker.userdata == any and thinker.data.type == thinkTable.type then
+            -- Found duplicate - probably call onThinkerRepeat and return existing index without adding new one
+			local onTR = onThinkerRepeat[thinker.data.type]
+			if onTR then
+				onTR(thinker.userdata, thinker.data)
+			end
+            return i
+        end
+    end
+
+    local data = deepcopy(thinkTable)
+    local entry = { userdata = any, data = data, active = true }
+    local idx = #doom.thinkerlist + 1
+    doom.thinkerlist[idx] = entry
+    return idx
+end)
+
+-- Stop thinker:
+-- Usage options:
+--   DOOM_StopThinker(index)                      -- stop by numeric index
+--   DOOM_StopThinker(userdata, data)             -- stop single entry that matches userdata+data (table identity)
+--   DOOM_StopThinker(userdata)                   -- if called *from inside* a thinker, stops that thinker only;
+--                                                 otherwise, stops *all* thinkers for userdata
+rawset(_G, "DOOM_StopThinker", function(a, b)
+    if a == nil then return end
+
+    -- Stop by numeric index
+    if type(a) == "number" then
+        local idx = a
+        local entry = doom.thinkerlist[idx]
+        if not entry then return end
+        entry.active = false
+        entry.data = nil
+        entry.userdata = nil
+        return
+    end
+
+    local userdata = a
+    local data = b
+
+    -- If both userdata and data provided: stop the single entry matching both (table identity)
+    if data ~= nil then
+        for i = 1, #doom.thinkerlist do
+            local entry = doom.thinkerlist[i]
+            if entry and entry.active and entry.userdata == userdata and entry.data == data then
+                entry.active = false
+                entry.data = nil
+                entry.userdata = nil
+                return
+            end
+        end
+        return
+    end
+
+    -- If called inside a thinker, try to stop the current entry only
+    local current = doom._current_thinker_entry
+    if current and current.userdata == userdata then
+        current.active = false
+        current.data = nil
+        current.userdata = nil
+        doom._current_thinker_entry = nil
+        return
+    end
+
+    -- Otherwise: stop ALL thinkers for this userdata (backwards-compatible behavior)
+    for i = 1, #doom.thinkerlist do
+        local entry = doom.thinkerlist[i]
+        if entry and entry.active and entry.userdata == userdata then
+            entry.active = false
+            entry.data = nil
+            entry.userdata = nil
+        end
+    end
+end)
 
 -- compact_thinkerlist: just compacts the numeric list (no single-map; multiple per userdata allowed)
 local function compact_thinkerlist()
