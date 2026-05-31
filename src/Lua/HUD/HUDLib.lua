@@ -440,21 +440,34 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
         return
     end
 
-    -- Simplified approach without run batching for diagonal lines
-    -- This ensures every pixel is drawn exactly once
+    -- Diagonal line: batch consecutive pixels on same row to reduce draw calls
     local x, y = sx1, sy1
-    local maxSteps = dx + dy  -- Maximum possible steps
-    local steps = 0
-    
-    while steps <= maxSteps do
-        -- Always draw the current pixel
-        v.drawFill(x, y, 1, 1, color|flags)
+    local currentY = y
+    local runStart = x
+    local runEnd = x
+
+    while true do
+        -- If Y changed, flush the accumulated run
+        if y ~= currentY then
+            local width = abs(runEnd - runStart) + 1
+            local minX = min(runStart, runEnd)
+            v.drawFill(minX, currentY, width, 1, color|flags)
+            currentY = y
+            runStart = x
+        end
         
-        -- Break if we've reached the end point
+        runEnd = x
+        
+        -- Check if we've reached the endpoint
         if x == sx2 and y == sy2 then
+            -- Flush final run
+            local width = abs(runEnd - runStart) + 1
+            local minX = min(runStart, runEnd)
+            v.drawFill(minX, currentY, width, 1, color|flags)
             break
         end
         
+        -- Advance to next pixel
         local e2 = err * 2
         
         if e2 > -dy then
@@ -466,7 +479,5 @@ rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)
             err = err + dx
             y = $ + sy
         end
-        
-        steps = $ + 1
     end
 end)

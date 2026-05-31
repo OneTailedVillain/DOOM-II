@@ -194,11 +194,8 @@ local function doAutomap(v, player, noHUD)
 		i = $ + 1
     end
 
-    -- Draw player arrow at the center.
+    -- Draw player arrows.
     -- We compute arrow offsets in 'pixel' units (FRACUNIT-based), then convert to px-space by scaling by 'scale'.
-    local arrowScale = FixedMul(displayplayer.mo.radius, displayplayer.mo.scale)
-    local arrowSize = FixedDiv(arrowScale, scale) -- used to scale FRACUNIT-based arrow coords to pixel units
-
     local arrowCoords = {
         {FRACUNIT * -7 / 8, 0, FRACUNIT * 1, 0},
         {FRACUNIT * 1, 0, FRACUNIT * 1 / 2, FRACUNIT * 1 / 4},
@@ -209,45 +206,58 @@ local function doAutomap(v, player, noHUD)
         {FRACUNIT * -5 / 8, 0, FRACUNIT * -7 / 8, FRACUNIT * 1 / 4}
     }
 
-    -- If rotating the map, keep arrow pointing up on screen.
-    -- The arrow graphic faces east (0); ANG90 will rotate it to point up.
-    local angle
-	if rotate then
-		angle = (ANGLE_270 + FixedAngle(rotang))
-	else
-		angle = displayplayer.mo.angle + ANGLE_180
+	-- Draw arrows for all players in multiplayer
+	for p in players.iterate() do
+		local p_mo = p.mo
+		if p_mo then
+			local arrowScale = FixedMul(p_mo.radius, p_mo.scale)
+			local arrowSize = FixedDiv(arrowScale, scale)
+
+			-- If rotating the map, keep arrow pointing up on screen.
+			-- The arrow graphic faces east (0); ANG90 will rotate it to point up.
+			local angle
+			if rotate then
+				angle = (ANGLE_270 + FixedAngle(rotang))
+			else
+				angle = p_mo.angle + ANGLE_180
+			end
+
+			local cosAng = -cos(angle)
+			local sinAng = sin(angle)
+
+			local player_px, player_py = worldToScreen(p_mo.x, p_mo.y)
+
+			local scaledAndRotatedArrows = {}
+			for _, coord in ipairs(arrowCoords) do
+				local x1, y1, x2, y2 = coord[1], coord[2], coord[3], coord[4]
+				x1, y1 = FixedMul(x1, arrowSize), FixedMul(y1, arrowSize)
+				x2, y2 = FixedMul(x2, arrowSize), FixedMul(y2, arrowSize)
+				
+				local rx1 = FixedMul(x1, cosAng) - FixedMul(y1, sinAng)
+				local ry1 = FixedMul(x1, sinAng) + FixedMul(y1, cosAng)
+				local rx2 = FixedMul(x2, cosAng) - FixedMul(y2, sinAng)
+				local ry2 = FixedMul(x2, sinAng) + FixedMul(y2, cosAng)
+				
+				scaledAndRotatedArrows[#scaledAndRotatedArrows+1] = {rx1, ry1, rx2, ry2}
+			end
+
+			local arrowColor = 4
+			if multiplayer then
+				arrowColor = skincolors[p_mo.color].ramp[7]
+			end
+			for _, rotated in ipairs(scaledAndRotatedArrows) do
+				local px1 = player_px + FixedMul(rotated[1], scale)
+				local py1 = player_py + FixedMul(rotated[2], scale)
+				local px2 = player_px + FixedMul(rotated[3], scale)
+				local py2 = player_py + FixedMul(rotated[4], scale)
+				
+				local cx1, cy1, cx2, cy2 = clipLine(px1, py1, px2, py2)
+				if cx1 != nil then
+					minimapDrawLine(v, cx1, cy1, cx2, cy2, arrowColor, flags, scale)
+				end
+			end
+		end
 	end
-
-    local cosAng = -cos(angle)
-    local sinAng = sin(angle)
-
-    for _, coord in ipairs(arrowCoords) do
-		local player_px, player_py = worldToScreen(displayplayer.mo.x, displayplayer.mo.y)
-        local x1, y1, x2, y2 = coord[1], coord[2], coord[3], coord[4]
-
-        -- scale the FRACUNIT-based arrow coords down to pixel units (still fixed_t)
-        x1 = FixedMul(x1, arrowSize)
-        y1 = FixedMul(y1, arrowSize)
-        x2 = FixedMul(x2, arrowSize)
-        y2 = FixedMul(y2, arrowSize)
-
-        -- rotate arrow by 'angle' (either player angle or fixed ANG90)
-        local rx1 = FixedMul(x1, cosAng) - FixedMul(y1, sinAng)
-        local ry1 = FixedMul(x1, sinAng) + FixedMul(y1, cosAng)
-        local rx2 = FixedMul(x2, cosAng) - FixedMul(y2, sinAng)
-        local ry2 = FixedMul(x2, sinAng) + FixedMul(y2, cosAng)
-
-        -- Convert rotated FRACUNIT-based pixel offsets into px-space (px = (VIEW_CX + pixel_offset) * scale)
-		local px1 = player_px + FixedMul(rx1, scale)
-		local py1 = player_py + FixedMul(ry1, scale)
-		local px2 = player_px + FixedMul(rx2, scale)
-		local py2 = player_py + FixedMul(ry2, scale)
-
-        local cx1, cy1, cx2, cy2 = clipLine(px1, py1, px2, py2)
-        if cx1 != nil then
-            minimapDrawLine(v, cx1, cy1, cx2, cy2, 4, flags, scale)
-        end
-    end
 
 	local gamemap = gamemap
 	if doom.isdoom1 then

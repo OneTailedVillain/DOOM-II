@@ -88,6 +88,13 @@ local function drawWeapon(v, player, offset)
     drawWeaponState(v, player, PSP_FLASH, bobx, boby, offset)
 end
 
+function doom.drawStatusBar(v, player)
+	local targetHudDraw = doom.hudDraw[player.doom.customHudPref or doom.currentGame]
+	if targetHudDraw then
+		targetHudDraw(v, player, true)
+	end
+end
+
 local doAutomap, keyState = dofile("HUD/Modules/Automap.lua")
 local DrawFlashes = dofile("HUD/Modules/Fallback Flashes.lua")
 local ST_DrawCarousel = dofile("HUD/Modules/Carousel.lua")
@@ -110,17 +117,8 @@ hud.add(function(v, player)
 	hud.disable("rankings")
 	hud.disable("coopemeralds")
 
-	local cdef = P_GetSupportsForSkin(player)
-	local automapthirdargument = false
-
-	if cdef.nohudinautomap != nil then
-		automapthirdargument = cdef.nohudinautomap
-	elseif cdef.personalhudheight != nil then
-		automapthirdargument = cdef.personalhudheight
-	end
-
 	if keyState.automap then
-		doAutomap(v, player, automapthirdargument)
+		doAutomap(v, player, true)
 		return
 	end
 

@@ -264,6 +264,10 @@ addHook("PlayerThink", function(player)
 		curHealth = 0
 	end
 
+	if curHealth > 100 then
+		curHealth = 100
+	end
+
 	if curHealth < player.doom.h_healthmarker then
 		delta = (player.doom.h_healthmarker-curHealth)>>2
 		if delta < 1 then
