@@ -1,19 +1,3 @@
-local function deepcopy(orig)
-	local orig_type = type(orig)
-	if orig_type ~= 'table' then
-		if orig_type == "boolean" then
-			return orig == true
-		else
-			return tonumber(orig) == nil and tostring(orig) or tonumber(orig)
-		end
-	end
-	local copy = {}
-	for k, v in next, orig, nil do
-		copy[deepcopy(k)] = deepcopy(v)
-	end
-	return copy
-end
-
 local PLATWAIT = 3
 local PLATSPEED = FRACUNIT
 
@@ -845,7 +829,6 @@ local thinkers = {
 				local player = data.switcher.player
 
 				if data.lock and not (player.doom.keys & data.lock) then
-					print(data.lock)
 					DOOM_DoMessage(player, data.denyMessage or "YOU FORGOT TO SET A MESSAGE FOR THIS!")
 					S_StartSound(data.switcher, sfx_noway)
 					doom.stopThinker(line)
@@ -871,14 +854,11 @@ local thinkers = {
 				return
 			end
 
-			print("Shitballs")
 			if not data.owner then
 				for sector in sectors.tagged(data.victimTag) do
-					print("Adding thinker (no owner)", data.victimTag)
 					doom.addThinker(sector, data.victimData)
 				end
 			else
-				print("Adding thinker (backsector)")
 				doom.addThinker(data.victimLine.backsector, data.victimData)
 			end
 			data.started = true
@@ -1674,7 +1654,6 @@ local onThinkerRepeat = {
 doom.thinkerlist = doom.thinkerlist or {}
 
 function doom.addThinker(any, thinkTable)
-	print("Fucking")
     if not any or thinkTable == nil then return end
 
     -- Check for existing thinker with same userdata and type
