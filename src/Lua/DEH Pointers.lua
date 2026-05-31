@@ -1,4 +1,6 @@
 local function BulletHitObject(tmthing, thing)
+	if not (tmthing and tmthing.valid) then return false end
+	if doom.missileHookIgnoreList[tmthing.type] then return false end
     if tmthing.hitenemy then return false end
     if tmthing.target == thing then return false end
 	if not (thing.flags & MF_SHOOTABLE) then return false end
@@ -36,6 +38,10 @@ end
 doom.missileHookIgnoreList = {
 	[MT_DOOM_BULLETRAYCAST] = true
 }
+
+function doom.addToIgnoreList(mt)
+	doom.missileHookIgnoreList[mt] = true
+end
 
 local function addMobjHookByFlags(hookType, mobjFlags, hook)
     local hookedMobjTypes = {}
