@@ -985,7 +985,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.oldweapons = choose("oldweapons")
 	player.doom.notrigger = false
 	player.doom.cheats = ($ or 0)
-	if gametype == GT_DOOMDM or gametype == GT_DOOMDMTWO then
+	if G_RingSlingerGametype() then
 		player.doom.keys = UINT32_MAX
 	elseif not multiplayer then
 		player.doom.keys = 0
