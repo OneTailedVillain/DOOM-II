@@ -1,4 +1,4 @@
-local hudDir = "HUD/Alt HUDs/"
+local hudDir = "doomData/HUD/Alt HUDs/"
 
 local doBOOMHud = dofile(hudDir .. "Boom.lua")
 local srb2hud = dofile(hudDir .. "SRB2.lua")

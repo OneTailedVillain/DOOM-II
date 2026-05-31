@@ -492,7 +492,7 @@ def main():
 	base_wad_dir = script_dir / "BaseWAD"
 	python_dir = script_dir / "Python"
 	src_dir = script_dir / "src"
-	modding_dir = script_dir / "Modding Example"
+	modding_dir = script_dir / "ExtraClasses"
 
 	wad_override, pk3_override, py_override = args.buildto
 
@@ -587,7 +587,7 @@ def main():
 			return 1
 
 	# Step 3: Build Modding Example
-	print("[3/4] Building Modding Example...")
+	print("[3/4] Building ExtraClasses...")
 
 	source_dirs = [modding_dir]
 
@@ -602,7 +602,7 @@ def main():
 				default_prefix=DEFAULT_MOD_PREFIX,
 				default_name=DEFAULT_MOD_NAME,
 				default_forwho="DOOM-II",
-				default_forwhat="modding example",
+				default_forwhat="extra classes",
 				ignore_buildflags=args.ignore_buildflags,
 				preserve_line_numbers=not args.no_preserve_linenums,
 			)
