@@ -228,7 +228,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 			exitSecret = whatIs.secret,
 		}
 
-		DOOM_AddThinker(usedLine, switchThinker)
+		doom.addThinker(usedLine, switchThinker)
 		P_KillMobj(ray)
 		return true
 	end
@@ -318,7 +318,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         exitSecret = whatIs.secret,
     }
 
-    DOOM_AddThinker(usedLine, switchThinker)
+    doom.addThinker(usedLine, switchThinker)
 
     if not dontkill then
         P_KillMobj(ray)

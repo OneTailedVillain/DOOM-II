@@ -1173,7 +1173,7 @@ addHook("MobjLineCollide", function(mobj, hit)
 		typeHandlers[whatIs.type](usedLine, whatIs, mobj)
 	else
 		for sector in sectors.tagged(usedLine.tag) do
-			DOOM_AddThinker(sector, whatIs)
+			doom.addThinker(sector, whatIs)
 		end
 	end
 

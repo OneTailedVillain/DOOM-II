@@ -25,7 +25,7 @@ local function stop_plats_by_tag(tag)
 	for sec, v in pairs(doom.thinkers) do
 		if type(v) == "table" and (v.action == "oscillate" or v.action == "oscillate_stop" or v.isPlatLike) then
 			if v.tag and v.tag == tag then
-				DOOM_StopThinker(sec)
+				doom.stopThinker(sec)
 			end
 		end
 	end
@@ -78,7 +78,7 @@ local function P_SpawnStrobeFlash(sector, fastOrSlow, inSync)
 
 	flash.count = inSync and 1 or ((DOOM_Random() & 7) + 1)
 
-	DOOM_AddThinker(sector, flash)
+	doom.addThinker(sector, flash)
 end
 
 local SCROLL_SHIFT = 5
@@ -123,7 +123,7 @@ local function P_SpawnGlowingLight(sector)
 		direction = -1
 	}
 
-	DOOM_AddThinker(sector, glow)
+	doom.addThinker(sector, glow)
 end
 
 local function P_SpawnLightFlash(sector)
@@ -137,7 +137,7 @@ local function P_SpawnLightFlash(sector)
 		count   = (DOOM_Random() & 64) + 1,
 	}
 
-	DOOM_AddThinker(sector, flash)
+	doom.addThinker(sector, flash)
 end
 
 local function SkillMaskFor(skill)
@@ -251,11 +251,11 @@ addHook("MapLoad", function(mapid)
 					if tagremap then
 						otherdef.type = tagremap
 					end
-					DOOM_AddThinker(sector, otherdef)
+					doom.addThinker(sector, otherdef)
 				end
 			else
 				doom.onMaploadHandlers[def.type](line, def)
-				DOOM_AddThinker(line, def)
+				doom.addThinker(line, def)
 			end
 		end
 	end
@@ -577,7 +577,7 @@ local function sectorHasUnfittableObject(a, b, c, d)
 	return false
 end
 
--- BuildStairs: iterative stair builder using DOOM_AddThinker
+-- BuildStairs: iterative stair builder using doom.addThinker
 -- startsec: sector to start from (sector table)
 -- stairsize: amount added per step (e.g. 8*FRACUNIT)
 -- speed: floor move speed for each created thinker
@@ -618,8 +618,8 @@ local function BuildStairs(startsec, stairsize, speed)
 			action = "raise", -- default action
 		}
 
-		-- DOOM_AddThinker allows multiple thinkers, no need for doom.thinkers[sec]
-		DOOM_AddThinker(sec, floorTemplate)
+		-- doom.addThinker allows multiple thinkers, no need for doom.thinkers[sec]
+		doom.addThinker(sec, floorTemplate)
 		created = created + 1
 		created_list[#created_list + 1] = sec
 
@@ -848,7 +848,7 @@ local thinkers = {
 					print(data.lock)
 					DOOM_DoMessage(player, data.denyMessage or "YOU FORGOT TO SET A MESSAGE FOR THIS!")
 					S_StartSound(data.switcher, sfx_noway)
-					DOOM_StopThinker(line)
+					doom.stopThinker(line)
 					return
 				end
 			end
@@ -866,7 +866,7 @@ local thinkers = {
 					local onSound = data.onSound or sfx_swtchn
 					S_StartSound(data.switcher, onSound)
 				end
-				DOOM_StopThinker(line)
+				doom.stopThinker(line)
 				DOOM_ExitLevel()
 				return
 			end
@@ -875,18 +875,18 @@ local thinkers = {
 			if not data.owner then
 				for sector in sectors.tagged(data.victimTag) do
 					print("Adding thinker (no owner)", data.victimTag)
-					DOOM_AddThinker(sector, data.victimData)
+					doom.addThinker(sector, data.victimData)
 				end
 			else
 				print("Adding thinker (backsector)")
-				DOOM_AddThinker(data.victimLine.backsector, data.victimData)
+				doom.addThinker(data.victimLine.backsector, data.victimData)
 			end
 			data.started = true
 			if data.victimTextureArea then
 				S_StartSound(data.switcher, data.onSound)
 				line.frontside[data.victimTextureArea] = data.onTexture
 			else
-				DOOM_StopThinker(line)
+				doom.stopThinker(line)
 				return
 			end
 		end
@@ -895,7 +895,7 @@ local thinkers = {
 		-- Effectively locks out using the switch again
 		if not data.allowOff then
 			doom.linespecials[line] = 0
-			DOOM_StopThinker(line)
+			doom.stopThinker(line)
 			return
 		end
 
@@ -908,7 +908,7 @@ local thinkers = {
 				S_StartSound(data.switcher, data.onSound)
 				line.frontside[data.victimTextureArea] = data.offTexture
 			end
-			DOOM_StopThinker(line)
+			doom.stopThinker(line)
 		end
 	end,
 
@@ -940,7 +940,7 @@ local thinkers = {
 				sector.ceilingheight = openTarget
 
 				if data.stay or data.closewaitopen then
-					DOOM_StopThinker(sector)
+					doom.stopThinker(sector)
 
 					if data.repeatable then
 						data.direction = nil
@@ -987,7 +987,7 @@ local thinkers = {
 					data.direction = 0
 					data.waitClock = data.delay or 150
 				else
-					DOOM_StopThinker(sector)
+					doom.stopThinker(sector)
 
 					if data.repeatable then
 						data.direction = nil
@@ -1055,7 +1055,7 @@ local thinkers = {
 				sector.floorheight = target
 
 				-- remove thinker
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 
 				-- if repeatable, reset any flags for next trigger
 				if data.repeatable then
@@ -1161,11 +1161,11 @@ local thinkers = {
 		local side = sides[line.sidenum[0]]
 		if data.scrx == nil then
 			print("Scroll thinker has no scrx!")
-			DOOM_StopThinker(line)
+			doom.stopThinker(line)
 		end
 		if data.scry == nil then
 			print("Scroll thinker has no scry!")
-			DOOM_StopThinker(line)
+			doom.stopThinker(line)
 		end
 		side.textureoffset = $ + data.scrx
 		side.rowoffset = $ + data.scry
@@ -1237,7 +1237,7 @@ local thinkers = {
 		local speed = data.speed == "fast" and FRACUNIT*4 or FRACUNIT/4
 		BuildStairs(sector, stepSize, speed)
 
-		DOOM_StopThinker(sector)
+		doom.stopThinker(sector)
 	end,
 
 	elevator = function(sector, data)
@@ -1251,7 +1251,7 @@ local thinkers = {
 				data.ceilingdestheight = sector.ceilingheight + (data.floordestheight - sector.floorheight)
 			else
 				print("elevator thinker: unknown string target '"..data.target.."'")
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 				return
 			end
 		end
@@ -1271,7 +1271,7 @@ local thinkers = {
 		(floorDir < 0 and sector.floorheight <= data.floordestheight) then
 			sector.floorheight = data.floordestheight
 			sector.ceilingheight = data.ceilingdestheight
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			S_StartSound(sector, sfx_pstop)
 		end
 	end,
@@ -1279,7 +1279,7 @@ local thinkers = {
 	floor = function(sector, data)
 		if not (sector and sector.valid) then
 			-- sector went away or invalid: remove thinker
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			return
 		end
 
@@ -1296,7 +1296,7 @@ local thinkers = {
 				elseif data.target < sector.floorheight then
 					data.action = "lower"
 				else
-					DOOM_StopThinker(sector)
+					doom.stopThinker(sector)
 					return
 				end
 			elseif type(data.target) == "string" then
@@ -1309,7 +1309,7 @@ local thinkers = {
 				end
 			else
 				print("floor thinker: missing action and target")
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 				return
 			end
 		end
@@ -1337,7 +1337,7 @@ local thinkers = {
 		if data.action == "oscillate_stop" then
 			stop_plats_by_tag(data.tag)
 			-- remove this stop-thinker immediately (it is a single-shot command)
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			return
 		end
 
@@ -1462,7 +1462,7 @@ local thinkers = {
 			else
 				-- unknown target
 				print("floor thinker: unknown target '" .. tostring(data.target) .. "'")
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 				return
 			end
 
@@ -1502,7 +1502,7 @@ local thinkers = {
 						sector.special = sector.special or 0
 					end
 					-- remove thinker
-					DOOM_StopThinker(sector)
+					doom.stopThinker(sector)
 				end
 			else
 				if sector.floorheight <= target then
@@ -1513,7 +1513,7 @@ local thinkers = {
 						sector.floorpic = data.newfloorpic
 					end
 					S_StartSound(sector, sfx_pstop)
-					DOOM_StopThinker(sector)
+					doom.stopThinker(sector)
 				end
 			end
 
@@ -1523,7 +1523,7 @@ local thinkers = {
 		-- LIFT-style wait/return behaviour handled in the lift thinker.
 		-- If we get something we don't recognize, remove the thinker.
 		print("floor thinker: unhandled action '" .. tostring(data.action) .. "'")
-		DOOM_StopThinker(sector)
+		doom.stopThinker(sector)
 	end,
 
 	ceiling = function(sector, data)
@@ -1541,7 +1541,7 @@ local thinkers = {
 			target = P_FindLowestCeilingSurrounding(sector) - 8 * FRACUNIT
 		else
 			print("No defined target for '" .. tostring(data.target) .. "'!")
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			return
 		end
 
@@ -1550,7 +1550,7 @@ local thinkers = {
 
 		if type(target) == "string" then
 			print("Bad target data '" .. tostring(target) .. "' for ceiling thinker, stopping...")
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			return
 		end
 
@@ -1561,7 +1561,7 @@ local thinkers = {
 		if dir >= 1 then
 			if sector.ceilingheight <= target then
 				sector.ceilingheight = target
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 				local newfloor = sector.ceilingheight
 				doom.sectorbackups[sector].ceil = newfloor
 				S_StartSound(sector, sfx_pstop)
@@ -1569,7 +1569,7 @@ local thinkers = {
 		elseif dir <= -1 then
 			if sector.ceilingheight >= target then
 				sector.ceilingheight = target
-				DOOM_StopThinker(sector)
+				doom.stopThinker(sector)
 				local newfloor = sector.ceilingheight
 				doom.sectorbackups[sector].ceil = newfloor
 				S_StartSound(sector, sfx_pstop)
@@ -1607,16 +1607,16 @@ local thinkers = {
 				sector.lightlevel = brightest
 			end
 			print("Bad target data '" .. tostring(data.target) .. "' for light thinker, stopping...")
-			DOOM_StopThinker(sector)
+			doom.stopThinker(sector)
 			return
 		end
 		sector.lightlevel = data.target or 35
-		DOOM_StopThinker(sector)
+		doom.stopThinker(sector)
 	end,
 }
 
 local function thinkFrameIterator(any, data, thinkertable)
-		if not (any and any.valid) then DOOM_StopThinker(any) return end
+		if not (any and any.valid) then doom.stopThinker(any) return end
 		if data == nil then return end
 		local expected = expectedUserdatas[data.type]
 		local actual = userdataType(any)
@@ -1673,7 +1673,8 @@ local onThinkerRepeat = {
 
 doom.thinkerlist = doom.thinkerlist or {}
 
-rawset(_G, "DOOM_AddThinker", function(any, thinkTable)
+function doom.addThinker(any, thinkTable)
+	print("Fucking")
     if not any or thinkTable == nil then return end
 
     -- Check for existing thinker with same userdata and type
@@ -1693,15 +1694,15 @@ rawset(_G, "DOOM_AddThinker", function(any, thinkTable)
     local idx = #doom.thinkerlist + 1
     doom.thinkerlist[idx] = entry
     return idx
-end)
+end
 
 -- Stop thinker:
 -- Usage options:
---   DOOM_StopThinker(index)                      -- stop by numeric index
---   DOOM_StopThinker(userdata, data)             -- stop single entry that matches userdata+data (table identity)
---   DOOM_StopThinker(userdata)                   -- if called *from inside* a thinker, stops that thinker only;
+--   doom.stopThinker(index)                      -- stop by numeric index
+--   doom.stopThinker(userdata, data)             -- stop single entry that matches userdata+data (table identity)
+--   doom.stopThinker(userdata)                   -- if called *from inside* a thinker, stops that thinker only;
 --                                                 otherwise, stops *all* thinkers for userdata
-rawset(_G, "DOOM_StopThinker", function(a, b)
+function doom.stopThinker(a, b)
     if a == nil then return end
 
     -- Stop by numeric index
@@ -1751,7 +1752,7 @@ rawset(_G, "DOOM_StopThinker", function(a, b)
             entry.userdata = nil
         end
     end
-end)
+end
 
 -- compact_thinkerlist: just compacts the numeric list (no single-map; multiple per userdata allowed)
 local function compact_thinkerlist()
@@ -1767,13 +1768,13 @@ local function compact_thinkerlist()
 	doom.thinkerlist = newlist
 end
 
--- ThinkFrame: iterate entries, set current entry so DOOM_StopThinker(sector) inside a thinker
+-- ThinkFrame: iterate entries, set current entry so doom.stopThinker(sector) inside a thinker
 -- stops the current entry only (rather than all entries for that userdata).
 addHook("ThinkFrame", function()
 	for i = 1, #doom.thinkerlist do
 		local entry = doom.thinkerlist[i]
 		if entry and entry.active and entry.userdata and entry.data then
-			-- set current thinker context so DOOM_StopThinker(userdata) can infer the right entry
+			-- set current thinker context so doom.stopThinker(userdata) can infer the right entry
 			doom._current_thinker_entry = entry
 			-- call the existing iterator (unchanged)
 			thinkFrameIterator(entry.userdata, entry.data, "thinkers")

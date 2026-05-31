@@ -1292,7 +1292,7 @@ function A_DoomBossDeath(actor)
 
 		if shouldActivate then
 			for sector in sectors.tagged(data.tag) do
-				DOOM_AddThinker(sector, doom.lineActions[data.special])
+				doom.addThinker(sector, doom.lineActions[data.special])
 			end
 		end
 	end
@@ -1302,7 +1302,7 @@ function A_DoomKeenDeath(actor)
 	local noSurvivors = checkAliveTypes(MT_DOOM_KEEN)
 	if noSurvivors then
 		for sector in sectors.tagged(666) do
-			DOOM_AddThinker(sector, doom.lineActions[31])
+			doom.addThinker(sector, doom.lineActions[31])
 		end
 	end
 end

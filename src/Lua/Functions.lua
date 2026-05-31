@@ -1594,7 +1594,7 @@ rawset(_G, "DOOM_ExitLevel", function()
 		mobj.flags = $ | MF_NOTHINK
 		S_StopSound(mobj)
 	end
-	DOOM_StopThinker()
+	doom.stopThinker()
 end)
 
 rawset(_G, "DOOM_NextLevel", function()
