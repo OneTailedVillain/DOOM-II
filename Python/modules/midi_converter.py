@@ -8,6 +8,30 @@ import tempfile
 from subprocess import Popen, PIPE
 from modules.utils import find_fluidsynth, find_ffmpeg, find_soundfont
 
+# Most idTech games that we care about only use 140 TPS!
+MUS_TICKS_PER_SECOND = 140
+
+# We use PPQN equal to the MUS tick rate so each MUS tick becomes exactly one MIDI tick.
+MIDI_PPQN = MUS_TICKS_PER_SECOND
+
+# MUS logical channels 0..14 can map to these MIDI channels.
+# Channel 9 is reserved for percussion.
+AVAILABLE_MIDI_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15]
+
+# MUS controller numbers do not match MIDI controller numbers directly,
+# MUS 0 = instrument/program change, so it gets handled outside of here.
+MUS_TO_MIDI_CC = {
+    1: 0,    # bank select MSB
+    2: 1,    # modulation
+    3: 7,    # volume
+    4: 10,   # pan
+    5: 11,   # expression
+    6: 91,   # reverb depth
+    7: 93,   # chorus depth
+    8: 64,   # sustain pedal
+    9: 67,   # soft pedal
+}
+
 def to_varlen(value):
     """Convert an integer to a variable-length quantity (MIDI format)."""
     if value == 0:
@@ -36,136 +60,191 @@ def read_varlen(data, offset):
             break
     return value, offset
 
+def _midi_setup_events(midi_channel):
+    """Initial controller setup for a newly allocated MIDI channel."""
+    # Set pitch bend sensitivity to 2 semitones
+    return [
+        [0xB0 | midi_channel, 101, 0],  # RPN MSB: pitch bend sensitivity
+        [0xB0 | midi_channel, 100, 0],  # RPN LSB
+        [0xB0 | midi_channel, 6, 2],    # Data Entry MSB: 2 semitones
+        [0xB0 | midi_channel, 38, 0],   # Data Entry LSB
+    ]
+
+def _allocate_midi_channel(mus_channel, channel_map, next_free_index):
+    """
+    Map a MUS channel to a MIDI channel.
+    MUS percussion channel 15 always maps to MIDI channel 9.
+    Other MUS channels are assigned the next free non-percussion MIDI channel.
+    """
+    if mus_channel == 15:
+        return 9, next_free_index, []
+
+    if mus_channel in channel_map:
+        return channel_map[mus_channel], next_free_index, []
+
+    if next_free_index >= len(AVAILABLE_MIDI_CHANNELS):
+        raise ValueError("MUS file uses more than 15 non-percussion channels")
+
+    midi_channel = AVAILABLE_MIDI_CHANNELS[next_free_index]
+    channel_map[mus_channel] = midi_channel
+    next_free_index += 1
+    return midi_channel, next_free_index, _midi_setup_events(midi_channel)
+
 def mus_to_midi(mus_data):
     """Convert MUS file data to MIDI file data."""
     if len(mus_data) < 16 or mus_data[0:4] != b'MUS\x1a':
         raise ValueError("Invalid MUS file: signature mismatch")
-    
-    len_song = struct.unpack('<H', mus_data[4:6])[0]
-    off_song = struct.unpack('<H', mus_data[6:8])[0]
+
+    score_len = struct.unpack('<H', mus_data[4:6])[0]
+    score_start = struct.unpack('<H', mus_data[6:8])[0]
     primary_channels = struct.unpack('<H', mus_data[8:10])[0]
     secondary_channels = struct.unpack('<H', mus_data[10:12])[0]
-    num_instruments = struct.unpack('<H', mus_data[12:14])[0]
-    reserved = struct.unpack('<H', mus_data[14:16])[0]
-    
+    instr_cnt = struct.unpack('<H', mus_data[12:14])[0]
+    _dummy = struct.unpack('<H', mus_data[14:16])[0]
+
+    if score_start < 16 or score_start > len(mus_data):
+        raise ValueError("Invalid MUS file: scoreStart out of range")
+    if score_start + score_len > len(mus_data):
+        raise ValueError("Invalid MUS file: scoreLen out of range")
+    if score_start < 16 + (instr_cnt * 2):
+        raise ValueError("Invalid MUS file: instrument table overruns scoreStart")
+
+    # The instrument list is parsed for validation only; the converter does not need it.
     instruments = []
     pos = 16
-    for _ in range(num_instruments):
-        instruments.append(struct.unpack('<H', mus_data[pos:pos+2])[0])
+    for _ in range(instr_cnt):
+        instruments.append(struct.unpack('<H', mus_data[pos:pos + 2])[0])
         pos += 2
-    
-    song_data = mus_data[off_song:off_song+len_song]
+
+    song_data = mus_data[score_start:score_start + score_len]
+
     events = []
-    
-    events.append((0, [0xFF, 0x51, 0x03, 0x0F, 0x42, 0x40]))
-    
-    for c in range(primary_channels):
-        midi_channel = c
-        events.append((0, [0xB0 | midi_channel, 101, 0]))
-        events.append((0, [0xB0 | midi_channel, 100, 0]))
-        events.append((0, [0xB0 | midi_channel, 6, 2]))
-        events.append((0, [0xB0 | midi_channel, 38, 0]))
-    
-    for c in range(10, 10 + secondary_channels):
-        midi_channel = c
-        events.append((0, [0xB0 | midi_channel, 101, 0]))
-        events.append((0, [0xB0 | midi_channel, 100, 0]))
-        events.append((0, [0xB0 | midi_channel, 6, 2]))
-        events.append((0, [0xB0 | midi_channel, 38, 0]))
-    
+
+    tempo_usec_per_qn = round(1_000_000 * MIDI_PPQN / MUS_TICKS_PER_SECOND)
+    events.append((0, [0xFF, 0x51, 0x03,
+                      (tempo_usec_per_qn >> 16) & 0xFF,
+                      (tempo_usec_per_qn >> 8) & 0xFF,
+                      tempo_usec_per_qn & 0xFF]))
+
     last_note_volume = [100] * 16
+    mus_to_midi_channel = {}
+    next_free_index = 0
+
     current_time = 0
     index = 0
     size = len(song_data)
-    break_loop = False
-    
-    while index < size and not break_loop:
+
+    while index < size:
         event_byte = song_data[index]
         index += 1
-        
+
         last_flag = event_byte & 0x80
         event_type = (event_byte >> 4) & 0x07
-        channel = event_byte & 0x0F
-        
-        if channel == 15:
-            midi_channel = 9
-        elif channel < primary_channels:
-            midi_channel = channel
-        elif 10 <= channel < 10 + secondary_channels:
-            midi_channel = channel
-        else:
-            midi_channel = 9
-        
+        mus_channel = event_byte & 0x0F
+
+        midi_channel, next_free_index, setup_events = _allocate_midi_channel(
+            mus_channel, mus_to_midi_channel, next_free_index
+        )
+        for ev in setup_events:
+            events.append((current_time, ev))
+
         if event_type == 0:
-            note_byte = song_data[index]
+            # Release note
+            if index >= size:
+                raise ValueError("Truncated MUS note-off event")
+            note = song_data[index] & 0x7F
             index += 1
-            note = note_byte & 0x7F
             events.append((current_time, [0x80 | midi_channel, note, 64]))
-        
+
         elif event_type == 1:
+            # Play note
+            if index >= size:
+                raise ValueError("Truncated MUS note-on event")
             note_byte = song_data[index]
             index += 1
-            vol_flag = note_byte & 0x80
+            has_volume = note_byte & 0x80
             note = note_byte & 0x7F
-            if vol_flag:
-                vol_byte = song_data[index]
+
+            if has_volume:
+                if index >= size:
+                    raise ValueError("Truncated MUS note-on volume")
+                velocity = song_data[index] & 0x7F
                 index += 1
-                velocity = vol_byte & 0x7F
-                last_note_volume[channel] = velocity
+                last_note_volume[mus_channel] = velocity
             else:
-                velocity = last_note_volume[channel]
+                velocity = last_note_volume[mus_channel]
+
             events.append((current_time, [0x90 | midi_channel, note, velocity]))
-        
+
         elif event_type == 2:
+            # Pitch wheel
+            if index >= size:
+                raise ValueError("Truncated MUS pitch-wheel event")
             bend_byte = song_data[index]
             index += 1
-            bend_value = (bend_byte * 16383) // 255
+
+            # MUS uses 0..255 with 128 as center.
+            # Scale to MIDI's 14-bit pitch bend range with center at 8192.
+            bend_value = round(bend_byte * 16383 / 255)
+            bend_value = max(0, min(16383, bend_value))
             lsb = bend_value & 0x7F
             msb = (bend_value >> 7) & 0x7F
             events.append((current_time, [0xE0 | midi_channel, lsb, msb]))
-        
+
         elif event_type == 3:
+            # System event (valueless controller)
+            if index >= size:
+                raise ValueError("Truncated MUS system event")
             sys_byte = song_data[index]
             index += 1
+
             controller = sys_byte & 0x7F
-            if controller == 10: cc = 120
-            elif controller == 11: cc = 123
-            elif controller == 12: cc = 126
-            elif controller == 13: cc = 127
-            elif controller == 14: cc = 121
-            else: continue
-            events.append((current_time, [0xB0 | midi_channel, cc, 0]))
-        
+            midi_cc_map = {
+                10: 120,  # all sounds off
+                11: 123,  # all notes off
+                12: 126,  # mono
+                13: 127,  # poly
+                14: 121,  # reset all controllers
+            }
+            if controller in midi_cc_map:
+                events.append((current_time, [0xB0 | midi_channel, midi_cc_map[controller], 0]))
+
         elif event_type == 4:
-            ctrl_byte = song_data[index]
-            index += 1
-            ctrl_num = ctrl_byte & 0x7F
-            val_byte = song_data[index]
-            index += 1
-            value = val_byte & 0x7F
+            # Change controller
+            if index + 1 > size:
+                raise ValueError("Truncated MUS controller event")
+            ctrl_num = song_data[index] & 0x7F
+            val = song_data[index + 1] & 0x7F
+            index += 2
+
             if ctrl_num == 0:
+                # MUS instrument change -> MIDI program change
                 if midi_channel != 9:
-                    events.append((current_time, [0xC0 | midi_channel, value]))
-            else:
-                events.append((current_time, [0xB0 | midi_channel, ctrl_num, value]))
-        
-        elif event_type == 5:
-            pass
-        
-        elif event_type == 6:
-            break_loop = True
-        
-        elif event_type == 7:
+                    events.append((current_time, [0xC0 | midi_channel, val]))
+            elif ctrl_num in MUS_TO_MIDI_CC:
+                events.append((current_time, [0xB0 | midi_channel, MUS_TO_MIDI_CC[ctrl_num], val]))
+
+        elif event_type in (5, 7):
+            # Reserved/unknown, probably just not used entirely.
+            # Consume one byte conservatively so the stream stays aligned.
             if index < size:
                 index += 1
-        
+
+        elif event_type == 6:
+            # End of score
+            break
+
+        else:
+            # The format only defines 0..7, but keep this defensive.
+            raise ValueError(f"Unknown MUS event type: {event_type}")
+
         if last_flag and index < size:
             delay, index = read_varlen(song_data, index)
             current_time += delay
-    
+
     events.append((current_time, [0xFF, 0x2F, 0x00]))
     events.sort(key=lambda x: x[0])
-    
+
     track_data = bytearray()
     prev_time = 0
     for time, event_bytes in events:
@@ -173,21 +252,21 @@ def mus_to_midi(mus_data):
         track_data.extend(to_varlen(delta))
         track_data.extend(event_bytes)
         prev_time = time
-    
+
     header = (
         b'MThd' +
         (6).to_bytes(4, 'big') +
         (0).to_bytes(2, 'big') +
         (1).to_bytes(2, 'big') +
-        (140).to_bytes(2, 'big')
+        (MIDI_PPQN).to_bytes(2, 'big')
     )
-    
+
     track_chunk = (
         b'MTrk' +
         len(track_data).to_bytes(4, 'big') +
         track_data
     )
-    
+
     return header + track_chunk
 
 def convert_mus_to_midi(data):
