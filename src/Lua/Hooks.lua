@@ -1660,9 +1660,6 @@ addHook("MobjSpawn", function(mobj)
 		mobj.doom.maxhealth = mobj.info.spawnhealth or 10
 		mobj.doom.health = mobj.doom.maxhealth
 		mobj.doom.flags = mobj.info.doomflags or 0
-		if MFE_DOOMENEMY then
-			mobj.eflags = $ | MFE_DOOMENEMY
-		end
 
 		-- Handle skin color flags for translation
 		local flags = mobj.doom.flags
