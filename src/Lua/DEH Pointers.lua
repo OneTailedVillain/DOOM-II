@@ -3,38 +3,17 @@ local function BulletHitObject(tmthing, thing)
     if tmthing.target == thing then return false end
 	if not (thing.flags & MF_SHOOTABLE) then return false end
 
-	local damageVal = mobjinfo[tmthing.type].damage
-	local damage = (DOOM_Random() % 8 + 1) * damageVal
+	-- thing's bounds
+	local thingbottom = thing.z
+	local thingtop = thing.z + thing.height
 
-	tmthing.hitenemy = true
-	tmthing.momx = 0
-	tmthing.momy = 0
-	tmthing.momz = 0
-    DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
-	P_KillMobj(tmthing)
-	S_StartSound(tmthing, mobjinfo[tmthing.type].deathsound)
-	return false
-end
+	-- projectile bounds
+	local bulletbottom = tmthing.z
+	local bullettop = tmthing.z + tmthing.height
 
-local projectiles = {
-	MT_TROOPSHOT,
-	MT_DOOM_PLASMASHOT,
-	MT_DOOM_MANCUBUSFIREBALL,
-	MT_DOOM_CACODEMONSHOT,
-	--MT_DOOM_BARONFIREBALL,
-	MT_DOOM_ARCHNOTRONPLASMA,
-	MT_DOOM_ROCKETPROJ,
-	MT_DOOM_BFGBALL,
-}
-
-for _, mt in ipairs(projectiles) do
-    addHook("MobjMoveCollide", BulletHitObject, mt)
-end
-
-local function BulletHitObject(tmthing, thing)
-    if tmthing.hitenemy then return false end
-    if tmthing.target == thing then return false end
-	if not (thing.flags & MF_SHOOTABLE) then return false end
+	if bullettop < thingbottom or bulletbottom > thingtop then
+		return false
+	end
 
 	local damageVal = mobjinfo[tmthing.type].damage
 	local damage
@@ -54,19 +33,28 @@ local function BulletHitObject(tmthing, thing)
 	return false
 end
 
-local projectiles = {
-	MT_REDRING,
-	MT_THROWNAUTOMATIC,
-	MT_THROWNBOUNCE,
-	MT_THROWNSCATTER,
-	MT_THROWNEXPLOSION,
-	MT_THROWNGRENADE,
-	MT_DOOM_THROWNHOMING
+doom.missileHookIgnoreList = {
+	[MT_DOOM_BULLETRAYCAST] = true
 }
 
-for _, mt in ipairs(projectiles) do
-    addHook("MobjMoveCollide", BulletHitObject, mt)
+local function addMobjHookByFlags(hookType, mobjFlags, hook)
+    local hookedMobjTypes = {}
+
+	local function addShit()
+        for mt = 0, #mobjinfo - 1 do
+			if doom.missileHookIgnoreList[mt] then continue end
+            if mobjinfo[mt].flags & mobjFlags and not hookedMobjTypes[mt] then
+                addHook(hookType, hook, mt)
+                hookedMobjTypes[mt] = true
+            end
+        end
+	end
+
+    addHook("AddonLoaded", addShit)
+	addShit()
 end
+
+addMobjHookByFlags("MobjMoveCollide", MF_MISSILE, BulletHitObject)
 
 doom.mthingReplacements = {
 	[5] = MT_DOOM_BLUEKEYCARD,
