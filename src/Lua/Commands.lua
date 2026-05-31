@@ -26,7 +26,7 @@ local function giveWeaponsArmorAndAmmo(player)
 	end
 	for i = 1, #weaponMap do
 		local weaponName = weaponMap[i]
-		if doom.weapons[weaponName].noshareware then
+		if doom.weapons[weaponName] and doom.weapons[weaponName].noshareware then
 			if doom.gamemode == "shareware" then continue end
 		end
 		doom.giveWeapon(player, weaponMap[i])

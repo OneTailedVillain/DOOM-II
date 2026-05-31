@@ -236,14 +236,18 @@ addHook("PlayerThink", function(player)
 	if (player.mo.flags & MF_NOTHINK) then return end
 
 	if (player.cmd.buttons & BT_JUMP) then
+		if player.doom.alreadyInteracted then return end
 		if doom.issrb2 then
 			if P_IsObjectOnGround(player.mo) and player.realmo.skin == "johndoom" then
 				S_StartSound(player.mo, sfx_jump)
 				player.mo.momz = 6*FRACUNIT
 			end
-		elseif not (player.doom.lastbuttons & BT_JUMP)
+		else
 			DOOM_TryUse(player)
 		end
+		player.doom.alreadyInteracted = true
+	else
+		player.doom.alreadyInteracted = false
 	end
 
 	if (player.cmd.buttons & BT_SPIN) and not (player.doom.lastbuttons & BT_SPIN) and doom.issrb2 then

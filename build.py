@@ -18,9 +18,9 @@ DEFAULT_OUTPUT_WAD_NAME = "freedoom2.pk3"
 DEFAULT_PYTHON_ZIP_NAME = "doompy.zip"
 
 DEFAULT_PKG_PREFIX = "SL"
-DEFAULT_PKG_NAME = "DOOMII"
+DEFAULT_PKG_NAME = "DoomII"
 DEFAULT_MOD_PREFIX = "CL"
-DEFAULT_MOD_NAME = "DOOMPortModdingExample"
+DEFAULT_MOD_NAME = "ExtraClasses"
 
 
 def get_version():
@@ -304,34 +304,39 @@ def parse_ignores(content):
 
 
 def parse_meta(content):
-	"""Parse meta directives from preprocessed content."""
+	"""Parse meta and branch directives."""
 	meta = {}
 
-	# value is optional now
 	meta_re = re.compile(r"^--#meta\s+(\S+)(?:\s+(.*))?$")
+	branch_re = re.compile(r"^--#(branchvar|branchpattern)\s+(.*)$")
 
 	for line in content.splitlines():
 		stripped = line.strip()
+
 		match = meta_re.match(stripped)
-		if not match:
+		if match:
+			key = match.group(1).lower()
+			value = (match.group(2) or "").strip()
+
+			if value and (
+				(value.startswith('"') and value.endswith('"'))
+				or (value.startswith("'") and value.endswith("'"))
+			):
+				value = value[1:-1]
+
+			if key in meta:
+				if isinstance(meta[key], list):
+					meta[key].append(value)
+				else:
+					meta[key] = [meta[key], value]
+			else:
+				meta[key] = value
 			continue
 
-		key = match.group(1).lower()
-		value = (match.group(2) or "").strip()
-
-		if value and (
-			(value.startswith('"') and value.endswith('"'))
-			or (value.startswith("'") and value.endswith("'"))
-		):
-			value = value[1:-1]
-
-		# allow multiple entries
-		if key in meta:
-			if isinstance(meta[key], list):
-				meta[key].append(value)
-			else:
-				meta[key] = [meta[key], value]
-		else:
+		match = branch_re.match(stripped)
+		if match:
+			key = match.group(1).lower()
+			value = match.group(2).strip()
 			meta[key] = value
 
 	return meta
@@ -360,6 +365,56 @@ def process_source_tree(source_root, defined_flags, ignore_buildflags=False, pre
 				)
 
 	return processed_files
+
+
+def resolve_branch_ignores(source_root, processed_files, meta):
+	"""
+	Auto-ignore sibling directories using:
+	--#branchvar doom.currentGame
+	--#branchpattern Lua/*Data
+	"""
+	branchvar = meta.get("branchvar")
+	pattern = meta.get("branchpattern")
+
+	if not branchvar or not pattern:
+		return set()
+
+	init_path = source_root / "init.lua"
+	content = processed_files.get(init_path)
+	if not content:
+		return set()
+
+	assign_re = re.compile(
+		rf"{re.escape(branchvar)}\s*=\s*['\"]([^'\"]+)['\"]"
+	)
+
+	match = assign_re.search(content)
+	if not match:
+		return set()
+
+	active_value = match.group(1)
+
+	ignored = set()
+
+	glob_pattern = str(source_root / pattern)
+
+	for path in Path(source_root).glob(pattern):
+		if not path.is_dir():
+			continue
+
+		name = path.name
+
+		if "*" not in pattern:
+			continue
+
+		prefix, suffix = pattern.split("*", 1)
+
+		if name == f"{active_value}{suffix}":
+			continue
+
+		ignored.add(path.relative_to(source_root).as_posix())
+
+	return ignored
 
 
 def rel_path_str(path, root):
@@ -412,6 +467,12 @@ def build_pk3(
 			init_content = processed_files[init_path]
 			meta = parse_meta(init_content)
 			ignored_dirs, ignored_files = parse_ignores(init_content)
+
+			ignored_dirs |= resolve_branch_ignores(
+				source_root,
+				processed_files,
+				meta,
+			)
 
 	prefix = meta.get("prefix", default_prefix)
 	name = meta.get("name", default_name)

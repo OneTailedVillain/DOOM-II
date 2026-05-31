@@ -126,9 +126,8 @@ hud.add(function(v, player)
 
 	ST_DrawCarousel(v, player, 160, 24)
 
-	if not v.patchExists("STFST01") or not v.patchExists("PLAYA1") then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YO! YOU DON'T HAVE A VALID IWAD LOADED YET!\nGRAB YOUR COPY OF DOOM, DOOM II, OR FREEDOOM\nAND LOAD THAT FIRST!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
-		return
+	if doom.noIwadChecks(v) then
+		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YOU PROBABLY DON'T HAVE AN IWAD ACTIVE!\nMAKE SURE YOU LOAD THAT AFTER THE ENGINE!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	whatRenderer = v.renderer()
 	local support = P_GetSupportsForSkin(player)

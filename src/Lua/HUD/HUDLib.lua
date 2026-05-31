@@ -173,6 +173,8 @@ rawset(_G, "cacheFont", function(v, font, force)
 			manualBuildSTT(v)
 		elseif font == "AMMNUM" then
 			manualBuildAMMNUM(v, font)
+		elseif font == "IN" then
+			manualBuildAMMNUM(v, font)
 		elseif font == "S2FONT" then
 			manualBuildS2FONT(v, font)
 		elseif font == "STYSNUM" then

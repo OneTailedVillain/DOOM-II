@@ -59,5 +59,3 @@ dofile("doomData/Definitions/Objects/MiscDeco.lua")
 
 dofile("doomData/HUD/Cast Drawer.lua")
 dofile("doomData/HUD/HUD.lua")
-
-dofile("doomData/JohnDoom.lua")

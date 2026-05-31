@@ -41,11 +41,20 @@ dofile("Chardefs/johnringslinger.lua")
 --#meta forwho Heretic
 --#meta skipwad
 doom.currentGame = "heretic"
-dofile("hereticData/Roll Call.lua")
+doom.noIwadChecks = function(v)
+	return not v.patchExists("INVGEML1") or not v.patchExists("PLAYA1")
+end
 --#else
 doom.currentGame = "doom"
-dofile("doomData/Roll Call.lua")
+doom.noIwadChecks = function(v)
+	return not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
+end
 --#endif
+
+--#branchvar doom.currentGame
+--#branchpattern Lua/*Data
+
+dofile(doom.currentGame .. "Data/Roll Call.lua")
 dofile("Demos Maybe.lua")
 dofile("Also saving maybe.lua")
 dofile("+Use.lua")
@@ -65,6 +74,7 @@ dofile("Player/IntermissionThinker.lua")
 dofile("Player/KeyBoardCheats.lua")
 dofile("Player/PreThink.lua")
 dofile("Player/PostThink.lua")
+dofile("Player/JohnDoom.lua")
 dofile("DEH Pointers.lua")
 dofile("Obituaries.lua")
 

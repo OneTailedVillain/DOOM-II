@@ -151,8 +151,7 @@ doom.addPairImmunity(MT_DOOM_HELLKNIGHT, MT_DOOM_BARONOFHELL)
 doom.setNoRetaliateAgainst(MT_DOOM_ARCHVILE, true)
 
 doom.addNoExplosionDamageType(MT_DOOM_CYBERDEMON)
--- "Later." - Medic TF2
--- doom.addNoExplosionDamageType(MT_DOOM_SPIDERMASTERMIND)
+doom.addNoExplosionDamageType(MT_DOOM_SPIDERMASTERMIND)
 end
 
 do
