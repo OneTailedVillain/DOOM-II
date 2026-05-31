@@ -1,4 +1,5 @@
 -- This ordering sucks, but it keeps states later down the line from complaining
+/*
 dofile("doomData/Definitions/Objects/Projectiles/Rocket.lua")
 dofile("doomData/Definitions/Objects/Projectiles/Imp Fireball.lua")
 dofile("doomData/Definitions/Objects/Projectiles/Mancubus Fireball.lua")
@@ -56,8 +57,7 @@ dofile("doomData/Definitions/Objects/Monsters/Voodoo Doll.lua")
 dofile("doomData/Definitions/Objects/Monsters/PLACEHOLD/Archvile.lua")
 dofile("doomData/Definitions/States/Player.lua")
 dofile("doomData/Definitions/Objects/MiscDeco.lua")
-
-dofile("doomData/HUD/Cast Drawer.lua")
+*/
 dofile("doomData/HUD/HUD.lua")
 
-dofile("doomData/JohnDoom.lua")
+dofile("doomData/JohnHeretic.lua")

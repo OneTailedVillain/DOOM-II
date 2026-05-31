@@ -97,7 +97,3 @@ addHook("ThinkFrame", function()
 		finalecount = $ + 1
 	end
 end)
-
-COM_AddCommand("doom_dobunny", function(player, finale)
-	doom.curcutscene = "sweetlittledeadbunny"
-end)

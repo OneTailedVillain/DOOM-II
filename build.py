@@ -101,6 +101,24 @@ def tokenize(expr):
 	return tokens
 
 
+def should_skip_meta(meta, key, defined_flags):
+	"""Return True if a skip meta expression evaluates true."""
+	value = meta.get(key)
+
+	if value is None:
+		return False
+
+	def eval_one(expr):
+		# blank means unconditional skip
+		if not expr:
+			return True
+		return evaluate_expression(expr, defined_flags)
+
+	if isinstance(value, list):
+		return any(eval_one(expr) for expr in value)
+
+	return eval_one(value)
+
 def evaluate_expression(expr, defined_flags):
 	"""Evaluate a build-flag expression."""
 	tokens = tokenize(expr)
@@ -288,18 +306,33 @@ def parse_ignores(content):
 def parse_meta(content):
 	"""Parse meta directives from preprocessed content."""
 	meta = {}
-	meta_re = re.compile(r"^--#meta\s+(\S+)\s+(.*)$")
+
+	# value is optional now
+	meta_re = re.compile(r"^--#meta\s+(\S+)(?:\s+(.*))?$")
 
 	for line in content.splitlines():
 		stripped = line.strip()
 		match = meta_re.match(stripped)
 		if not match:
 			continue
+
 		key = match.group(1).lower()
-		value = match.group(2).strip()
-		if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+		value = (match.group(2) or "").strip()
+
+		if value and (
+			(value.startswith('"') and value.endswith('"'))
+			or (value.startswith("'") and value.endswith("'"))
+		):
 			value = value[1:-1]
-		meta[key] = value
+
+		# allow multiple entries
+		if key in meta:
+			if isinstance(meta[key], list):
+				meta[key].append(value)
+			else:
+				meta[key] = [meta[key], value]
+		else:
+			meta[key] = value
 
 	return meta
 
@@ -494,6 +527,19 @@ def main():
 	src_dir = script_dir / "src"
 	modding_dir = script_dir / "ExtraClasses"
 
+	global_meta = {}
+
+	if not args.ignore_buildflags:
+		init_path = src_dir / "init.lua"
+		if init_path.exists():
+			processed_init = preprocess_file(
+				init_path,
+				defined_flags,
+				directive_prefix="--#",
+				preserve_line_numbers=not args.no_preserve_linenums,
+			)
+			global_meta = parse_meta(processed_init)
+
 	wad_override, pk3_override, py_override = args.buildto
 
 	output_wad = resolve_output(output_dir / DEFAULT_OUTPUT_WAD_NAME, wad_override, ".pk3")
@@ -522,127 +568,176 @@ def main():
 
 	# Step 1: Process Pre-packaged WAD
 	print("[1/4] Processing pre-packaged WAD...")
-	base_wad_file = next(base_wad_dir.glob("*.wad"), None)
 
-	if not base_wad_file:
-		print(f"ERROR: No WAD file found in {base_wad_dir}")
-		return 1
-
-	wad_dependencies = [python_dir, base_wad_file]
-
-	if not args.force and not needs_rebuild(output_wad, wad_dependencies):
-		print("✓ Skipped (output is up-to-date)\n")
+	if should_skip_meta(global_meta, "skipwad", defined_flags):
+		print("✓ Skipped (--#meta skipwad matched)\n")
 	else:
-		try:
-			result = subprocess.run(
-				[
-					args.python_exe,
-					str(python_dir / "pywadadvance_core.py"),
-					str(base_wad_file),
-					str(output_wad),
-				],
-				cwd=script_dir,
-				check=True,
-				capture_output=False,
-			)
-			print("WAD processing complete\n")
-		except subprocess.CalledProcessError as e:
-			print(f"ERROR: pywadadvance_core.py failed: {e}")
+		base_wad_file = next(base_wad_dir.glob("*.wad"), None)
+
+		if not base_wad_file:
+			print(f"ERROR: No WAD file found in {base_wad_dir}")
 			return 1
-		except Exception as e:
-			print(f"ERROR: Failed to run pywadadvance_core.py: {e}")
-			return 1
+
+		wad_dependencies = [python_dir, base_wad_file]
+
+		if not args.force and not needs_rebuild(output_wad, wad_dependencies):
+			print("✓ Skipped (output is up-to-date)\n")
+		else:
+			try:
+				result = subprocess.run(
+					[
+						args.python_exe,
+						str(python_dir / "pywadadvance_core.py"),
+						str(base_wad_file),
+						str(output_wad),
+					],
+					cwd=script_dir,
+					check=True,
+					capture_output=False,
+				)
+				print("WAD processing complete\n")
+			except subprocess.CalledProcessError as e:
+				print(f"ERROR: pywadadvance_core.py failed: {e}")
+				return 1
+			except Exception as e:
+				print(f"ERROR: Failed to run pywadadvance_core.py: {e}")
+				return 1
 
 	# Step 2: Build PK3
 	print("[2/4] Building PK3 package...")
 
-	source_dirs = [src_dir]
-
-	if not args.force and not needs_rebuild(output_pk3, source_dirs + [output_wad]):
-		print("✓ Skipped (output is up-to-date)\n")
+	if should_skip_meta(global_meta, "skippk3", defined_flags):
+		print("✓ Skipped (--#meta skippk3 matched)\n")
 	else:
-		try:
-			package_info = build_pk3(
-				src_dir,
-				output_pk3,
-				defined_flags=defined_flags,
-				default_prefix=DEFAULT_PKG_PREFIX,
-				default_name=DEFAULT_PKG_NAME,
-				default_forwho="DOOM-II",
-				default_forwhat="project",
-				ignore_buildflags=args.ignore_buildflags,
-				preserve_line_numbers=not args.no_preserve_linenums,
-			)
 
-			if not args.ignore_buildflags:
+		source_dirs = [src_dir]
+
+		if not args.force and not needs_rebuild(output_pk3, source_dirs + [output_wad]):
+			print("✓ Skipped (output is up-to-date)\n")
+		else:
+			try:
+				package_info = build_pk3(
+					src_dir,
+					output_pk3,
+					defined_flags=defined_flags,
+					default_prefix=DEFAULT_PKG_PREFIX,
+					default_name=DEFAULT_PKG_NAME,
+					default_forwho="DOOM-II",
+					default_forwhat="project",
+					ignore_buildflags=args.ignore_buildflags,
+					preserve_line_numbers=not args.no_preserve_linenums,
+				)
+
+				# Rebuild filename from parsed meta unless explicitly overridden
+				if not pk3_override:
+					output_pk3 = output_dir / build_versioned_pk3_name(
+						package_info["prefix"],
+						package_info["name"],
+						version,
+					)
+
 				print(
 					f"Final config: {package_info['prefix']}_{package_info['name']} "
 					f"for {package_info['forwho']} ({package_info['forwhat']})"
 				)
 
-			write_pk3(src_dir, output_pk3, package_info, verbose=False)
-			print(f"PK3 package created: {output_pk3.name}\n")
-		except Exception as e:
-			print(f"ERROR: Failed to create PK3: {e}")
-			return 1
+				write_pk3(src_dir, output_pk3, package_info, verbose=False)
+				print(f"PK3 package created: {output_pk3.name}\n")
+			except Exception as e:
+				print(f"ERROR: Failed to create PK3: {e}")
+				return 1
 
 	# Step 3: Build Modding Example
 	print("[3/4] Building ExtraClasses...")
 
-	source_dirs = [modding_dir]
-
-	if not args.force and not needs_rebuild(modding_pk3, source_dirs + [output_wad]):
-		print("✓ Skipped (output is up-to-date)\n")
-	else:
-		try:
-			package_info = build_pk3(
-				modding_dir,
-				modding_pk3,
-				defined_flags=defined_flags,
-				default_prefix=DEFAULT_MOD_PREFIX,
-				default_name=DEFAULT_MOD_NAME,
-				default_forwho="DOOM-II",
-				default_forwhat="extra classes",
-				ignore_buildflags=args.ignore_buildflags,
-				preserve_line_numbers=not args.no_preserve_linenums,
+	mod_meta = {}
+	if not args.ignore_buildflags:
+		mod_init = modding_dir / "init.lua"
+		if mod_init.exists():
+			mod_meta = parse_meta(
+				preprocess_file(
+					mod_init,
+					defined_flags,
+					directive_prefix="--#",
+					preserve_line_numbers=not args.no_preserve_linenums,
+				)
 			)
 
-			if not args.ignore_buildflags:
-				print(
-					f"Final config: {package_info['prefix']}_{package_info['name']} "
-					f"for {package_info['forwho']} ({package_info['forwhat']})"
+	if should_skip_meta(mod_meta, "skipmod", defined_flags):
+		print("✓ Skipped (--#meta skipmod matched)\n")
+	else:
+
+		source_dirs = [modding_dir]
+
+		if not args.force and not needs_rebuild(modding_pk3, source_dirs + [output_wad]):
+			print("✓ Skipped (output is up-to-date)\n")
+		else:
+			try:
+				package_info = build_pk3(
+					modding_dir,
+					modding_pk3,
+					defined_flags=defined_flags,
+					default_prefix=DEFAULT_MOD_PREFIX,
+					default_name=DEFAULT_MOD_NAME,
+					default_forwho="DOOM-II",
+					default_forwhat="extra classes",
+					ignore_buildflags=args.ignore_buildflags,
+					preserve_line_numbers=not args.no_preserve_linenums,
 				)
 
-			write_pk3(modding_dir, modding_pk3, package_info, verbose=False)
-			print(f"PK3 package created: {modding_pk3.name}\n")
-		except Exception as e:
-			print(f"ERROR: Failed to create PK3: {e}")
-			return 1
+				if not args.ignore_buildflags:
+					print(
+						f"Final config: {package_info['prefix']}_{package_info['name']} "
+						f"for {package_info['forwho']} ({package_info['forwhat']})"
+					)
+
+				write_pk3(modding_dir, modding_pk3, package_info, verbose=False)
+				print(f"PK3 package created: {modding_pk3.name}\n")
+			except Exception as e:
+				print(f"ERROR: Failed to create PK3: {e}")
+				return 1
 
 	# Step 4: Create Python archive
-	print("[4/4] Creating Python archive...")
+	print("[3/4] Building ExtraClasses...")
 
-	if not args.force and not needs_rebuild(python_zip, [python_dir]):
-		print("✓ Skipped (output is up-to-date)\n")
+	mod_meta = {}
+	if not args.ignore_buildflags:
+		mod_init = modding_dir / "init.lua"
+		if mod_init.exists():
+			mod_meta = parse_meta(
+				preprocess_file(
+					mod_init,
+					defined_flags,
+					directive_prefix="--#",
+					preserve_line_numbers=not args.no_preserve_linenums,
+				)
+			)
+
+	if should_skip_meta(mod_meta, "skipmod", defined_flags):
+		print("✓ Skipped (--#meta skipmod matched)\n")
 	else:
-		try:
-			if python_zip.exists():
-				python_zip.unlink()
 
-			with zipfile.ZipFile(python_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-				for root, dirs, files in os.walk(python_dir):
-					dirs[:] = [d for d in dirs if d not in {"__pycache__", ".pytest_cache"}]
+		if not args.force and not needs_rebuild(python_zip, [python_dir]):
+			print("✓ Skipped (output is up-to-date)\n")
+		else:
+			try:
+				if python_zip.exists():
+					python_zip.unlink()
 
-					for file in files:
-						if not file.endswith((".pyc", ".pyo", ".pyd")):
-							file_path = Path(root) / file
-							arcname = file_path.relative_to(script_dir).as_posix()
-							zf.write(file_path, arcname)
+				with zipfile.ZipFile(python_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+					for root, dirs, files in os.walk(python_dir):
+						dirs[:] = [d for d in dirs if d not in {"__pycache__", ".pytest_cache"}]
 
-			print(f"Python archive created: {python_zip.name}\n")
-		except Exception as e:
-			print(f"ERROR: Failed to create Python archive: {e}")
-			return 1
+						for file in files:
+							if not file.endswith((".pyc", ".pyo", ".pyd")):
+								file_path = Path(root) / file
+								arcname = file_path.relative_to(script_dir).as_posix()
+								zf.write(file_path, arcname)
+
+				print(f"Python archive created: {python_zip.name}\n")
+			except Exception as e:
+				print(f"ERROR: Failed to create Python archive: {e}")
+				return 1
 
 	# Summary
 	print("=" * 50)

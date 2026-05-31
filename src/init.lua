@@ -36,8 +36,16 @@ dofile("Actions.lua")
 
 dofile("Chardefs/johnringslinger.lua")
 
-
+--#ifdef HERETIC
+--#meta name Heretic
+--#meta forwho Heretic
+--#meta skipwad
+doom.currentGame = "heretic"
+dofile("hereticData/Roll Call.lua")
+--#else
+doom.currentGame = "doom"
 dofile("doomData/Roll Call.lua")
+--#endif
 dofile("Demos Maybe.lua")
 dofile("Also saving maybe.lua")
 dofile("+Use.lua")

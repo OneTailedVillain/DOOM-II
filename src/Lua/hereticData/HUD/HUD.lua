@@ -1,53 +1,3 @@
-local hudDir = "doomData/HUD/Alt HUDs/"
-
-local doBOOMHud = dofile(hudDir .. "Boom.lua")
-local srb2hud = dofile(hudDir .. "SRB2.lua")
-local doomleghud = dofile(hudDir .. "DOOM Legacy.lua")
-
--- Table of face sprite names in Doom IWAD order
-local st_faces = {
-	-- Pain offset 0
-	"STFST00", "STFST01", "STFST02",  -- straight ahead
-	"STFTL00", "STFTR00",             -- turn left/right
-	"STFOUCH0",                        -- ouch
-	"STFEVL0",                         -- evil grin
-	"STFKILL0",                        -- rampage
-
-	-- Pain offset 1
-	"STFST10", "STFST11", "STFST12",
-	"STFTL10", "STFTR10",
-	"STFOUCH1",
-	"STFEVL1",
-	"STFKILL1",
-
-	-- Pain offset 2
-	"STFST20", "STFST21", "STFST22",
-	"STFTL20", "STFTR20",
-	"STFOUCH2",
-	"STFEVL2",
-	"STFKILL2",
-
-	-- Pain offset 3
-	"STFST30", "STFST31", "STFST32",
-	"STFTL30", "STFTR30",
-	"STFOUCH3",
-	"STFEVL3",
-	"STFKILL3",
-
-	-- Pain offset 4
-	"STFST40", "STFST41", "STFST42",
-	"STFTL40", "STFTR40",
-	"STFOUCH4",
-	"STFEVL4",
-	"STFKILL4",
-
-	-- God face
-	"STFGOD0",
-
-	-- Dead face
-	"STFDEAD0"
-}
-
 local colorlettertotranslation = {
 	G = "BOOMCRGREEN",
 	B = "BOOMCRBLUE2",
@@ -312,24 +262,6 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 	end
 end
 
-local function drawFace(v, player)
-	local chardef = P_GetSupportsForSkin(player)
-	local index = player.doom.faceindex + 1
-	if index > #st_faces then index = #st_faces end
-	local patch
-	if chardef.st_faces then
-		patch = chardef.st_faces[index]
-	else
-		patch = st_faces[index]
-	end
-	local prefixmaybe = chardef.faceprefix or ""
-	if patch != nil then
-		v.draw(143, 168, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
-	else
-		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
-	end
-end
-
 local function DrawKeys(v, player, noSBar)
 	local keyColors = {"BLUE", "YELLOW", "RED"} -- In order of how DOOM draws these
 	local keyX = { 239, 239, 239 }
@@ -425,40 +357,9 @@ local function drawStatusBar(v, player, hudPref)
 
 	DrawStatusBarNumbers(v, player, not sbpatch)
 	DrawKeys(v, player, not sbpatch)
-	if hudPref != 6 then
-		drawFace(v, player)
-	end
 end
 
-doom.hudWeaponOffsets = {
-	[0] = 38,
-	[1] = 16,
-	[2] = 38,
-	[3] = 38,
-	[4] = 38,
-	[5] = 38,
-	[6] = 38,
-	[7] = 38,
-}
-
-local function drawDoomLegacyHud(v, player)
-	local funcs = P_GetMethodsForSkin(player)
-
-	local myHealth = funcs.getHealth(player) or 0
-	local myArmor  = funcs.getArmor(player) or 0
-	local myAmmo   = funcs.getCurAmmo(player)
-	local myFrags  = (doom.getFrags and doom.getFrags(player)) or 0
-	local myWeapon = player.doom and (player.doom.curwep or player.readyweapon) or player.readyweapon or 0
-	local myKeys   = player.doom and (player.doom.keys or 0) or 0
-
-	doomleghud.keys(v, player, myKeys)
-	doomleghud.ammo(v, player, myAmmo, myWeapon)
-	doomleghud.health(v, player, myHealth)
-	doomleghud.armor(v, player, myArmor)
-	doomleghud.frags(v, player, myFrags)
-end
-
-doom.hudDraw["doom"] = function(v, player, inAutomap)
+doom.hudDraw["heretic"] = function(v, player)
 	local funcs = P_GetMethodsForSkin(player)
 	local myHealth = funcs.getHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
@@ -474,20 +375,10 @@ doom.hudDraw["doom"] = function(v, player, inAutomap)
 		return
 	end
 
-	if not inAutomap then
-		local hudPref = tonumber(DOOM_GetConfigStoreValue(player, "hudstyle")) or 1
-		local isActuallyBoom = hudPref <= 5 and hudPref > 1
+	local hudPref = tonumber(DOOM_GetConfigStoreValue(player, "hudstyle")) or 1
+	local isActuallyBoom = hudPref <= 5 and hudPref > 1
 
-		drawWeapon(v, player, doom.hudWeaponOffsets[hudPref] or 38)
+	drawWeapon(v, player, doom.hudWeaponOffsets[hudPref] or 38)
 
-		if hudPref == 8 then
-			drawDoomLegacyHud(v, player)
-		elseif isActuallyBoom then
-			doBOOMHud(v, player)
-		else
-			drawStatusBar(v, player, hudPref)
-		end
-	else
-		drawStatusBar(v, player, 1)
-	end
+	drawStatusBar(v, player, hudPref)
 end
