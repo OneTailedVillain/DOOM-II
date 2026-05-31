@@ -898,11 +898,18 @@ local thinkers = {
 	end,
 
 	door = function(sector, data)
-		-- opening
-		if not data.reachedGoal then
-			local target = P_FindLowestCeilingSurrounding(sector) - 4*FRACUNIT
-			local speed = data.fastdoor and 8*FRACUNIT or 2*FRACUNIT
+		local openTarget = P_FindLowestCeilingSurrounding(sector) - 4*FRACUNIT
+		local closedTarget = sector.floorheight
+		local speed = data.fastdoor and 8*FRACUNIT or 2*FRACUNIT
 
+		-- init
+		if not data.direction then
+			-- default = open first
+			data.direction = data.closewaitopen and -1 or 1
+		end
+
+		-- moving upward
+		if data.direction == 1 then
 			if not data.init then
 				if data.fastdoor then
 					S_StartSound(sector, sfx_bdopn)
@@ -914,22 +921,25 @@ local thinkers = {
 
 			sector.ceilingheight = $ + speed
 
-			if sector.ceilingheight >= target then
-				sector.ceilingheight = target
-				data.reachedGoal = true
-				data.waitClock = data.delay or 150
+			if sector.ceilingheight >= openTarget then
+				sector.ceilingheight = openTarget
+
+				if data.stay or data.closewaitopen then
+					DOOM_StopThinker(sector)
+
+					if data.repeatable then
+						data.direction = nil
+						data.waitClock = nil
+						data.init = nil
+					end
+				else
+					data.direction = 0
+					data.waitClock = data.delay or 150
+				end
 			end
 
-		-- waiting
-		elseif data.waitClock and data.waitClock > 0 then
-			if data.stay then return end
-			data.waitClock = $ - 1
-
-		-- closing
-		else
-			local target = sector.floorheight
-			local speed = data.fastdoor and 8*FRACUNIT or 2*FRACUNIT
-
+		-- moving downward
+		elseif data.direction == -1 then
 			if data.init then
 				if data.fastdoor then
 					S_StartSound(sector, sfx_bdcls)
@@ -941,26 +951,49 @@ local thinkers = {
 
 			sector.ceilingheight = $ - speed
 
-			if sectorHasUnfittableObject(sector) then
+			-- crush check:
+			-- only regular doors bounce back up
+			if sectorHasUnfittableObject(sector) and not data.closewaitopen then
 				if data.fastdoor then
 					S_StartSound(sector, sfx_bdopn)
 				else
 					S_StartSound(sector, sfx_doropn)
 				end
-				data.reachedGoal = false
+
+				data.direction = 1
 				sector.ceilingheight = $ + speed
+				return
 			end
 
-			if sector.ceilingheight <= target then
-				sector.ceilingheight = target
+			if sector.ceilingheight <= closedTarget then
+				sector.ceilingheight = closedTarget
 
-				-- remove thinker
-				DOOM_StopThinker(sector)
+				if data.closewaitopen then
+					data.direction = 0
+					data.waitClock = data.delay or 150
+				else
+					DOOM_StopThinker(sector)
 
-				-- if repeatable, reset any flags for next trigger
-				if data.repeatable then
-					data.reachedGoal = false
-					data.waitClock = nil
+					if data.repeatable then
+						data.direction = nil
+						data.waitClock = nil
+						data.init = nil
+					end
+				end
+			end
+
+		-- waiting
+		elseif data.direction == 0 then
+			if data.stay then return end
+
+			data.waitClock = $ - 1
+
+			if data.waitClock <= 0 then
+				-- resume opposite direction
+				if data.closewaitopen then
+					data.direction = 1
+				else
+					data.direction = -1
 				end
 			end
 		end
