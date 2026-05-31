@@ -714,6 +714,7 @@ end
 
 ---@param v videolib
 hud.add(function(v, player)
+	if player.mo.skin != "johnringslinger" then return end
 	local funcs = P_GetMethodsForSkin(player)
 	local ammo = funcs.getCurAmmo(player)
 	local weapon = player.doom.curwep
