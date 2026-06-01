@@ -136,4 +136,4 @@ doom.charSupport.johnringslinger = {
     methods = methods
 }
 
-doom.charSupport.johnringslinger.properties.startweapons[doom.startingMeleeWeapon] = true
+doom.charSupport.johnringslinger.properties.startweapons[doom.startingMeleeWeapon or "brassknuckles"] = true
