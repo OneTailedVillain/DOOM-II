@@ -768,6 +768,7 @@ end)
 addHook("PlayerThink", function(player)
 	player.pflags = $ & ~(PF_SPINNING)
 	camera.chase = false
+	player.drawangle = player.mo.angle
 end)
 
 -- TODO: Verify if this is necessary
