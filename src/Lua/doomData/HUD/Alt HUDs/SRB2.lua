@@ -37,20 +37,20 @@ local srb2hud = {
 			local myAmmoIcon = myAmmoDef.icon
 			--local myIconPatch = v.cachePatch(myAmmoIcon)
 			--v.draw(236, 198, myIconPatch)
-			drawInFont(v, 234*FRACUNIT, 182*FRACUNIT, FRACUNIT, "STT", tostring(ammo), V_PERPLAYER, "right")
+			doom.drawInFont(v, 234*FRACUNIT, 182*FRACUNIT, FRACUNIT, "STT", tostring(ammo), V_PERPLAYER, "right")
 		end
 	end,
 	health = function(v, player, health)
 		v.draw(16, 42, v.cachePatch("SBOHEALT"))
-		drawInFont(v, 112*FRACUNIT, 40*FRACUNIT, FRACUNIT, "STT", tostring(max(health - 1, 0)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 112*FRACUNIT, 40*FRACUNIT, FRACUNIT, "STT", tostring(max(health - 1, 0)), V_PERPLAYER, "right")
 	end,
 	armor = function(v, player, armor)
 		v.draw(17, 26, v.cachePatch("SBOARMOR"))
-		drawInFont(v, 112*FRACUNIT, 24*FRACUNIT, FRACUNIT, "STT", tostring(max(armor, 0)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 112*FRACUNIT, 24*FRACUNIT, FRACUNIT, "STT", tostring(max(armor, 0)), V_PERPLAYER, "right")
 	end,
 	frags = function(v, player, frags)
 		v.draw(16, 10, v.cachePatch("SBOFRAGS"))
-		drawInFont(v, 128*FRACUNIT, 9*FRACUNIT, FRACUNIT, "STT", tostring(max((frags or 0), 0)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 128*FRACUNIT, 9*FRACUNIT, FRACUNIT, "STT", tostring(max((frags or 0), 0)), V_PERPLAYER, "right")
 	end,
 }
 

@@ -266,7 +266,7 @@ local function doAutomap(v, player, noHUD)
 
     doom.drawStatusBar(v, displayplayer)
 	-- doom.mapString
-	drawInFont(v,
+	doom.drawInFont(v,
 	0, 160*FRACUNIT,
 	FRACUNIT,
 	"STCFN",

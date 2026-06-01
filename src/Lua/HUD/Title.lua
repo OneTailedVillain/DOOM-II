@@ -301,7 +301,7 @@ doom.titlemenus = {
 		end,
 
 		customFunc = function(v)
-			drawInFont(v, 160*FRACUNIT, 20*FRACUNIT, FRACUNIT, "STCFN", "SELECT CHARACTER", 0, "center")
+			doom.drawInFont(v, 160*FRACUNIT, 20*FRACUNIT, FRACUNIT, "STCFN", "SELECT CHARACTER", 0, "center")
 		end
 	},
 	newgame = {
@@ -358,7 +358,7 @@ doom.titlemenus = {
 			local toDraw = DOOM_ResolveString(menustatus.special and menustatus.special.quitgamestring or "$QUITMSG").."\n\n(press y to quit)"
 			local _, offset = toDraw:gsub("\n", "")
 			offset = ($ + 1) * 4
-			drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
+			doom.drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
 		end,
 		onEnter = function()
 			menustatus.special = $ or {}
@@ -378,7 +378,7 @@ doom.titlemenus = {
 			local toDraw = DOOM_ResolveString("$SWSTRING")
 			local _, offset = toDraw:gsub("\n", "")
 			offset = ($ + 1) * 4
-			drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
+			doom.drawInFont(v, 160 * FRACUNIT, (100 - offset) * FRACUNIT, FRACUNIT, "STCFN", toDraw, 0, "center")
 		end,
 	},
 }
@@ -416,7 +416,7 @@ local function drawMenuEntry(v, entry, x, y)
 		if v.patchExists(entry.patch) then
 		v.draw(x, y, v.cachePatch(entry.patch))
 		else
-			drawInFont(v,
+			doom.drawInFont(v,
 				x * FRACUNIT,
 				(y + 4) * FRACUNIT,
 				FRACUNIT*3/2,
@@ -428,7 +428,7 @@ local function drawMenuEntry(v, entry, x, y)
 		end
 
 	elseif entry.drawtype == "text" then
-		drawInFont(v,
+		doom.drawInFont(v,
 			(x + 160) * FRACUNIT,
 			y * FRACUNIT,
 			FRACUNIT,
@@ -447,7 +447,7 @@ local function drawMenuEntry(v, entry, x, y)
             local rowheight = entry.rowheight or 24
             local sliderY = y + (rowheight / 2)
 
-            drawInFont(v, 160 * FRACUNIT, y * FRACUNIT, FRACUNIT,
+            doom.drawInFont(v, 160 * FRACUNIT, y * FRACUNIT, FRACUNIT,
                 "STCFN", label, 0, "center")
 
             local width = props.width or 10
@@ -459,7 +459,7 @@ local function drawMenuEntry(v, entry, x, y)
 
             M_DrawThermo(v, props.x or x, sliderY, width, dot)
         else
-            drawInFont(v, 160 * FRACUNIT, y * FRACUNIT, FRACUNIT,
+            doom.drawInFont(v, 160 * FRACUNIT, y * FRACUNIT, FRACUNIT,
                 "STCFN", label .. ": " .. tostring(cur), 0, "center")
         end
 		return {y = y, skullpatch = "M_CURSOR"}
@@ -506,7 +506,7 @@ local function drawMenuEntry(v, entry, x, y)
 		end
 
 		if entry.highlight == "current" then
-			drawInFont(v,
+			doom.drawInFont(v,
 				(x + 60) * FRACUNIT,
 				(y - 48) * FRACUNIT,
 				FRACUNIT,
@@ -528,7 +528,7 @@ local function drawMenuEntry(v, entry, x, y)
 
 			-- Draw up to 6 lines
 			for i = 1, min(6, #lines) do
-				drawInFont(v,
+				doom.drawInFont(v,
 					(x + 60) * FRACUNIT,
 					(y - 40 + (i * 8)) * FRACUNIT,
 					FRACUNIT,

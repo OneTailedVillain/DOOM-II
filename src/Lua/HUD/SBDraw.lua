@@ -125,12 +125,12 @@ hud.add(function(v, player)
 	ST_DrawCarousel(v, player, 160, 24)
 
 	if doom.noIwadChecks(v) then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YOU PROBABLY DON'T HAVE AN IWAD ACTIVE!\nMAKE SURE YOU LOAD THAT AFTER THE ENGINE!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
+		doom.drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YOU PROBABLY DON'T HAVE AN IWAD ACTIVE!\nMAKE SURE YOU LOAD THAT AFTER THE ENGINE!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	whatRenderer = v.renderer()
 	local support = P_GetSupportsForSkin(player)
 	if player.doom.message and player.doom.messageclock then
-		drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
+		doom.drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	if support.noHUD or (support.properties and support.properties.noHUD) then
 		if not support.noWeapons then
@@ -234,20 +234,20 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 
 	local hudflags = V_PERPLAYER|V_SNAPTOTOP|V_SNAPTOLEFT
 	v.draw(17, 11, v.cachePatch("STTHEALT"), hudflags)
-	drawInFont(v, (100) * FRACUNIT, (11) * FRACUNIT, FRACUNIT, "S2FONT", tostring(health) .. "%", hudflags, "right")
+	doom.drawInFont(v, (100) * FRACUNIT, (11) * FRACUNIT, FRACUNIT, "S2FONT", tostring(health) .. "%", hudflags, "right")
 	v.draw(17, 11 + 16, v.cachePatch("STTARMOR"), hudflags)
-	drawInFont(v, (100) * FRACUNIT, (11 + 16) * FRACUNIT, FRACUNIT, "S2FONT", tostring(armor) .. "%", hudflags, "right")
+	doom.drawInFont(v, (100) * FRACUNIT, (11 + 16) * FRACUNIT, FRACUNIT, "S2FONT", tostring(armor) .. "%", hudflags, "right")
 
 
 	if altArmsDisplay then
-		drawInFont(v, 248 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", "ARMS", V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+		doom.drawInFont(v, 248 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", "ARMS", V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
 		if ammo ~= false then
 			local myWep = doom.weapons[weapon]
 			local myAmmoType = myWep and myWep.ammotype
 			local myAmmoDef = doom.ammos[myAmmoType]
 
-			drawInFont(v, 32 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", tostring(myAmmoDef.name), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
-			drawInFont(v, 48 * FRACUNIT, 184 * FRACUNIT, FRACUNIT, "SRBFN", tostring(ammo), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+			doom.drawInFont(v, 32 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", tostring(myAmmoDef.name), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
+			doom.drawInFont(v, 48 * FRACUNIT, 184 * FRACUNIT, FRACUNIT, "SRBFN", tostring(ammo), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
 			v.draw(16 + 22, 176 + 10, getPatch(v, "STLIVEX"), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM)
 
 			if myAmmoDef and myAmmoDef.icon then
@@ -327,7 +327,7 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 				if (textflags & V_YELLOWMAP) then
 					translation = "SRB2YELLOWMAP"
 				end
-				drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
+				doom.drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
 			end
 		end
 	end

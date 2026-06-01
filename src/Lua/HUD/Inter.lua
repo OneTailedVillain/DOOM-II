@@ -280,21 +280,21 @@ local function drawIntermission(v, player)
 		local y = SP_STATSY
 		v.draw(x, y, killspatch)
 		if inter >= 2 then
-			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[1] .. "%", 0, "right")
+			doom.drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[1] .. "%", 0, "right")
 		end
 
 		local killspatch = v.cachePatch("WIOSTI")
 		y = $ + lh
 		v.draw(x, y, killspatch)
 		if inter >= 4 then
-			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[2] .. "%", 0, "right")
+			doom.drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[2] .. "%", 0, "right")
 		end
 
 		local killspatch = v.cachePatch("WISCRT2")
 		y = $ + lh
 		v.draw(x, y, killspatch)
 		if inter >= 6 then
-			drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[3] .. "%", 0, "right")
+			doom.drawInFont(v, (320 - x)*FRACUNIT, y*FRACUNIT, FRACUNIT, "WI", player.cnt_kills[3] .. "%", 0, "right")
 		end
 	else
 		MPR(v, player)

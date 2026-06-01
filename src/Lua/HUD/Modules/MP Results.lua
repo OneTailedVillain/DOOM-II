@@ -82,7 +82,7 @@ local function MPR(v, player)
 	local function drawShit(x, text, alignment)
 		if not x then x = 0 end
 
-		drawInFont(
+		doom.drawInFont(
 			v,
 			x * FRACUNIT, -- x stays unscaled
 			(y + scaled(3)) * FRACUNIT,

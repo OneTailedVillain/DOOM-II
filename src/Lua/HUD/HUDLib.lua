@@ -167,7 +167,7 @@ local function manualBuildS2FONT(v)
 end
 
 -- Either creates or caches a fontset
-rawset(_G, "cacheFont", function(v, font, force)
+local function cacheFont(v, font, force)
 	if not cacheShit.fonts[font] or force then
 		if font == "STT" then
 			manualBuildSTT(v)
@@ -219,9 +219,9 @@ rawset(_G, "cacheFont", function(v, font, force)
 		end
 	end
 	return cacheShit.fonts[font]
-end)
+end
 
-rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
+function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
 	str = tostring(str)
 
 	-- Validate flags
@@ -404,7 +404,7 @@ rawset(_G, "drawInFont", function(v, x, y, scale, font, str, flags, alignment, c
 
 		y = y + FixedMul(lineHeight, scale)
 	end
-end)
+end
 
 -- Bresenham-based line drawing (with bailout)
 rawset(_G, "minimapDrawLine", function(v, x1, y1, x2, y2, color, flags, scale)

@@ -133,7 +133,7 @@ local srb2hud = {
 			local myWep = doom.weapons[weapon]
 			local myAmmoType = myWep and myWep.ammotype
 
-			drawInFont(v, 234 * FRACUNIT, 182 * FRACUNIT, FRACUNIT, "STT", tostring(ammo), V_PERPLAYER, "right")
+			doom.drawInFont(v, 234 * FRACUNIT, 182 * FRACUNIT, FRACUNIT, "STT", tostring(ammo), V_PERPLAYER, "right")
 
 			local myAmmoDef = doom.ammos[myAmmoType]
 			if myAmmoDef and myAmmoDef.icon then
@@ -144,17 +144,17 @@ local srb2hud = {
 
 	health = function(v, player, health)
 		v.draw(16, 42, getPatch(v, "SBOHEALT"))
-		drawInFont(v, 112 * FRACUNIT, 40 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(health - 1)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 112 * FRACUNIT, 40 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(health - 1)), V_PERPLAYER, "right")
 	end,
 
 	armor = function(v, player, armor)
 		v.draw(17, 26, getPatch(v, "SBOARMOR"))
-		drawInFont(v, 112 * FRACUNIT, 24 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(armor)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 112 * FRACUNIT, 24 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(armor)), V_PERPLAYER, "right")
 	end,
 
 	frags = function(v, player, frags)
 		v.draw(16, 10, getPatch(v, "SBOFRAGS"))
-		drawInFont(v, 128 * FRACUNIT, 9 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(frags or 0)), V_PERPLAYER, "right")
+		doom.drawInFont(v, 128 * FRACUNIT, 9 * FRACUNIT, FRACUNIT, "STT", tostring(clamp0(frags or 0)), V_PERPLAYER, "right")
 	end
 }
 

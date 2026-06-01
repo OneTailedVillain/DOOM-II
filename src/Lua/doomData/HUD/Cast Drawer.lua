@@ -2,7 +2,7 @@ local SKIN_DOOM = "johndoom"
 
 local function F_CastPrint(v, text)
     text = DOOM_ResolveString(text)
-    drawInFont(v, 160*FRACUNIT, 180*FRACUNIT, FRACUNIT,
+    doom.drawInFont(v, 160*FRACUNIT, 180*FRACUNIT, FRACUNIT,
         "STCFN", text, 0, "center")
 end
 

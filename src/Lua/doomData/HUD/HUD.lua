@@ -248,7 +248,7 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 				local whatToIndex = whatToCheck[i + 2]
 				local doIHaveIt = funcs.hasWeapon(player, whatToIndex)
 				local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
-				drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
+				doom.drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
 			end
 		else
 			local wepcats = {
@@ -277,7 +277,7 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 					end
 				end
 				local whatFont = doIHaveAWeaponInThisSlot and "STYSNUM" or "STGNUM"
-				drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
+				doom.drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
 			end
 		end
 	else
@@ -301,14 +301,14 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 		local curAmmo = funcs.getAmmoFor(player, whatToIndex)
 		local whatFont = curAmmo != false and "STYSNUM" or "STGNUM"
 		curAmmo = $ or 0
-		drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
+		doom.drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
 	end
 	for i = 0, 3 do
 		local whatToIndex = ammosToIndex[i + 1]
 		local maxAmmo = funcs.getMaxFor(player, whatToIndex)
 		local whatFont = maxAmmo != false and "STYSNUM" or "STGNUM"
 		maxAmmo = $ or 0
-		drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
+		doom.drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
 	end
 end
 
