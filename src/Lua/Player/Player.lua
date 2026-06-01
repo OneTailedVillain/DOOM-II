@@ -840,7 +840,8 @@ end)
 
 addHook("PlayerThink", function(player)
 	player.pflags = $ & ~(PF_SPINNING)
-end, MT_PLAYER)
+	camera.chase = false
+end)
 
 -- TODO: Verify if this is necessary
 addHook("PlayerHeight", function(player)
