@@ -39,6 +39,7 @@ rawset(_G, "S_StartSound", function(origin, soundnum, player)
 end)
 
 addHook("PostThinkFrame", function()
+	if not multiplayer then return end
 	for player in players.iterate() do
 		if not player.doom.oldskin then player.doom.oldskin = player.skin end
 		if player.skin != player.doom.oldskin then
