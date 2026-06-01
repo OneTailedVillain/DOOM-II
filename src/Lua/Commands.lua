@@ -24,15 +24,15 @@ local function giveWeaponsArmorAndAmmo(player)
 		local max = funcs.getMaxFor(player, aType)
 		funcs.setAmmoFor(player, aType, max)
 	end
+	if not doom.isdoom1 then
+		doom.giveWeapon(player, "supershotgun")
+	end
 	for i = 1, #weaponMap do
 		local weaponName = weaponMap[i]
 		if doom.weapons[weaponName] and doom.weapons[weaponName].noshareware then
 			if doom.gamemode == "shareware" then continue end
 		end
 		doom.giveWeapon(player, weaponMap[i])
-	end
-	if not doom.isdoom1 then
-		doom.giveWeapon(player, "supershotgun")
 	end
 end
 

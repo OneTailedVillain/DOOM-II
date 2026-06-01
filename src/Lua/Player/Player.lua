@@ -448,80 +448,6 @@ addHook("PlayerThink", function(player)
 
 	local carousel = player.doom.wepcarousel
 
-	local function firstAvailableInSlot(player, slot)
-		if not doom.weaponnames[slot] then
-			return nil
-		end
-		for order, wep in ipairs(doom.weaponnames[slot]) do
-			if player.doom.weapons[wep] then
-				return order
-			end
-		end
-		return nil
-	end
-
-	local function findNextWeapon(player, direction, baseSlot, baseOrder)
-		local currentSlot = baseSlot
-		local currentOrder = baseOrder
-		local totalSlots = #doom.weaponnames
-
-		if totalSlots == 0 then
-			return currentSlot, currentOrder
-		end
-
-		if direction == 1 then
-			for order = currentOrder + 1, #doom.weaponnames[currentSlot] do
-				local weapon = doom.weaponnames[currentSlot][order]
-				if player.doom.weapons[weapon] then
-					return currentSlot, order
-				end
-			end
-		else
-			for order = currentOrder - 1, 1, -1 do
-				local weapon = doom.weaponnames[currentSlot][order]
-				if player.doom.weapons[weapon] then
-					return currentSlot, order
-				end
-			end
-		end
-
-		local startSlot = currentSlot
-		local function wrapSlot(slot, total)
-			if slot < 1 then
-				return total
-			elseif slot > total then
-				return 1
-			end
-			return slot
-		end
-
-		local slot = wrapSlot(currentSlot + direction, totalSlots)
-		local checkedSlots = 0
-		local totalSlots = 50
-
-		while slot ~= startSlot and checkedSlots < totalSlots do
-			checkedSlots = $ + 1
-			local firstOrder = firstAvailableInSlot(player, slot)
-			if firstOrder then
-				if direction == 1 then
-					return slot, firstOrder
-				else
-					local highestOrder = firstOrder
-					for order = firstOrder + 1, #doom.weaponnames[slot] do
-						if player.doom.weapons[doom.weaponnames[slot][order]] then
-							highestOrder = order
-						end
-					end
-					return slot, highestOrder
-				end
-			end
-
-			slot = (slot + direction - 1) % totalSlots + 1
-		end
-
-		return currentSlot, currentOrder
-	end
-
 	local function commitWeapon(player, weapon, slot, order, feedbackTime)
 		player.doom.curwepcat = slot
 		player.doom.curwepslot = order
@@ -551,12 +477,12 @@ addHook("PlayerThink", function(player)
 	
 	if canProcessPrevNext then
 		if player.cmd.buttons & BT_WEAPONNEXT ~= 0 and player.doom.lastbuttons & BT_WEAPONNEXT == 0 then
-			local targetSlot, targetOrder = findNextWeapon(player, 1, baseSlot, baseOrder)
+			local targetSlot, targetOrder = doom.findNextWeapon(player, 1, baseSlot, baseOrder)
 			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
 			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2)
 			carousel.cooldown = 3
 		elseif player.cmd.buttons & BT_WEAPONPREV ~= 0 and player.doom.lastbuttons & BT_WEAPONPREV == 0 then
-			local targetSlot, targetOrder = findNextWeapon(player, -1, baseSlot, baseOrder)
+			local targetSlot, targetOrder = doom.findNextWeapon(player, -1, baseSlot, baseOrder)
 			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
 			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2)
 			carousel.cooldown = 3
@@ -570,7 +496,7 @@ addHook("PlayerThink", function(player)
 	if slotPressed ~= 0 and slotPressed ~= slotWasPressed then
 		local slot = slotPressed
 		local wepsInSlot = doom.weaponnames[slot]
-		local firstOwnedOrder = firstAvailableInSlot(player, slot)
+		local firstOwnedOrder = doom.firstAvailableInSlot(player, slot)
 		if firstOwnedOrder then
 			local targetOrder
 			if slot ~= baseSlot then
@@ -838,6 +764,7 @@ addHook("PlayerThink", function(player)
     end
 end)
 
+---@param player player_t
 addHook("PlayerThink", function(player)
 	player.pflags = $ & ~(PF_SPINNING)
 	camera.chase = false
@@ -854,26 +781,27 @@ addHook("PlayerHeight", function(player)
 	end
 end)
 
-local function deepcopy(orig)
-	local orig_type = type(orig)
-	if orig_type ~= 'table' then
-		if orig_type == "boolean" then
-			return orig == true
-		else
-			return tonumber(orig) == nil and tostring(orig) or tonumber(orig)
-		end
-	end
-	local copy = {}
-	for k, v in next, orig, nil do
-		copy[deepcopy(k)] = deepcopy(v)
-	end
-	return copy
-end
-
 local function merge(target_table, source_table)
     for key, value in pairs(source_table) do
         target_table[key] = value
     end
+end
+
+local function syncWeaponFields(player)
+	local wep = player.doom.curwep
+	local def = wep and doom.weapons[wep]
+	if def then
+		player.doom.curwepcat = def.weaponslot
+		-- Find the sequential index of this weapon in its slot
+		local slot = def.weaponslot
+		local wepsInSlot = doom.weaponnames[slot]
+		for idx, wepname in ipairs(wepsInSlot) do
+			if wepname == wep then
+				player.doom.curwepslot = idx
+				break
+			end
+		end
+	end
 end
 
 addHook("PlayerSpawn",function(player)
@@ -979,8 +907,7 @@ addHook("PlayerSpawn",function(player)
 	player.doom.ammo = choose("ammo")
 	player.doom.weapons = choose("weapons")
 	player.doom.curwep = choose("curwep")
-	player.doom.curwepslot = choose("curwepslot")
-	player.doom.curwepcat = choose("curwepcat")
+	syncWeaponFields(player)
 	player.doom.twoxammo = choose("twoxammo")
 	player.mo.doom.health = choose("health")
 	player.mo.doom.armor = choose("armor")

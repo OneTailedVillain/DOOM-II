@@ -62,46 +62,6 @@ boolean G_WeaponSelectable(weapontype_t weapon)
 }
 */
 
----@param player player_t
----@param wepname string
-local function G_WeaponSelectable(player, wepname)
-	if not player.doom.weapons[wepname] then
-		return false
-	end
-
-	return true
-end
-
-/*
-weapontype_t G_AdjustSelection(weapontype_t weapon)
-{
-    if (!demo_compatibility && !doom_weapon_cycle)
-    {
-        return weapon;
-    }
-
-    const player_t *player = &players[consoleplayer];
-
-    if (weapon == wp_fist && player->weaponowned[wp_chainsaw]
-        && (player->nextweapon != wp_chainsaw || !player->powers[pw_strength]))
-    {
-        weapon = wp_chainsaw;
-    }
-    else if (ALLOW_SSG && weapon == wp_shotgun
-             && player->weaponowned[wp_supershotgun]
-             && player->nextweapon != wp_supershotgun)
-    {
-        weapon = wp_supershotgun;
-    }
-
-    return weapon;
-}
-*/
-
-local function G_AdjustSelection(player, wepname)
-	return wepname
-end
-
 ---@param v videolib
 local function DrawIcon(v, x, y, elem, icon)
 	local lump = "\0"
@@ -123,6 +83,8 @@ local function DrawIcon(v, x, y, elem, icon)
 	v.draw(x, y, patch, V_PERPLAYER|V_SNAPTOTOP, cr)
 end
 
+---@param player player_t
+---@param wepname string
 local function wepToIcondef(player, wepname)
 	local state = wpi_none
 
@@ -131,10 +93,10 @@ local function wepToIcondef(player, wepname)
 		activewep = player.doom.curwep
 	end
 
-	if G_WeaponSelectable(player, wepname) then
+	if doom.G_WeaponSelectable(player, wepname) then
 		if activewep == wepname then
 			state = wpi_selected
-		elseif G_AdjustSelection(player, wepname) ~= wepname then
+		elseif doom.G_AdjustSelection(player, wepname) ~= wepname then
 			state = wpi_disabled
 		else
 			state = wpi_regular
@@ -164,80 +126,6 @@ local function G_GetWeaponOrder(player, offset)
 		return nil
 	end
 
-	local function firstAvailableInSlot(player, slot)
-		if not doom.weaponnames[slot] then return nil end
-		for order, wep in ipairs(doom.weaponnames[slot]) do
-			if player.doom.weapons[wep] then
-				return order
-			end
-		end
-		return nil
-	end
-
-	local function findNextWeapon(player, direction, baseSlot, baseOrder)
-		local currentSlot = baseSlot
-		local currentOrder = baseOrder
-		local totalSlots = #doom.weaponnames
-
-		if totalSlots == 0 then
-			return currentSlot, currentOrder
-		end
-
-		if direction == 1 then
-			for order = currentOrder + 1, #doom.weaponnames[currentSlot] do
-				local weapon = doom.weaponnames[currentSlot][order]
-				if player.doom.weapons[weapon] then
-					return currentSlot, order
-				end
-			end
-		else
-			for order = currentOrder - 1, 1, -1 do
-				local weapon = doom.weaponnames[currentSlot][order]
-				if player.doom.weapons[weapon] then
-					return currentSlot, order
-				end
-			end
-		end
-
-		local startSlot = currentSlot
-
-		local function wrapSlot(slot, total)
-			if slot < 1 then
-				return total
-			elseif slot > total then
-				return 1
-			end
-			return slot
-		end
-
-		local slot = wrapSlot(currentSlot + direction, totalSlots)
-
-		local checkedSlots = 0
-		local totalSlots = 50
-
-		while slot ~= startSlot and checkedSlots < totalSlots do
-			checkedSlots = $ + 1
-			local firstOrder = firstAvailableInSlot(player, slot)
-			if firstOrder then
-				if direction == 1 then
-					return slot, firstOrder
-				else
-					local highestOrder = firstOrder
-					for order = firstOrder + 1, #doom.weaponnames[slot] do
-						if player.doom.weapons[doom.weaponnames[slot][order]] then
-							highestOrder = order
-						end
-					end
-					return slot, highestOrder
-				end
-			end
-
-			slot = (slot + direction - 1) % totalSlots + 1
-		end
-
-		return currentSlot, currentOrder
-	end
-
 	-- Base position (carousel preview if active, otherwise real weapon)
 	local baseSlot = player.doom.wepcarousel and player.doom.wepcarousel.showtimer
 		and player.doom.wepcarousel.curwepcat
@@ -257,7 +145,7 @@ local function G_GetWeaponOrder(player, offset)
 	local direction = (offset > 0) and 1 or -1
 
 	for i = 1, abs(offset) do
-		slot, order = findNextWeapon(player, direction, slot, order)
+		slot, order = doom.findNextWeapon(player, direction, slot, order)
 	end
 
 	return doom.weaponnames[slot][order]

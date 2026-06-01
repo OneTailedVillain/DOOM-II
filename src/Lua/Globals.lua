@@ -85,6 +85,7 @@ doom.weaponnames = {
 	[6] = {},
 	[7] = {},
 }
+doom.weaponorders = {} -- Preserves original order values for all weapons by name
 doom.sectorspecials = {}
 doom.sectorbackups = {}
 
@@ -351,6 +352,38 @@ end
     local wepslot = properties.weaponslot
     local weporder = properties.order
     doom.weaponnames[wepslot][weporder] = wepname
+    doom.weaponorders[wepname] = weporder -- Preserve order value separately to prevent clobbering
+    
+    -- Rebuild indices to maintain uniform sequential ordering
+    doom.rebuildWeaponNameIndices()
+end
+
+--- Normalizes weapon name lookup tables into sequential indices sorted by order value
+--- Uses preserved order values from doom.weaponorders to ensure no data loss
+--- This must be called after all weapons are registered to fix sparse table issues
+function doom.rebuildWeaponNameIndices()
+    for slot = 1, 7 do
+        local weapons = {}
+        
+        -- Iterate over all registered weapons and collect those in this slot
+        for wepname, order in pairs(doom.weaponorders) do
+            local wepdef = doom.weapons[wepname]
+            if wepdef and wepdef.weaponslot == slot then
+                table.insert(weapons, {order = order, name = wepname})
+            end
+        end
+        
+        -- Sort by order value
+        table.sort(weapons, function(a, b)
+            return a.order < b.order
+        end)
+        
+        -- Replace with new sequential table
+        doom.weaponnames[slot] = {}
+        for i, wep in ipairs(weapons) do
+            doom.weaponnames[slot][i] = wep.name
+        end
+    end
 end
 
 doom.ammos = {}

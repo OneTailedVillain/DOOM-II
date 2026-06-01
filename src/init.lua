@@ -34,6 +34,7 @@ dofile("WADLoad.lua")
 dofile("Functions.lua")
 dofile("Actions.lua")
 
+dofile("Chardefs/Weps-Ringslinger.lua")
 dofile("Chardefs/johnringslinger.lua")
 
 --#ifdef HERETIC
@@ -41,11 +42,13 @@ dofile("Chardefs/johnringslinger.lua")
 --#meta forwho Heretic
 --#meta skipwad
 doom.currentGame = "heretic"
+doom.startingMeleeWeapon = "staff"
 doom.noIwadChecks = function(v)
 	return not v.patchExists("INVGEML1") or not v.patchExists("PLAYA1")
 end
 --#else
 doom.currentGame = "doom"
+doom.startingMeleeWeapon = "brassknuckles"
 doom.noIwadChecks = function(v)
 	return not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
 end

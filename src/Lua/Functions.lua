@@ -906,6 +906,98 @@ function doom.callHook(name, returnmode, target, ...)
     return resolver.finish(state)
 end
 
+-- Weapon utility functions
+function doom.firstAvailableInSlot(player, slot)
+	local list = doom.weaponnames[slot]
+	if not list then return nil end
+
+	for order, wep in ipairs(list) do
+		if player.doom.weapons[wep] then
+			return order
+		end
+	end
+end
+
+function doom.lastAvailableInSlot(player, slot)
+	local list = doom.weaponnames[slot]
+	if not list then return nil end
+
+	for order = #list, 1, -1 do
+		local wep = list[order]
+		if player.doom.weapons[wep] then
+			return order
+		end
+	end
+end
+
+function doom.findNextWeapon(player, direction, baseSlot, baseOrder)
+	local currentSlot = baseSlot
+	local currentOrder = baseOrder
+	local totalSlots = #doom.weaponnames
+
+	if totalSlots == 0 then
+		return currentSlot, currentOrder
+	end
+
+	-- Check rest of current slot first
+	if direction == 1 then
+		for order = currentOrder + 1, #doom.weaponnames[currentSlot] do
+			local weapon = doom.weaponnames[currentSlot][order]
+			if player.doom.weapons[weapon] then
+				return currentSlot, order
+			end
+		end
+	else
+		for order = currentOrder - 1, 1, -1 do
+			local weapon = doom.weaponnames[currentSlot][order]
+			if player.doom.weapons[weapon] then
+				return currentSlot, order
+			end
+		end
+	end
+
+	local function wrapSlot(slot, total)
+		if slot < 1 then
+			return total
+		elseif slot > total then
+			return 1
+		end
+		return slot
+	end
+
+	local slot = wrapSlot(currentSlot + direction, totalSlots)
+
+	for i = 1, totalSlots do
+		if direction == 1 then
+			local order = doom.firstAvailableInSlot(player, slot)
+			if order then
+				return slot, order
+			end
+		else
+			local order = doom.lastAvailableInSlot(player, slot)
+			if order then
+				return slot, order
+			end
+		end
+
+		slot = wrapSlot(slot + direction, totalSlots)
+	end
+
+	return currentSlot, currentOrder
+end
+
+function doom.G_WeaponSelectable(player, wepname)
+	if not player.doom.weapons[wepname] then
+		return false
+	end
+
+	return true
+end
+
+function doom.G_AdjustSelection(player, wepname)
+	return wepname
+end
+
 local function damageNumToType(dt)
 	for k, v in ipairs(doom.damagetypes) do
 		if v.num == dt then

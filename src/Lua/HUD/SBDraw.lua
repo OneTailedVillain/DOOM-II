@@ -142,9 +142,13 @@ hud.add(function(v, player)
 
 	if not player.mo then DrawFlashes(v, player) return end
 
-	local targetHudDraw = doom.hudDraw[player.doom.customHudPref or doom.currentGame]
+	local override = doom.callHook("GetHudDraw", doom.hookTypes.lastfunc, player)
+	local target = override or player.doom.customHudPref or doom.currentGame
+	local targetHudDraw = doom.hudDraw[target]
 	if targetHudDraw then
 		targetHudDraw(v, player)
+	else
+		print("Invalid target '" .. tostring(target) .. "'")
 	end
 
 	DrawFlashes(v, player)
@@ -218,8 +222,9 @@ local function drawWeaponSelect(v, xoffs, y, delay)
 end
 
 ---@param v videolib
-doom.hudDraw["custom_johnringslinger"] = function(v, player, inAutomap)
+doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	if inAutomap then return end
+	drawWeapon(v, player, 38)
 	local funcs = P_GetMethodsForSkin(player)
 	local ammo = funcs.getCurAmmo(player)
 	local weapon = player.doom.curwep

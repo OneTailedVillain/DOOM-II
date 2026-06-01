@@ -1,6 +1,12 @@
 ---@type doommethods_t
 local methods = deepcopy(doom.charSupportBaseMethods)
 
+doom.addHook("GetHudDraw", function(player)
+	if player.mo.skin == "johnringslinger" then
+		return "johnringslinger"
+	end
+end)
+
 doom.charSupport.johnringslinger = {
 	-- Custom CSS bullshit
 	css = {
@@ -17,7 +23,6 @@ doom.charSupport.johnringslinger = {
 
 	properties = {
 		doomDeathanim = true,
-		noHUD = true,
 
 		sounds = {
 			--[sfx_plpain] = sfx_sd2pai,
@@ -89,7 +94,6 @@ doom.charSupport.johnringslinger = {
 
 		startweapon = "matchring",
 		startweapons = {
-			rs_brassknuckles = true,
 			matchring = true
 		},
 
@@ -131,3 +135,5 @@ doom.charSupport.johnringslinger = {
 	forceDisableJump = true,
     methods = methods
 }
+
+doom.charSupport.johnringslinger.properties.startweapons[doom.startingMeleeWeapon] = true

@@ -160,7 +160,6 @@ end
 
 local function DrawStatusBarNumbers(v, player, noSBar)
 	local funcs = P_GetMethodsForSkin(player)
-	local myHealth = funcs.getHealth(player) or 0
 	local myMaxHealth = funcs.getMaxHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
 	local myMaxArmor = funcs.getMaxArmor(player) or 0
@@ -171,7 +170,7 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 		drawBigNum(v, 109, 162, myAmmo, myMaxAmmo, "ammo", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 	end
 
-	drawBigNum(v, 61, 170, myHealth, nil, nil, V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
+	drawBigNum(v, 61, 170, player.doom.h_healthmarker, nil, nil, V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 
 
 	drawBigNum(v, 224, 170, myArmor, myMaxArmor,  "armor", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
@@ -276,7 +275,7 @@ addHook("PlayerThink", function(player)
 			delta = 8
 		end
 		player.doom.h_healthmarker = $ - delta
-	elseif curHealth < player.doom.h_healthmarker then
+	elseif curHealth > player.doom.h_healthmarker then
 		delta = (curHealth-player.doom.h_healthmarker)>>2
 		if delta < 1 then
 			delta = 1

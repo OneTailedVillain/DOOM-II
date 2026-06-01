@@ -41,7 +41,7 @@ doom.addWeapon("infinityring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
 	user_johnringslingericon = "INFNIND",
-    order = 1,
+    order = -1,
     damage = {25, 25},
     noinitfirespread = true,
     pellets = 1,
@@ -54,7 +54,7 @@ doom.addWeapon("matchring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
 	user_johnringslingericon = "RINGIND",
-    order = 2,
+    order = 0,
     damage = {15, 15},
     noinitfirespread = true,
     pellets = 1,
@@ -62,45 +62,6 @@ doom.addWeapon("matchring", {
 	carouselicon = "SMMATC",
 	states = setupWeaponDelay(TICRATE/4, A),
     ammotype = "bullets",
-})
-
-doom.addWeapon("rs_brassknuckles", {
-	sprite = SPR_PUNG,
-	weaponslot = 1,
-	user_johnringslingericon = "RINGIND",
-	order = 3,
-	priority = 3700,
-	damage = {2, 20},
-	raycaster = true,
-	wimpyweapon = true,
-	hitsound = sfx_punch,
-	pellets = 1,
-	shotcost = 0,
-	anglesnapbehavior = "fists",
-	carouselicon = "SMFIST",
-	spread = {
-		horiz = FRACUNIT*59/10,
-		vert = 0,
-	},
-	states = {
-		idle = {
-			{frame = A, tics = 1, action = A_DoomWeaponReady},
-		},
-		lower = {
-			{frame = A, tics = 1, action = A_DoomLower}
-		},
-		raise = {
-			{frame = A, tics = 1, action = A_DoomRaise}
-		},
-		attack = {
-			{frame = B, tics = 4},
-			{frame = C, tics = 4, action = A_DoomPunch},
-			{frame = D, tics = 5},
-			{frame = C, tics = 4},
-			{frame = B, tics = 5, action = A_DoomReFire},
-		}
-	},
-	ammotype = "none",
 })
 
 doom.addWeapon("automaticring", {
@@ -785,7 +746,6 @@ doom.addWeapon("homingring", {
     ammotype = "cells",
 })
 
--- At the bottom of your weapon definitions file
 local function finalizeWeaponDelays()
     local weaponsToProcess = {
         "infinityring", "matchring", "rs_brassknuckles", 
