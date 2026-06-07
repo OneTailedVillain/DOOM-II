@@ -1706,7 +1706,7 @@ rawset(_G, "DOOM_NextLevel", function()
 			nextLev = 1100 -- aka "nextLev = TITLE" (i don't trust SRB2's constants for this)
 		end
 	end
-	G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
+	G_SetCustomExitVars(nextLev, 1, gametype, true)
 
 	if not multiplayer then
 		G_ExitLevel()
