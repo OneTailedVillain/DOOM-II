@@ -1706,13 +1706,17 @@ rawset(_G, "DOOM_NextLevel", function()
 			nextLev = 1100 -- aka "nextLev = TITLE" (i don't trust SRB2's constants for this)
 		end
 	end
+	G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
+
 	if not multiplayer then
-		G_SetCustomExitVars(nextLev, 1, GT_DOOM, true)
 		G_ExitLevel()
 	else
+		for player in players.iterate() do
+			P_DoPlayerFinish(player)
+		end
 		-- Multiplayer is a point of contention for this mod for some reason,
 		-- Use commands instead and don't even bother doing a proper fix
-		COM_BufInsertText(server, "map " .. nextLev .. " -f")
+		-- COM_BufInsertText(server, "map " .. nextLev .. " -f")
 	end
 end)
 
