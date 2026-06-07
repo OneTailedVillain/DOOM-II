@@ -4,31 +4,12 @@ local menustatus = {menu = "title", selection = 0}
 local LINEHEIGHT = 16
 local SKULLXOFF = -32
 local showTitleMenu = false
-local pendingSkinChange = nil
 
 addHook("MapChange", function(mapid)
 	-- refresh this
 	menustatus = {menu = "title", selection = 0}
 	showTitleMenu = false
 	if multiplayer then return end
-	-- Apply pending skin change after map load
-	if pendingSkinChange then
-		local player = consoleplayer
-		local funcs = P_GetMethodsForSkin(player)
-		if funcs.throwOutSaveState then
-			funcs.throwOutSaveState(player)
-		else
-			player.doom.laststate = {}
-		end
-		R_SetPlayerSkin(consoleplayer, pendingSkinChange)
-		pendingSkinChange = nil
-		local funcs = P_GetMethodsForSkin(player)
-		if funcs.throwOutSaveState then
-			funcs.throwOutSaveState(player)
-		else
-			player.doom.laststate = {}
-		end
-	end
 	F_StopCast()
 	doom.curcutscene = ""
 end)
@@ -648,7 +629,7 @@ addHook("ThinkFrame", function()
 			-- If command starts with "skin" and we're in-game,
 			-- Delay until after map change
 			if cmd:lower():sub(1,4) == "skin" and gamestate == GS_LEVEL then
-				pendingSkinChange = cmd:sub(6)
+				consoleplayer.doom.pendingSkinChange = cmd:sub(6)
 				continue
 			end
             COM_BufInsertText(consoleplayer, cmd)

@@ -810,6 +810,22 @@ addHook("PlayerSpawn",function(player)
 	if consoleplayer == player then
 		camera.chase = false
 	end
+	if player.doom.pendingSkinChange then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.throwOutSaveState then
+			funcs.throwOutSaveState(player)
+		else
+			player.doom.laststate = {}
+		end
+		R_SetPlayerSkin(player, player.doom.pendingSkinChange)
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.throwOutSaveState then
+			funcs.throwOutSaveState(player)
+		else
+			player.doom.laststate = {}
+		end
+		player.doom.pendingSkinChange = nil
+	end
 	player.doom = $ or {}
 	player.doom.prefs = $ or {}
 	player.doom.damagecount = 0
@@ -835,12 +851,10 @@ addHook("PlayerSpawn",function(player)
 		player.mo.momz = player.doom.laststate.momentum.z
 	end
 
-	local function pick(saved_val, default_val)
-		return saved_val ~= nil and saved_val or default_val
-	end
-
 	local preset = deepcopy(doom.pistolstartstate)
+	player.doom.properties = nil
 	local properties = P_GetPlayerSkinProperties(player)
+	player.doom.properties = properties
 
 	local function merge_defined_shallow(dest, srcmap)
 		for dest_key, src_value in pairs(srcmap) do
