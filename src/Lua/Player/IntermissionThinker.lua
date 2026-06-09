@@ -221,9 +221,11 @@ addHook("PlayerThink", function(player)
 			player.doom.intpause = 2*TICRATE
 		end
 	elseif player.doom.intstate == 12 then
+		if player.doom.intpause >= TICRATE then player.doom.intpause = TICRATE*2 return end
 		player.doom.intpause = TICRATE
 		if doom.intermission and AllPlayersReadyForExit() then
 			player.doom.notrigger = true
+			player.doom.intpause = TICRATE*2
 			DOOM_NextLevel()
 		end
 	elseif (player.doom.intstate & 1) then
