@@ -74,7 +74,7 @@ end
 
 dofile(doom.currentGame .. "Data/Roll Call.lua")
 dofile("Definitions/States/Player.lua")
-dofile("Definitions/Objects/Effects/Bullet Puff.lua")
+dofile("Definitions/Effects/Bullet Puff.lua")
 dofile("Demos Maybe.lua")
 dofile("Also saving maybe.lua")
 dofile("+Use.lua")
