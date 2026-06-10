@@ -31,6 +31,7 @@ local function BulletHitObject(tmthing, thing)
 	tmthing.momz = 0
     DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
 	P_KillMobj(tmthing)
+	if not (tmthing and tmthing.valid) then return false end
 	S_StartSound(tmthing, mobjinfo[tmthing.type].deathsound)
 	return false
 end
