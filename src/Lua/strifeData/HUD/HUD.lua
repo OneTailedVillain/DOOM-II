@@ -1,53 +1,3 @@
-local hudDir = "doomData/HUD/Alt HUDs/"
-
-local doBOOMHud = dofile(hudDir .. "Boom.lua")
-local srb2hud = dofile(hudDir .. "SRB2.lua")
-local doomleghud = dofile(hudDir .. "DOOM Legacy.lua")
-
--- Table of face sprite names in Doom IWAD order
-local st_faces = {
-	-- Pain offset 0
-	"STFST00", "STFST01", "STFST02",  -- straight ahead
-	"STFTL00", "STFTR00",             -- turn left/right
-	"STFOUCH0",                        -- ouch
-	"STFEVL0",                         -- evil grin
-	"STFKILL0",                        -- rampage
-
-	-- Pain offset 1
-	"STFST10", "STFST11", "STFST12",
-	"STFTL10", "STFTR10",
-	"STFOUCH1",
-	"STFEVL1",
-	"STFKILL1",
-
-	-- Pain offset 2
-	"STFST20", "STFST21", "STFST22",
-	"STFTL20", "STFTR20",
-	"STFOUCH2",
-	"STFEVL2",
-	"STFKILL2",
-
-	-- Pain offset 3
-	"STFST30", "STFST31", "STFST32",
-	"STFTL30", "STFTR30",
-	"STFOUCH3",
-	"STFEVL3",
-	"STFKILL3",
-
-	-- Pain offset 4
-	"STFST40", "STFST41", "STFST42",
-	"STFTL40", "STFTR40",
-	"STFOUCH4",
-	"STFEVL4",
-	"STFKILL4",
-
-	-- God face
-	"STFGOD0",
-
-	-- Dead face
-	"STFDEAD0"
-}
-
 local colorlettertotranslation = {
 	G = "BOOMCRGREEN",
 	B = "BOOMCRBLUE2",
@@ -58,15 +8,10 @@ local colorlettertotranslation = {
 
 -- Too lazy to actually build fonts proper,
 -- So get this hardcode instead
-local fontToPatch = {
-	STT = {
-		[string.byte("-")] = "STTMINUS",
-		[string.byte("%")] = "STTPRCNT",
-	}
-}
+local fontToPatch = {IN = {}}
 
 for i = 0, 9 do
-	fontToPatch.STT[i + 48] = "STTNUM" .. i
+	fontToPatch.IN[i + 48] = "IN" .. i
 end
 
 ---@param v videolib
@@ -190,7 +135,7 @@ local function drawBigNum(v, x, y, num, maxnum, thresholdset, flags, percent, pl
             fx + (offset * FRACUNIT),
             fy,
             FRACUNIT,
-            "STT",
+            "IN",
             tostring(num) .. "%",
             flags,
             "right",
@@ -203,7 +148,7 @@ local function drawBigNum(v, x, y, num, maxnum, thresholdset, flags, percent, pl
             fx,
             fy,
             FRACUNIT,
-            "STT",
+            "IN",
             tostring(num),
             flags,
             "right",
@@ -215,119 +160,20 @@ end
 
 local function DrawStatusBarNumbers(v, player, noSBar)
 	local funcs = P_GetMethodsForSkin(player)
-	local myHealth = funcs.getHealth(player) or 0
 	local myMaxHealth = funcs.getMaxHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
 	local myMaxArmor = funcs.getMaxArmor(player) or 0
 	local myAmmo = funcs.getCurAmmo(player)
 	local myMaxAmmo = funcs.getMaxFor(player, funcs.getCurAmmoType(player))
 
-	local xFlags = 0
-	if noSBar then
-		xFlags = V_SNAPTOLEFT
-	end
-
 	if myAmmo != false then
-		drawBigNum(v, 44, 171, myAmmo, myMaxAmmo, "ammo", V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, false, player)
+		drawBigNum(v, 109, 162, myAmmo, myMaxAmmo, "ammo", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 	end
 
-	drawBigNum(v, 90, 171, myHealth, myMaxHealth, "health", V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, true, player)
+	drawBigNum(v, 61, 170, player.doom.h_healthmarker, nil, nil, V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 
-	if not G_RingSlingerGametype() then
-		if player.doom.prefs.weaponlightupbehavior == "Original" then
-			local whatToCheck = {
-				"brassknuckles",
-				"pistol",
-				"shotgun",
-				"chaingun",
-				"rocketlauncher",
-				"plasmarifle",
-				"bfg9000"
-			}
-			for i = 0, 5 do
-				local whatToIndex = whatToCheck[i + 2]
-				local doIHaveIt = funcs.hasWeapon(player, whatToIndex)
-				local whatFont = doIHaveIt and "STYSNUM" or "STGNUM"
-				doom.drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
-			end
-		else
-			local wepcats = {
-				[2] = {},
-				[3] = {},
-				[4] = {},
-				[5] = {},
-				[6] = {},
-				[7] = {}
-			}
 
-			---@param wepdef weapondef_t
-			for wepname, wepdef in pairs(doom.weapons) do
-				if wepdef.weaponslot and wepdef.weaponslot >= 2 and wepdef.weaponslot <= 7 then
-					wepcats[wepdef.weaponslot][wepname] = true
-				end
-			end
-
-			for i = 0, 5 do
-				local whatToIndex = i + 2
-				local doIHaveAWeaponInThisSlot = false
-				for wepname, _ in pairs(wepcats[whatToIndex]) do
-					if funcs.hasWeapon(player, wepname) then
-						doIHaveAWeaponInThisSlot = true
-						break
-					end
-				end
-				local whatFont = doIHaveAWeaponInThisSlot and "STYSNUM" or "STGNUM"
-				doom.drawInFont(v, (111 + (i%3 * 12))*FRACUNIT, (172 + (i/3 * 10))*FRACUNIT, FRACUNIT, whatFont, i + 2, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "left")
-			end
-		end
-	else
-		drawBigNum(v, 138, 171, doom.getFrags(player), false, nil, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, false, player)
-	end
-
-	if noSBar then
-		xFlags = V_SNAPTORIGHT
-	end
-
-	drawBigNum(v, 221, 171, myArmor, myMaxArmor,  "armor", V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, true, player)
-
-	local ammosToIndex = {
-		"bullets",
-		"shells",
-		"rockets",
-		"cells"
-	}
-	for i = 0, 3 do
-		local whatToIndex = ammosToIndex[i + 1]
-		local curAmmo = funcs.getAmmoFor(player, whatToIndex)
-		local whatFont = curAmmo != false and "STYSNUM" or "STGNUM"
-		curAmmo = $ or 0
-		doom.drawInFont(v, 288*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, curAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
-	end
-	for i = 0, 3 do
-		local whatToIndex = ammosToIndex[i + 1]
-		local maxAmmo = funcs.getMaxFor(player, whatToIndex)
-		local whatFont = maxAmmo != false and "STYSNUM" or "STGNUM"
-		maxAmmo = $ or 0
-		doom.drawInFont(v, 314*FRACUNIT, (173 + (i * 6))*FRACUNIT, FRACUNIT, whatFont, maxAmmo, V_PERPLAYER|V_SNAPTOBOTTOM|xFlags, "right")
-	end
-end
-
-local function drawFace(v, player)
-	local chardef = P_GetSupportsForSkin(player)
-	local index = player.doom.faceindex + 1
-	if index > #st_faces then index = #st_faces end
-	local patch
-	if chardef.st_faces then
-		patch = chardef.st_faces[index]
-	else
-		patch = st_faces[index]
-	end
-	local prefixmaybe = chardef.faceprefix or ""
-	if patch != nil then
-		v.draw(143, 168, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
-	else
-		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
-	end
+	drawBigNum(v, 224, 170, myArmor, myMaxArmor,  "armor", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 end
 
 local function DrawKeys(v, player, noSBar)
@@ -385,6 +231,76 @@ local function DrawKeys(v, player, noSBar)
 	end
 end
 
+local function DrawCommonBar(v, player)
+	local chainY = player.doom.h_chainy or 190
+	local healthPos = player.doom.h_healthpos or 0
+
+	v.draw(0, 148, v.cachePatch("LTFCTOP"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(290, 148, v.cachePatch("RTFCTOP"), V_SNAPTOBOTTOM|V_PERPLAYER)
+
+	v.draw(0, 190, v.cachePatch("CHAINBAC"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(2+(healthPos%17), chainY, v.cachePatch("CHAIN"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(17+healthPos, chainY, v.cachePatch("LIFEGEM2"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(0, 190, v.cachePatch("LTFACE"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(276, 190, v.cachePatch("RTFACE"), V_SNAPTOBOTTOM|V_PERPLAYER)
+end
+
+local ChainWiggle = 0
+
+addHook("PlayerThink", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	local curHealth = funcs.getHealth(player)
+	if player.doom.h_healthmarker == nil then
+		player.doom.h_healthmarker = curHealth
+	end
+
+	local delta
+	if leveltime%1 then
+		ChainWiggle = DOOM_Random()&1
+	end
+
+	if curHealth < 0 then
+		curHealth = 0
+	end
+
+	if curHealth > 100 then
+		curHealth = 100
+	end
+
+	if curHealth < player.doom.h_healthmarker then
+		delta = (player.doom.h_healthmarker-curHealth)>>2
+		if delta < 1 then
+			delta = 1
+		elseif delta > 8 then
+			delta = 8
+		end
+		player.doom.h_healthmarker = $ - delta
+	elseif curHealth > player.doom.h_healthmarker then
+		delta = (curHealth-player.doom.h_healthmarker)>>2
+		if delta < 1 then
+			delta = 1
+		elseif delta > 8 then
+			delta = 8
+		end
+		player.doom.h_healthmarker = $ + delta
+	end
+end)
+
+addHook("PlayerThink", function(player)
+	local funcs = P_GetMethodsForSkin(player)
+	local health = funcs.getHealth(player)
+	if player.doom.h_oldhealth != player.doom.h_healthmarker or (player.doom.h_oldhealth == nil) then
+		player.doom.h_oldhealth = player.doom.h_healthmarker
+		player.doom.h_healthpos = player.doom.h_healthmarker
+		if player.doom.h_healthpos < 0 then
+			player.doom.h_healthpos = 0
+		elseif player.doom.h_healthpos > 100 then
+			player.doom.h_healthpos = 100
+		end
+		player.doom.h_healthpos = $*256/100
+		player.doom.h_chainy = player.doom.h_healthmarker == health and 191 or 191+ChainWiggle
+	end
+end)
 
 local function drawStatusBar(v, player, hudPref)
 	local sbpatch = hudPref != 6 and hudPref != 7
@@ -409,85 +325,23 @@ local function drawStatusBar(v, player, hudPref)
 			v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
 		end
 
-		local statusBarPatch = v.cachePatch("STBAR")
-		local xOffset = 0
-		if statusBarPatch.width == 426 then
-			xOffset = -53
+		v.draw(0, 158, v.cachePatch("BARBACK"), V_SNAPTOBOTTOM|V_PERPLAYER)
+		if (player.pflags & PF_GODMODE) then
+			v.draw(16, 167, v.cachePatch("GOD1"), V_SNAPTOBOTTOM|V_PERPLAYER)
+			v.draw(287, 167, v.cachePatch("GOD1"), V_SNAPTOBOTTOM|V_PERPLAYER)
 		end
-		v.draw(xOffset, 168, statusBarPatch, V_PERPLAYER|V_SNAPTOBOTTOM)
-		if not G_RingSlingerGametype() then
-			v.draw(104, 168, v.cachePatch("STARMS"), V_PERPLAYER|V_SNAPTOBOTTOM)
-		end
+		DrawCommonBar(v, player)
 	end
+
 	if netgame then
 		v.draw(143, 169, v.cachePatch("STFB0"), V_PERPLAYER|V_SNAPTOBOTTOM, v.getColormap("johndoom", player.mo.color))
 	end
 
 	DrawStatusBarNumbers(v, player, not sbpatch)
 	DrawKeys(v, player, not sbpatch)
-	if hudPref != 6 then
-		drawFace(v, player)
-	end
 end
 
-doom.hudWeaponOffsets = {
-	[0] = 38,
-	[1] = 16,
-	[2] = 38,
-	[3] = 38,
-	[4] = 38,
-	[5] = 38,
-	[6] = 38,
-	[7] = 38,
-}
-
-local function drawDoomLegacyHud(v, player)
-	local funcs = P_GetMethodsForSkin(player)
-
-	local myHealth = funcs.getHealth(player) or 0
-	local myArmor  = funcs.getArmor(player) or 0
-	local myAmmo   = funcs.getCurAmmo(player)
-	local myFrags  = (doom.getFrags and doom.getFrags(player)) or 0
-	local myWeapon = player.doom and (player.doom.curwep or player.readyweapon) or player.readyweapon or 0
-	local myKeys   = player.doom and (player.doom.keys or 0) or 0
-
-	doomleghud.keys(v, player, myKeys)
-	doomleghud.ammo(v, player, myAmmo, myWeapon)
-	doomleghud.health(v, player, myHealth)
-	doomleghud.armor(v, player, myArmor)
-	doomleghud.frags(v, player, myFrags)
-end
-
-doom.hudDraw["doom"] = function(v, player, inAutomap)
-	local funcs = P_GetMethodsForSkin(player)
-	local myHealth = funcs.getHealth(player) or 0
-	local myArmor = funcs.getArmor(player) or 0
-	local myAmmo = funcs.getCurAmmo(player)
-
-	if doom.issrb2 then
-		drawWeapon(v, player, 38)
-		srb2hud.keys(v, player, player.doom.keys)
-		srb2hud.ammo(v, player, myAmmo, player.doom.curwep)
-		srb2hud.health(v, player, myHealth)
-		srb2hud.armor(v, player, myArmor)
-		srb2hud.frags(v, player, player.doom.frags)
-		return
-	end
-
-	if not inAutomap then
-		local hudPref = tonumber(DOOM_GetConfigStoreValue(player, "hudstyle")) or 1
-		local isActuallyBoom = hudPref <= 5 and hudPref > 1
-
-		drawWeapon(v, player, doom.hudWeaponOffsets[hudPref] or 38)
-
-		if hudPref == 8 then
-			drawDoomLegacyHud(v, player)
-		elseif isActuallyBoom then
-			doBOOMHud(v, player)
-		else
-			drawStatusBar(v, player, hudPref)
-		end
-	else
-		drawStatusBar(v, player, 1)
-	end
+doom.hudDraw["heretic"] = function(v, player)
+	drawWeapon(v, player, 38)
+	drawStatusBar(v, player, 1)
 end
