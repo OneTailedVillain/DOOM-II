@@ -1259,8 +1259,11 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             target.reactiontime = 0
 
             -- Alert monster to attacker
-            if (not target.threshold or target.type == MT_DOOM_ARCHVILE ) and
-               source and source != target and source.type != MT_DOOM_ARCHVILE  then
+			--#ifdef DOOM
+			local ignoreInfightingType = MT_DOOM_ARCHVILE
+			--#endif
+            if (not target.threshold or target.type == ignoreInfightingType) and
+               source and source != target and source.type != ignoreInfightingType then
                 target.target = source
                 target.threshold = 100 --BASETHRESHOLD
                 if target.state == states[target.info.spawnstate] and
