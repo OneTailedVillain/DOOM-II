@@ -1,38 +1,38 @@
-strife.addAmmo("none", {
+doom.addAmmo("none", {
 	max = -1
 })
 
-strife.addAmmo("bullets", {
+doom.addAmmo("bullets", {
 	icon = "SBOAMMO1",
 	max = 250
 })
 
-strife.addAmmo("poisonbolts", {
+doom.addAmmo("poisonbolts", {
 	icon = "SBOAMMO1",
 	max = 25
 })
 
-strife.addAmmo("electricbolts", {
+doom.addAmmo("electricbolts", {
 	icon = "SBOAMMO1",
 	max = 50
 })
 
-strife.addAmmo("explosivegrenades", {
+doom.addAmmo("explosivegrenades", {
 	icon = "SBOAMMO1",
 	max = 30
 })
 
-strife.addAmmo("phosphorgrenades", {
+doom.addAmmo("phosphorgrenades", {
 	icon = "SBOAMMO1",
 	max = 16
 })
 
-strife.addAmmo("missiles", {
+doom.addAmmo("missiles", {
 	icon = "SBOAMMO1",
 	max = 100
 })
 
-strife.addAmmo("cells", {
+doom.addAmmo("cells", {
 	icon = "SBOAMMO1",
 	max = 400
 })

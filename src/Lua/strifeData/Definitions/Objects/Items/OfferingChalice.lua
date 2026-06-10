@@ -16,13 +16,13 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "offeringchalice", 1, item.strife.flags)
+	local result = funcs.giveInventory(player, "offeringchalice", 1, item.doom.flags)
 	if not result then return true end
 
-	strife.questflags = $ | QF_QUEST2
+	doom.questflags = $ | QF_QUEST2
 	DOOM_DoMessage(player, "$TXT_OFFERINGCHALICE")
 end
 DefineDoomItem(name, object, states, onPickup)
 
-strife.maxitems = $ or {}
-strife.maxitems.offeringchalice = 1
+doom.maxitems = $ or {}
+doom.maxitems.offeringchalice = 1

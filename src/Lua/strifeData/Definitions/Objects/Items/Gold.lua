@@ -16,7 +16,7 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "gold", 1, item.strife.flags)
+	local result = funcs.giveInventory(player, "gold", 1, item.doom.flags)
 	if not result then return true end
 	
 	DOOM_DoMessage(player, "$TXT_COIN")
@@ -36,7 +36,7 @@ function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "gold", 10, item.strife.flags)
+	local result = funcs.giveInventory(player, "gold", 10, item.doom.flags)
 	if not result then return true end
 	
 	DOOM_DoMessage(player, "$TXT_10GOLD")
@@ -57,7 +57,7 @@ function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "gold", 25, item.strife.flags)
+	local result = funcs.giveInventory(player, "gold", 25, item.doom.flags)
 	if not result then return true end
 	
 	DOOM_DoMessage(player, "$TXT_25GOLD")
@@ -78,7 +78,7 @@ function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "gold", 50, item.strife.flags)
+	local result = funcs.giveInventory(player, "gold", 50, item.doom.flags)
 	if not result then return true end
 	
 	DOOM_DoMessage(player, "$TXT_50GOLD")
@@ -99,14 +99,14 @@ function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveInventory(player, "gold", 300, item.strife.flags)
+	local result = funcs.giveInventory(player, "gold", 300, item.doom.flags)
 	if not result then return true end
 
-	strife.questflags = $ | QF_QUEST3
+	doom.questflags = $ | QF_QUEST3
 	DOOM_DoMessage(player, "$TXT_300GOLD")
 end
 
 DefineDoomItem(name, object, states, onPickup)
 
-strife.maxitems = $ or {}
-strife.maxitems.gold = 0x7fffffff
+doom.maxitems = $ or {}
+doom.maxitems.gold = 0x7fffffff

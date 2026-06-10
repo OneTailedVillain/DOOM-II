@@ -16,7 +16,7 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveAmmoFor(player, "minimissiles", item.strife.flags)
+	local result = funcs.giveAmmoFor(player, "minimissiles", item.doom.flags)
 	if not result then return true end
 	
 	DOOM_DoMessage(player, "$TXT_MINIMISSILES")

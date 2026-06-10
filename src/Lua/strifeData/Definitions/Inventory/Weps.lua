@@ -7,7 +7,7 @@ DOOM_Freeslot(
 "sfx_rlaunc",
 "sfx_bfg")
 
-strife.addWeapon("punchdagger", {
+doom.addWeapon("punchdagger", {
 	sprite = SPR_PNCH,
 	weaponslot = 1,
 	order = 2,
