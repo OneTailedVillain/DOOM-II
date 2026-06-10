@@ -63,7 +63,7 @@ end
 
 addMobjHookByFlags("MobjMoveCollide", MF_MISSILE, BulletHitObject)
 
-doom.mthingReplacements
+doom.mthingReplacements = {}
 
 /*
 doom.mthingReplacements = {

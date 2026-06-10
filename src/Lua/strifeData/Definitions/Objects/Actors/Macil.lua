@@ -21,14 +21,21 @@ local object = {
 	disintegratesound = sfx_dsrptr,
 	burningsound = sfx_burnme,
 	sprite = SPR_LEDR,
+	friendly = true
 }
 
 local states = {
 	stand = {
-		{action = A_DoomLook2, frame = C, tics = 5, next = "stand", nextframe = 1},
-		{action = nil,         frame = A, tics = 8, next = "stand", nextframe = 2},
-		{action = nil,         frame = B, tics = 8, next = "stand", nextframe = 3},
-		{action = nil,         frame = A, tics = 6, next = "stand", nextframe = 4}
+		{action = A_DoomLook2, frame = C, tics = 5, next = "stand"}
+	},
+	idleanim2 = {
+		{action = nil, frame = A, tics = 8, next = "stand"}
+	},
+	idleanim3 = {
+		{sprite = SPR_LEAD, action = A_DoomWander, frame = A, tics = 6},
+		{sprite = SPR_LEAD, action = A_DoomWander, frame = B, tics = 6},
+		{sprite = SPR_LEAD, action = A_DoomWander, frame = C, tics = 6},
+		{sprite = SPR_LEAD, action = A_DoomWander, frame = D, tics = 6, next = "stand"},
 	},
 	chase = {
 		{sprite = SPR_LEAD, action = A_DoomChase, frame = A, tics = 3},
@@ -41,18 +48,18 @@ local states = {
 		{sprite = SPR_LEAD, action = A_DoomChase, frame = D, tics = 3, next = "chase"},
 	},
 	missile = {
-		{sprite = SPR_LEAD, action = A_DoomFaceTarget, frame = E, tics = 2},
-		{sprite = SPR_LEAD, action = A_DoomFire,       frame = F|FF_FULLBRIGHT, tics = 2, var2 = 1},
-		{sprite = SPR_LEAD, action = A_CPosRefire,     frame = E, tics = 1, next = "missile"},
+		{sprite = SPR_LEAD, action = A_DoomFaceTarget,     frame = E, tics = 2},
+		{sprite = SPR_LEAD, action = A_DoomFire,           frame = F|FF_FULLBRIGHT, tics = 2, var2 = 1},
+		{sprite = SPR_LEAD, action = A_DoomSentinelRefire, frame = E, tics = 1, next = "missile"},
 	},
 	pain = {
 		{sprite = SPR_LEAD, action = nil,        frame = Y, tics = 3},
 		{sprite = SPR_LEAD, action = A_DoomPain, frame = Y, tics = 3, next = "chase"},
 	},
 	die = {
-		{sprite = SPR_LEAD, action = A_DoomFaceTarget, frame = E, tics = 2},
-		{sprite = SPR_LEAD, action = A_DoomFire,       frame = F|FF_FULLBRIGHT, tics = 2, var2 = 1},
-		{sprite = SPR_LEAD, action = A_CPosRefire,     frame = E, tics = 1, next = "missile"},
+		{sprite = SPR_LEAD, action = A_DoomFaceTarget,     frame = E, tics = 2},
+		{sprite = SPR_LEAD, action = A_DoomFire,           frame = F|FF_FULLBRIGHT, tics = 2, var2 = 1},
+		{sprite = SPR_LEAD, action = A_DoomSentinelRefire, frame = E, tics = 1, next = "missile"},
 	},
 }
 
@@ -63,6 +70,7 @@ name = "Macil2"
 object.doomednum = 200
 object.conversationid = {50, 49, 50}
 object.deathsound = sfx_slop
+object.friendly = false
 
 states.missile = {
 	{sprite = SPR_LEAD, action = A_DoomFaceTarget, frame = E, tics = 4},

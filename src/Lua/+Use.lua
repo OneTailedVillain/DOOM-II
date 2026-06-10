@@ -199,6 +199,10 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 		return true
 	end
 
+	-- Strife port needs this for the "message" thinker
+	-- Should be otherwise harmless to include
+	whatIs.triggerer = ray.target
+
 	if whatIs.activationType == "switch" then
 		if whatIs.type == "exit" then
 			if G_RingSlingerGametype() then

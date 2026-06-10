@@ -22,10 +22,6 @@ DEFAULT_PKG_NAME = "DoomII"
 DEFAULT_MOD_PREFIX = "CL"
 DEFAULT_MOD_NAME = "ExtraClasses"
 
-# Built-in game modes that can be defined in init.lua
-VALID_GAME_MODES = {"DOOM", "DOOM2", "HERETIC", "HEXEN", "STRIFE"}
-
-
 def get_version():
     """Try to get version from git tag, fallback to '0.0.0'."""
     try:
@@ -147,54 +143,13 @@ def evaluate_expression(expr, defined_flags):
         return False
 
 
-def parse_defined_flags_from_init(init_path, cli_defines=None, preserve_line_numbers=True):
+def preprocess_file(file_path, defined_flags, directive_prefix="--#",
+                    preserve_line_numbers=True, collect_defines=None):
     """
-    Parse #define directives from preprocessed init.lua to build the defined_flags set.
-    This makes init.lua the single source of truth for all build flags.
+    Preprocess a file with build flags and directives.
+    If collect_defines is a set, any --#define FLAG encountered (in an active block)
+    will have FLAG added to the set.
     """
-    defined_flags = set(cli_defines or [])
-    
-    if not init_path.exists():
-        return defined_flags
-    
-    # First, preprocess the init.lua file to handle any conditional defines
-    # This ensures we only see defines that are active based on CLI flags
-    preprocessed_content = preprocess_file(
-        init_path,
-        defined_flags,  # Pass current defined_flags (CLI flags only at this point)
-        directive_prefix="--#",
-        preserve_line_numbers=preserve_line_numbers
-    )
-    
-    # Pattern to match --#define FLAG_NAME or --#define FLAG_NAME = value
-    # Also match conditional defines that might be inside if/endif blocks
-    define_pattern = re.compile(r'^--#define\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*(.+))?$', re.MULTILINE)
-    
-    for match in define_pattern.finditer(preprocessed_content):
-        flag_name = match.group(1)
-        flag_value = match.group(2)
-        
-        # Add the flag to defined_flags
-        defined_flags.add(flag_name)
-        
-        # If there's a value assignment, handle special cases
-        if flag_value:
-            flag_value = flag_value.strip().strip('"\'')
-            
-            # Handle game mode selection
-            if flag_name in {"GAME_MODE", "GAME", "IWAD"}:
-                if flag_value in VALID_GAME_MODES:
-                    defined_flags.add(flag_value)
-                    # Clear mutually exclusive game modes
-                    for mode in VALID_GAME_MODES:
-                        if mode != flag_value and mode in defined_flags:
-                            defined_flags.remove(mode)
-    
-    return defined_flags
-
-
-def preprocess_file(file_path, defined_flags, directive_prefix="--#", preserve_line_numbers=True):
-    """Preprocess a file with build flags and directives."""
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -242,8 +197,6 @@ def preprocess_file(file_path, defined_flags, directive_prefix="--#", preserve_l
                         all_ignorable = False
                         break
 
-                    # Never remove a block that has an else/elif branch,
-                    # because that branch may contain real directives.
                     if all_ignorable and not has_alt_branch:
                         to_remove.update(range(start_line, i + 1))
             elif cmd in ("elif", "else"):
@@ -310,11 +263,15 @@ def preprocess_file(file_path, defined_flags, directive_prefix="--#", preserve_l
                         output.append(" " * len(line.rstrip("\n")) + ("\n" if line.endswith("\n") else ""))
 
                 elif cmd == "define":
-                    # #define directives are parsed elsewhere, skip them in preprocessing
+                    # Record the flag if we are collecting defines and are in an active block
+                    if collect_defines is not None and all(active for active, _ in active_stack):
+                        flag_name = expr.split(None, 1)[0]  # everything before optional '='
+                        collect_defines.add(flag_name)
+                    # Preserve line numbers or skip the line entirely
                     if preserve_line_numbers:
                         output.append(" " * len(line.rstrip("\n")) + ("\n" if line.endswith("\n") else ""))
-                    else:
-                        pass  # Skip the line entirely
+                    # else: skip the line (output nothing)
+
                 else:
                     include = all(active for active, matched in active_stack)
                     if include:
@@ -624,56 +581,26 @@ def main():
     parser.add_argument("--ignore_buildflags", action="store_true", help="Ignore build flags and include all code (for debugging)")
     args = parser.parse_args()
 
-    # CRITICAL: Parse flags from preprocessed init.lua FIRST
-    # We need to do this in two passes:
-    # Pass 1: Use only CLI defines to preprocess init.lua and discover flags defined within it
-    # Pass 2: Combine CLI defines with init.lua defines for the full build
-    
     script_dir = Path(__file__).parent.absolute()
     init_path = script_dir / "src" / "init.lua"
-    
-    # First pass: Parse init.lua with only CLI defines to discover its internal defines
-    # We need preprocess_file available for this, so we call it with empty flags first
-    # But actually, CLI defines come first as the base
-    initial_defined_flags = set(args.define)
-    
-    # Preprocess init.lua using only CLI defines to see what it defines
+
+    # Start with CLI defines
+    defined_flags = set(args.define)
+
+    # First pass: extract flags from init.lua by using the preprocessor with collect_defines
     if init_path.exists() and not args.ignore_buildflags:
-        # Do a first-pass preprocessing with just CLI defines to extract all defines
-        temp_processed = preprocess_file(
+        collect = set()
+        # Preprocess init.lua with current flags (CLI only) but collect defines
+        preprocess_file(
             init_path,
-            initial_defined_flags,
+            defined_flags,
             directive_prefix="--#",
             preserve_line_numbers=not args.no_preserve_linenums,
+            collect_defines=collect,
         )
-        
-        # Extract defines from the preprocessed content
-        define_pattern = re.compile(r'^--#define\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*(.+))?$', re.MULTILINE)
-        
-        for match in define_pattern.finditer(temp_processed):
-            flag_name = match.group(1)
-            flag_value = match.group(2)
-            
-            # Add the flag
-            initial_defined_flags.add(flag_name)
-            
-            # Handle value assignments (game modes, etc.)
-            if flag_value:
-                flag_value = flag_value.strip().strip('"\'')
-                if flag_name in {"GAME_MODE", "GAME", "IWAD"}:
-                    if flag_value in VALID_GAME_MODES:
-                        initial_defined_flags.add(flag_value)
-                        for mode in VALID_GAME_MODES:
-                            if mode != flag_value and mode in initial_defined_flags:
-                                initial_defined_flags.remove(mode)
-                elif flag_value.lower() in {"true", "1", "yes", "on"}:
-                    initial_defined_flags.add(f"{flag_name}_ENABLED")
-                elif flag_value.lower() in {"false", "0", "no", "off"}:
-                    initial_defined_flags.discard(f"{flag_name}_ENABLED")
-    
-    # Now we have the complete set: CLI defines + defines discovered from preprocessed init.lua
-    defined_flags = initial_defined_flags
-    
+        # Add all collected flags to defined_flags
+        defined_flags.update(collect)
+
     if args.define:
         print(f"Command-line defines: {args.define}")
         print(f"Flags defined in init.lua: {sorted(defined_flags - set(args.define))}")

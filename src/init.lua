@@ -51,7 +51,9 @@ end
 --#elif STRIFE
 --#meta name Strife
 --#meta forwho Strife
---#ignoredir TSoURDt3rd/DOOM
+-- Genuinely fuck this piece of shit dude. good lord
+-- I've tried for too long bashing my head on the wall trying to get it to work
+--#ignoredir TSoURDt3rd
 --#meta skipwad
 doom.currentGame = "strife"
 doom.startingMeleeWeapon = "punchdagger"

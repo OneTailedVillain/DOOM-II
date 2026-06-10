@@ -748,6 +748,7 @@ doom.lineActions = {
 	}
 }
 
+--#ifdef DOOM
 /*
 Detailed generalized linedef specification
 Boom has added generalized linedef types that permit the parameters of linedef actions to be nearly independently chosen. Instead of looking at the linedef special as one single number which corresponds to one single type, it is divided into entire ranges of effects where parts of the numbers are used as parameters.
@@ -951,6 +952,7 @@ Notes:
 Speed is 1/2/4/8 units per second, faster means slower damage as usual.
 If silent is 1, the crusher is totally quiet, no start/stop sounds.	
 */
+--#endif
 
 -- put a specified group of generalized specials into doom.lineActions
 local function applyGroupConfig(groupConfig, baseSpecial, baseEntry)
@@ -1172,3 +1174,38 @@ local generalizedLiftConfig = {
 }
 
 applyGroupConfig(generalizedLiftConfig, 0x3400)
+--#endif
+
+-- Now apply potential changes to the line special mapping
+--#ifdef STRIFE
+
+-- WR Exit To Map #Tag/100 Spot #Tag%100
+doom.lineActions[145] = {}
+
+doom.lineActions[202] = {
+	type = "commmessage", id = "tag",
+	repeatable = false, activationType = "walk"
+}
+
+doom.lineActions[165] = {
+	type = "message", message = "That doesn't seem to work", owner = "backsector",
+	sound = sfx_noway, repeatable = true, activationType = "switch"
+}
+doom.lineActions[150] = {
+	type = "alarm", activationType = "walk", repeatable = true
+}
+
+doom.lineActions[155] = {
+	type = "lift", mode = "raisewaitlower",
+	repeatable = true, activationType = "switch"
+}
+
+doom.lineActions[24] = {}
+doom.lineActions[64] = {}
+doom.lineActions[230] = {}
+doom.lineActions[234] = {}
+doom.lineActions[146] = {
+	type = "stair", action = "lower", amount = -16, speed = "fast",
+	repeatable = false, activationType = "switch"
+}
+--#endif

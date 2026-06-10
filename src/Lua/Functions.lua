@@ -227,11 +227,38 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		flags        = objData.flags or MF_ENEMY|MF_SOLID|MF_SHOOTABLE,
     }
 
+	local mi = mobjinfo[MT]
+
     -- VSCode doesn't seem to realize that field injection is only IMpossible when you do it like the above!!
 ---@diagnostic disable-next-line: inject-field
-	mobjinfo[MT].doomflags = objData.doomflags
+	mi.doomflags = objData.doomflags
 ---@diagnostic disable-next-line: inject-field
-	mobjinfo[MT].doomname = name
+	mi.doomname = name
+
+	-- Mainly only used by Strife
+	mi.friendly = objData.friendly
+
+	-- Set user_idleanim# to the first frame of the associated idleanim# if it exists
+	if stateData.idleanim1 and #stateData.idleanim1 > 0 then
+		local idleStateName = string.format("S_%s_%s%d", prefix, "IDLEANIM1", 1)
+		mi.user_idleanim1 = slots[idleStateName] or S_NULL
+	else
+		mi.user_idleanim1 = S_NULL
+	end
+
+	if stateData.idleanim1 and #stateData.idleanim1 > 0 then
+		local idleStateName = string.format("S_%s_%s%d", prefix, "IDLEANIM2", 1)
+		mi.user_idleanim2 = slots[idleStateName] or S_NULL
+	else
+		mi.user_idleanim2 = S_NULL
+	end
+
+	if stateData.idleanim1 and #stateData.idleanim1 > 0 then
+		local idleStateName = string.format("S_%s_%s%d", prefix, "IDLEANIM3", 1)
+		mi.user_idleanim3 = slots[idleStateName] or S_NULL
+	else
+		mi.user_idleanim3 = S_NULL
+	end
 
     -- 4) fill states[] the same way
     for stateKey, frames in pairs(stateData) do
@@ -246,7 +273,7 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 
 			local frame = f.frame
 			if ((objData.doomflags or 0) & DF_SHADOW) then
-				frame = $|FF_ADD|FF_TRANS10
+				frame = $|FF_TRANS80
 			end
 
 			local nextstate

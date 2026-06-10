@@ -1092,6 +1092,14 @@ local typeHandlers = {
 		-- fog at source
 		local fog = P_SpawnMobj(oldx, oldy, oldz, MT_DOOM_TELEFOG)
 	end,
+	message = function(usedLine, whatIs, plyrmo)
+		whatIs.triggerer = plyrmo.player
+		doom.addThinker(usedLine, whatIs)
+	end,
+	commmessage = function(usedLine, whatIs, plyrmo)
+		whatIs.triggerer = plyrmo.player
+		doom.addThinker(usedLine, whatIs)
+	end,
 	exit = function(_, whatIs)
 		doom.didSecretExit = whatIs.secret
 		DOOM_ExitLevel()
