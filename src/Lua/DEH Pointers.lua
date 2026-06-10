@@ -63,6 +63,9 @@ end
 
 addMobjHookByFlags("MobjMoveCollide", MF_MISSILE, BulletHitObject)
 
+doom.mthingReplacements
+
+/*
 doom.mthingReplacements = {
 	[5] = MT_DOOM_BLUEKEYCARD,
 	[6] = MT_DOOM_YELLOWKEYCARD,
@@ -96,6 +99,20 @@ doom.mthingReplacements = {
 	[34] = MT_DOOM_CANDLESTICK,
 	[35] = MT_DOOM_CANDELABRA,
 }
+*/
+
+-- Automatically build based on every defined object's mobjinfo
+for i = 0, INT32_MAX do
+	local def
+	local ok = pcall(function() def = mobjinfo[i] end)
+	if not ok or not def then
+		break -- out of range
+	end
+
+	if def.doomednum and def.doomednum <= 35 then
+		doom.mthingReplacements[def.doomednum] = i
+	end
+end
 
 do
 doom.immunity = doom.immunity or {}
