@@ -182,6 +182,8 @@ addHook("MapLoad", function(mapid)
 		deathmatch = {}
 	}
 
+	if type(doom.playerStarts) != "number" then doom.playerStarts = 4 end
+
 	for i = 1, doom.playerStarts do
 		doom.spawnpoints.player[i] = {}
 	end
