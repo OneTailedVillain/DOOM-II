@@ -1790,6 +1790,7 @@ end)
 
 rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
     if not actor or not actor.subsector or not actor.subsector.sector then return false end
+	if actor.target and actor.target.doom.health then return false end
 
     actor.lastlook = actor.lastlook or 0
 
@@ -1799,8 +1800,11 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
             continue
         end
 
+		local funcs = P_GetMethodsForSkin(player)
+		local health = funcs.getHealth(player) or 0
+
         -- Skip dead players
-        if player.mo.doom.health <= 0 then
+        if health <= 0 then
             continue
         end
 
@@ -1825,7 +1829,6 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
 
         -- Check if skin wants to deny this sighting
         if player and player.valid then
-            local funcs = P_GetMethodsForSkin(player)
             if funcs and funcs.shouldEnemySight then
                 if funcs.shouldEnemySight(player, actor, sightmethod) then
                     continue

@@ -64,6 +64,25 @@ void A_Look (mobj_t* actor)
 }
 */
 
+local function DOOM_EnterSeeState(actor)
+    if actor.state == actor.info.seestate then
+        return false
+    end
+
+    if actor.doom then
+        if actor.doom.sightedplayer == true or actor.doom.sightedplayer == leveltime then
+            print("WARNING: Actor tried to A_Look while already sighting a player!")
+            return false
+        end
+
+        actor.doom.sightedplayer = true
+    end
+
+    actor.state = actor.info.seestate
+    actor.reactiontime = 8
+    return true
+end
+
 function A_DoomLook(actor)
 	local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
 	local targ = secdata and secdata.soundtarget
@@ -126,13 +145,78 @@ function A_DoomLook(actor)
 		end
 	end
 
-	if not actor.doom.sightedplayer then
-		actor.doom.sightedplayer = true
-		actor.state = actor.info.seestate
-	else
-		print("WARNING: Actor tried to A_Look while already sighting a player!")
+	DOOM_EnterSeeState(actor)
+end
+
+function A_DoomTurretLook(actor)
+	local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
+	local targ = secdata and secdata.soundtarget
+	actor.threshold = 0 // any shot will wake up
+
+	local gotoseeyou = false
+
+	if targ and (targ.flags & MF_SHOOTABLE) then
+		actor.target = targ
 	end
-	actor.reactiontime = 8
+
+	if not actor.target then return end
+
+	-- seeyou:
+	local sound = nil
+	if actor.info.seesound then
+		local seesound = actor.info.seesound
+		if seesound == sfx_posit1 or seesound == sfx_posit2 or seesound == sfx_posit3 then
+			sound = sfx_posit1 + DOOM_Random()%3
+		elseif seesound == sfx_bgsit1 or seesound == sfx_bgsit2 then
+			sound = sfx_bgsit1 + DOOM_Random()%2
+		else
+			sound = seesound
+		end
+
+		S_StartSound(actor, sound)
+	end
+
+	DOOM_EnterSeeState(actor)
+end
+
+function A_DoomLook2(actor)
+    local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
+    local targ = secdata and secdata.soundtarget
+    actor.threshold = 0
+
+    if targ and (targ.flags & MF_SHOOTABLE) then
+        actor.target = targ
+        if actor.info.seesound then
+            local seesound = actor.info.seesound
+            local sound
+            if seesound == sfx_posit1 or seesound == sfx_posit2 or seesound == sfx_posit3 then
+                sound = sfx_posit1 + DOOM_Random()%3
+            elseif seesound == sfx_bgsit1 or seesound == sfx_bgsit2 then
+                sound = sfx_bgsit1 + DOOM_Random()%2
+            else
+                sound = seesound
+            end
+            S_StartSound(actor, sound)
+        end
+		DOOM_EnterSeeState(actor)
+        return
+    end
+
+	local mi = mobjinfo[actor.type]
+
+    local s1 = mi.user_idleanim1 or mi.spawnstate
+    local s2 = mi.user_idleanim2 or mi.user_idleanim1
+    local s3 = mi.user_idleanim3 or mi.user_idleanim2
+
+    local standstill = (actor.doom.flags & (DF_STANDSTILL or 0))
+    local r = DOOM_Random() % 3
+    if r == 0 then
+        actor.state = s1
+    elseif r == 1 then
+        actor.state = s2
+    else
+        actor.state = (not standstill) and s3 or s2
+    end
 end
 
 /*
@@ -354,7 +438,7 @@ function A_DoomChase(actor)
 			return
 		end
 
-		actor.doom.sightedplayer = false
+		actor.doom.sightedplayer = leveltime
 		actor.state = actor.info.spawnstate
 		return
 	end
@@ -1539,4 +1623,9 @@ function A_DoomBruisAttack(actor)
 
     // launch a missile
     DOOM_SpawnMissile(actor, actor.target, MT_DOOM_BARONFIREBALL)
+end
+
+function A_DoomSentinelRefire(actor)
+	-- TODO
+	A_CPosRefire(actor)
 end
