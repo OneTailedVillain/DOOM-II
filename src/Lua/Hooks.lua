@@ -178,9 +178,13 @@ addHook("MapLoad", function(mapid)
 	doom.switches = {}
 
 	doom.spawnpoints = {
-		player = {[1]={}, [2]={}, [3]={}, [4]={}},
+		player = {},
 		deathmatch = {}
 	}
+
+	for i = 1, doom.playerStarts do
+		doom.spawnpoints.player[i] = {}
+	end
 
 	-- Determine episode based on game mode
 	local episode = 1
@@ -335,8 +339,8 @@ addHook("MapLoad", function(mapid)
 			end
 		end
 
-		-- Player starts (1->4)
-		if mthing.type >= 1 and mthing.type <= 4 then
+		-- Player starts
+		if mthing.type >= 1 and mthing.type <= doom.playerStarts then
 			table.insert(doom.spawnpoints.player[mthing.type], {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,
@@ -344,8 +348,8 @@ addHook("MapLoad", function(mapid)
 				angle = FixedAngle(mthing.angle * FRACUNIT),
 				mthing = mthing
 			})
-		-- Deathmatch starts (11)
-		elseif mthing.type == 11 then
+		-- Deathmatch starts
+		elseif mthing.type == doom.deathmatchDoomEdNum then
 			table.insert(doom.spawnpoints.deathmatch, {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,

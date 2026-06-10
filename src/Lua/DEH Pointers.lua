@@ -101,6 +101,14 @@ doom.mthingReplacements = {
 }
 */
 
+doom.deathmatchDoomEdNum = 11
+
+--#ifndef STRIFE
+doom.playerStarts = 4
+--#else
+doom.playerStarts = 8
+--#endif
+
 -- Automatically build based on every defined object's mobjinfo
 for i = 0, INT32_MAX do
 	local def
