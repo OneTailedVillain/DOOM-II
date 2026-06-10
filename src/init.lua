@@ -74,9 +74,9 @@ end
 --#branchvar doom.currentGame
 --#branchpattern Lua/*Data
 
-dofile(doom.currentGame .. "Data/Roll Call.lua")
 dofile("Definitions/States/Player.lua")
 dofile("Definitions/Effects/Bullet Puff.lua")
+dofile(doom.currentGame .. "Data/Roll Call.lua")
 dofile("Demos Maybe.lua")
 dofile("Also saving maybe.lua")
 dofile("+Use.lua")
