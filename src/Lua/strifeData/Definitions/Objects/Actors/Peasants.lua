@@ -1,5 +1,6 @@
 SafeFreeSlot(
 	"SPR_PEAS",
+	"SPR_GIBS",
 	"sfx_rebact"
 )
 
