@@ -958,7 +958,7 @@ addHook("PlayerSpawn",function(player)
 	if (sp and sp.player and sp.player[1] and #sp.player[1] > 0)
 	or (sp and sp.deathmatch and #sp.deathmatch > 0) then
 		local function getPlayerSpawn(preferred)
-			for i = 0, 3 do
+			for i = 0, doom.playerStarts - 1 do
 				local slot = ((preferred - 1 + i) % 4) + 1
 				local list = sp.player[slot]
 

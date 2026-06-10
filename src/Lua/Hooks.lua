@@ -386,7 +386,7 @@ addHook("MapLoad", function(mapid)
 		if not player.mo then continue end
 
 		local function getPlayerSpawn(preferred)
-			for i = 0, 3 do
+			for i = 0, doom.playerStarts - 1 do
 				local slot = ((preferred - 1 + i) % 4) + 1
 				local list = doom.spawnpoints.player[slot]
 
