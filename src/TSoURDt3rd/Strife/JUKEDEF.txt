@@ -1,0 +1,34 @@
+tsourdt3rd
+{
+	PageTitles
+	{
+		Strife;
+	};
+
+	LUMPS
+	{
+		action:jukeboxpage = Strife,
+		tavern:jukeboxpage = Strife,
+		danger:jukeboxpage = Strife,
+		fast:jukeboxpage = Strife,
+		intro:jukeboxpage = Strife,
+		darker:jukeboxpage = Strife,
+		strike:jukeboxpage = Strife,
+		slide:jukeboxpage = Strife,
+		tribal:jukeboxpage = Strife,
+		march:jukeboxpage = Strife,
+		mood:jukeboxpage = Strife,
+		castle:jukeboxpage = Strife,
+		fight:jukeboxpage = Strife,
+		spense:jukeboxpage = Strife,
+		dark:jukeboxpage = Strife,
+		tech:jukeboxpage = Strife,
+		drone:jukeboxpage = Strife,
+		panthr:jukeboxpage = Strife,
+		sad:jukeboxpage = Strife,
+		instry:jukeboxpage = Strife,
+		happy:jukeboxpage = Strife,
+		end:jukeboxpage = Strife,
+		logo:jukeboxpage = Strife;
+	};
+};

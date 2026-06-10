@@ -1,3 +1,4 @@
+#ifdef DOOM
 Lump RUNNIN
 Title = No_Track_Here
 Authors = Lola_BlueWorrior_Harvey
@@ -529,3 +530,167 @@ Authors = Goji
 Soundtestpage = 1
 Soundtestcond = 0
 BPM = 95
+#endif
+
+#ifdef STRIFE
+Lump ACTION
+Title = Action
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump TAVERN
+Title = Tavern
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump DANGER
+Title = Danger
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump FAST
+Title = Fast
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump INTRO
+Title = Intro
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump DARKER
+Title = DARKER
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump STRIKE
+Title = Strike
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump SLIDE
+Title = Slide
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump TRIBAL
+Title = Tribal
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump MARCH
+Title = March
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump MOOD
+Title = Mood
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump CASTLE
+Title = Castle
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump FIGHT
+Title = Fight
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump SPENSE
+Title = Suspense
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump DARK
+Title = Dark
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump TECH
+Title = Tech
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump DRONE
+Title = Drone
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump PANTHR
+Title = Panther
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump SAD
+Title = Sad
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump INSTRY
+Title = Industry
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump HAPPY
+Title = Happy
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump END
+Title = End
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+
+Lump LOGO
+Title = Logo
+Authors = Morey_Goldstein
+Soundtestpage = 1
+Soundtestcond = 0
+BPM = 95
+#endif

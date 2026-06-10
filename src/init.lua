@@ -41,12 +41,27 @@ dofile("Chardefs/johnringslinger.lua")
 --#meta name Heretic
 --#meta forwho Heretic
 --#meta skipwad
+--#ignorefile SOC/SOC_STRF
+--#ignoredir TSoURDt3rd/Strife
 doom.currentGame = "heretic"
 doom.startingMeleeWeapon = "staff"
 doom.noIwadChecks = function(v)
 	return not v.patchExists("INVGEML1") or not v.patchExists("PLAYA1")
 end
+--#elif STRIFE
+--#meta name Strife
+--#meta forwho Strife
+--#ignoredir TSoURDt3rd/DOOM
+--#meta skipwad
+doom.currentGame = "strife"
+doom.startingMeleeWeapon = "punchdagger"
+doom.noIwadChecks = function(v)
+	return not v.patchExists("INVBACK") or not v.patchExists("INVTOP")
+end
 --#else
+--#ignorefile SOC/SOC_STRF
+--#ignoredir TSoURDt3rd/Strife
+--#define DOOM = true
 doom.currentGame = "doom"
 doom.startingMeleeWeapon = "brassknuckles"
 doom.noIwadChecks = function(v)
@@ -58,6 +73,7 @@ end
 --#branchpattern Lua/*Data
 
 dofile(doom.currentGame .. "Data/Roll Call.lua")
+dofile("Definitions/States/Player.lua")
 dofile("Demos Maybe.lua")
 dofile("Also saving maybe.lua")
 dofile("+Use.lua")

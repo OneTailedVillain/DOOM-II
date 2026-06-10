@@ -276,6 +276,7 @@ local function DOOM_CheckMissileRange(actor)
 
     dist = $ >> FRACBITS;
 
+	--#ifdef DOOM
     if (actor.type == MT_DOOM_ARCHVILE)
 		if (dist > 14*64)
 			return false;	// too far away
@@ -294,13 +295,16 @@ local function DOOM_CheckMissileRange(actor)
 	or actor.type == MT_DOOM_LOSTSOUL then
 		dist = $ >> 1;
     end
+	--#endif
     if (dist > 200)
 	dist = 200;
 	end
 
+	--#ifdef DOOM
     if (actor.type == MT_DOOM_CYBERDEMON and dist > 160) then
 		dist = 160;
 	end
+	--#endif
 
 	if (DOOM_Random() < dist) then
 		return false;

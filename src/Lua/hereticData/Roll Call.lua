@@ -37,7 +37,6 @@ dofile(doom.currentGame .. "Data/Definitions/Objects/Keycards/Blue Skull Key.lua
 dofile(doom.currentGame .. "Data/Definitions/Objects/Keycards/Red Skull Key.lua")
 dofile(doom.currentGame .. "Data/Definitions/Objects/Monsters/RomeroHead.lua")
 */
-dofile(doom.currentGame .. "Data/Definitions/States/Player.lua")
 --dofile(doom.currentGame .. "Data/Definitions/Objects/MiscDeco.lua")
 
 dofile(doom.currentGame .. "Data/HUD/HUD.lua")

@@ -53,7 +53,6 @@ dofile("doomData/Definitions/Objects/Monsters/Lost Soul.lua")
 dofile("doomData/Definitions/Objects/Monsters/Pain Elemental.lua")
 dofile("doomData/Definitions/Objects/Monsters/Voodoo Doll.lua")
 dofile("doomData/Definitions/Objects/Monsters/PLACEHOLD/Archvile.lua")
-dofile("doomData/Definitions/States/Player.lua")
 dofile("doomData/Definitions/Objects/MiscDeco.lua")
 
 dofile("doomData/HUD/Cast Drawer.lua")

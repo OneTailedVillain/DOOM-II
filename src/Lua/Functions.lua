@@ -1149,12 +1149,15 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		if source then
 			if inflictor != source
 				and source.type != MT_DOOM_BULLETRAYCAST
+				--#ifdef DOOM
 				and source.type != MT_DOOM_LOSTSOUL
+				--#endif
 			then
 				if attacker.type == target.type then
 					return
 				end
 
+				--#ifdef DOOM
 				if inflictor and inflictor.target
 				and (
 					(inflictor.target.type == MT_DOOM_HELLKNIGHT and target.type == MT_DOOM_BARONOFHELL)
@@ -1162,6 +1165,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 				) then
 					return
 				end
+				--#endif
 			end
 		end
 
@@ -1197,9 +1201,13 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
             -- Handle death
             target.flags = $ & ~(MF_SHOOTABLE|MF_FLOAT)
 			target.flags2 = $ & ~MF2_SKULLFLY
+			--#ifdef DOOM
             if target.type ~= MT_DOOM_LOSTSOUL then
+			--#endif
                 target.flags = $ & ~MF_NOGRAVITY
+			--#ifdef DOOM
             end
+			--#endif
             target.doom.flags = $ | DF_CORPSE|DF_DROPOFF
             target.height = $ >> 2
 

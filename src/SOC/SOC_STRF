@@ -1,0 +1,753 @@
+Maincfg Category
+NumDemos = 0
+GameData = doom.dat
+
+Clear All
+
+Character
+SkinName = JohnDoom
+DisplayName = "JohnDoom"
+PlayerText = John Doom has no ability to jump.
+
+JUMP = Use Key
+FIRE = Fire Weapon
+Weapon Nums = Switch Weapon
+
+...What, you thought this'd be more descriptive? You're not even supposed to BE here!
+#
+
+Level 1
+levelname = MAP01
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ACTION
+
+Level 2
+levelname = MAP02
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = TAVERN
+
+Level 3
+levelname = MAP03
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DANGER
+
+Level 4
+levelname = MAP04
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = FAST
+
+Level 5
+levelname = MAP05
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = INTRO
+
+Level 6
+levelname = MAP06
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DARKER
+
+Level 7
+levelname = MAP07
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = STRIKE
+
+Level 8
+levelname = MAP08
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = SLIDE
+
+Level 9
+levelname = MAP09
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = TRIBAL
+
+Level 10
+levelname = MAP10
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = MARCH
+
+Level 11
+levelname = MAP11
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DANGER
+
+Level 12
+levelname = MAP12
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = MOOD
+
+Level 13
+levelname = MAP13
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = CASTLE
+
+Level 14
+levelname = MAP14
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DARKER
+
+Level 15
+levelname = MAP15
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ACTION
+
+Level 16
+levelname = MAP16
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = FIGHT
+
+Level 17
+levelname = MAP17
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = SPENSE
+
+Level 18
+levelname = MAP18
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = SLIDE
+
+Level 19
+levelname = MAP19
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = STRIKE
+
+Level 20
+levelname = MAP20
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DARK
+
+Level 21
+levelname = MAP21
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = TECH
+
+Level 22
+levelname = MAP22
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = SLIDE
+
+Level 23
+levelname = MAP23
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DRONE
+
+Level 24
+levelname = MAP24
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = PANTHR
+
+Level 25
+levelname = MAP25
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = SAD
+
+Level 26
+levelname = MAP26
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = INSTRY
+
+Level 27
+levelname = MAP27
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = TECH
+
+Level 28
+levelname = MAP28
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ACTION
+
+Level 29
+levelname = MAP29
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = INSTRY
+
+Level 30
+levelname = MAP30
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = DRONE
+
+Level 31
+levelname = MAP31
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = FIGHT
+
+Level 32
+levelname = Unused
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ACTION
+NextLevel = 16
+
+Level 33
+levelname = Unused
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 34
+levelname = Unused
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 35
+levelname = PLACEHOLD
+NoTitleCard = true
+TypeOfLevel = Singleplayer,Doom
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 36
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 37
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 38
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 39
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 40
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 41
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 42
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 43
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 44
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 50
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 51
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 52
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 53
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 54
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 55
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 56
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 57
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 60
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 61
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 62
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 63
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 64
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 65
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 66
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 70
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 71
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 72
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level 73
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F0
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F1
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F2
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F3
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F4
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F5
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F6
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F7
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F8
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level F9
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level FA
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level FB
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level G0
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level G1
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level G2
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M0
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M1
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M2
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M3
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M4
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M5
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M6
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M7
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M8
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level M9
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MA
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MB
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MC
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MD
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level ME
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MF
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MG
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level MH
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level N0
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level N1
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level N2
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+
+Level Z0
+levelname = PLACEHOLD
+NoTitleCard = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
