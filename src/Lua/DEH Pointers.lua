@@ -19,7 +19,7 @@ local function BulletHitObject(tmthing, thing)
 
 	local damageVal = mobjinfo[tmthing.type].damage
 	local damage
-	if tmthing.doom.damage then
+	if tmthing.doom.damage != nil then
 		damage = tmthing.doom.damage
 	else
 		damage = (DOOM_Random() % 8 + 1) * damageVal
