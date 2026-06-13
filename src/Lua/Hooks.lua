@@ -1926,3 +1926,270 @@ addHook("PlayerMsg", function(source, type, target, msg)
 	end
 	return true
 end)
+/*
+not right now
+doom.currentCommands = {}
+doom.commandLookup = {}
+
+local function SplitCommand(command)
+	local space = command:find(" ", 1, true)
+
+	if not space then
+		return command, nil
+	end
+
+	return command:sub(1, space-1), command:sub(space+1)
+end
+
+function doom.registerCommand(command, func, defaultbind)
+	if not command or not func then
+		return
+	end
+
+	local basename, defaultarg = SplitCommand(command)
+
+	-- Replace existing command if already registered
+	local existing = doom.commandLookup[basename]
+	if existing then
+		existing.func = func
+		return existing
+	end
+
+	local cmd = {
+		name = basename,
+		fullname = command,
+		defaultarg = defaultarg,
+		func = func
+	}
+
+	doom.commandLookup[basename] = cmd
+	doom.currentCommands[#doom.currentCommands+1] = cmd
+
+	if defaultbind then
+		if type(defaultbind) == "table" then
+			for i = 1, #defaultbind do
+				local bindinfo = defaultbind[i]
+
+				if type(bindinfo) == "table" then
+					local fullcmd = basename
+
+					if bindinfo[1] and bindinfo[1] ~= "" then
+						fullcmd = $ .. " " .. bindinfo[1]
+					end
+
+					doom.defaultBinds[bindinfo[2]] = {
+						command = basename,
+						arguments = bindinfo[1]
+							and {bindinfo[1]}
+							or nil
+					}
+				else
+					doom.defaultBinds[bindinfo] = {
+						command = command
+					}
+				end
+			end
+		else
+			doom.defaultBinds[defaultbind] = {
+				command = basename,
+				arguments = defaultarg and {defaultarg} or nil
+			}
+		end
+	end
+
+	return cmd
+end
+
+doom.registerCommand("jump", function(player, held)
+	
+end, "space")
+
+doom.registerCommand("use", function(player, held)
+	
+end, "e")
+
+doom.registerCommand("reload", function(player, held)
+	
+end, "r")
+
+local debug = CV_RegisterVar({
+	name = "doom_debug_printmissingbinds",
+	PossibleValue = CV_TrueFalse,
+	defaultvalue = 0
+})
+
+addHook("PlayerThink", function(player)
+	player.doom.binds = $ or doom.defaultBinds
+
+	if not player.valid then
+		return
+	end
+
+	for i = 1, #doom.currentCommands do
+		local cmd = doom.currentCommands[i]
+
+		local bind, down, justpressed, held =
+			doom.GetBindState(player, cmd.name)
+
+		if down then
+			cmd.func(player, not justpressed)
+		end
+	end
+end)
+
+function doom.BuildCommand(bind)
+	if not bind or not bind.command or bind.command == "" then
+		return nil
+	end
+
+	local text = tostring(bind.command)
+	local args = bind.arguments or {}
+
+	for i = 1, #args do
+		local arg = args[i]
+		if arg ~= nil and arg ~= "" then
+			arg = tostring(arg)
+
+			-- Quote args that contain spaces or quotes.
+			if arg:find("[%s\"]") then
+				arg = '"' .. arg:gsub("\\", "\\\\"):gsub('"', '\\"') .. '"'
+			end
+
+			text = $ .. " " .. arg
+		end
+	end
+
+	return text
+end
+
+function doom.GetBind(player, bindname)
+	if not player or not player.valid then
+		return nil
+	end
+
+	local doom = player.doom
+	local binds = doom and doom.binds
+	if not binds then
+		return nil
+	end
+
+	return binds[bindname]
+end
+
+function doom.GetBindState(player, bindname)
+	local bind = doom.GetBind(player, bindname)
+	if not bind then
+		return nil, false, false, false
+	end
+
+	local down = bind.down == true
+	local justpressed = bind.pressedtic == leveltime
+	local held = down and bind.heldtime and bind.heldtime > 0
+		and (leveltime - bind.pressedtic) >= bind.heldtime
+
+	return bind, down, justpressed, held
+end
+
+function doom.BindDown(player, bindname)
+	local _, down  = doom.GetBindState(player, bindname)
+	return down
+end
+
+function doom.BindHeld(player, bindname)
+	local _, _, _, held = doom.GetBindState(player, bindname)
+	return held
+end
+
+function doom.BindJustPressed(player, bindname)
+	local _, _, justpressed = doom.GetBindState(player, bindname)
+	return justpressed
+end
+
+COM_AddCommand("_doomkb", function(player, sentleveltime, bindname, state)
+	if not player
+	or not player.valid
+	or not bindname
+	then
+		return
+	end
+
+	sentleveltime = tonumber(sentleveltime)
+	state = tonumber(state)
+
+	if sentleveltime != leveltime then
+		return
+	end
+
+	player.doom = player.doom or {}
+	player.doom.binds = player.doom.binds or {}
+
+	local bind = player.doom.binds[bindname]
+	if not bind then
+		return
+	end
+
+	if state then
+		bind.down = true
+		bind.pressedtic = leveltime
+		bind.justpressed = true
+
+		local cmd = doom.BuildCommand(bind)
+		if cmd then
+			COM_BufInsertText(player, cmd)
+		end
+	else
+		bind.down = false
+		bind.releasedtic = leveltime
+	end
+end)
+
+local function OnKeyDown(keyevent)
+	if not consoleplayer then return end
+	local bindIgnores = P_GetPlayerSkinProperties(consoleplayer).ignorebinds
+	if bindIgnores == true then return end
+
+	local bindEntry = consoleplayer.doom
+		and consoleplayer.doom.binds
+		and consoleplayer.doom.binds[keyevent.name]
+
+	if not bindEntry then
+		if debug.value then print(keyevent.name) end
+		return false
+	end
+	if type(bindIgnores) == "table" and bindIgnores[bindEntry] then return end
+
+	if not keyevent.repeated then
+		COM_BufInsertText(
+			consoleplayer,
+			"_doomkb " .. leveltime .. " " .. keyevent.name .. " 1"
+		)
+	end
+
+	return true
+end
+
+local function OnKeyUp(keyevent)
+	if not consoleplayer then return end
+	local bindIgnores = P_GetPlayerSkinProperties(consoleplayer).ignorebinds
+	if bindIgnores == true then return end
+
+	local bindEntry = consoleplayer.doom
+		and consoleplayer.doom.binds
+		and consoleplayer.doom.binds[keyevent.name]
+
+	if not bindEntry then
+		return false
+	end
+	if type(bindIgnores) == "table" and bindIgnores[bindEntry] then return end
+
+	COM_BufInsertText(
+		consoleplayer,
+		"_doomkb " .. leveltime .. " " .. keyevent.name .. " 0"
+	)
+
+	return true
+end
+
+addHook("KeyDown", OnKeyDown)
+addHook("KeyUp", OnKeyUp)
+*/
