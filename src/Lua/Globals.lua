@@ -462,10 +462,6 @@ doom.textscreen = {
 
 doom.pistolstartstate = {
 		useinvbackups = true,
-		ammo = {
-			none = INT32_MIN,
-			bullets = 50,
-			shells = 0,
 			rockets = 0,
 			cells = 0,
 		},
@@ -473,6 +469,8 @@ doom.pistolstartstate = {
 			brassknuckles = true,
 			pistol = true,
 		},
+		weapons = doom.startingWeapons,
+		ammo = doom.startingAmmo,
 		health = 100,
 		maxhealth = 100,
 		armor = 0,

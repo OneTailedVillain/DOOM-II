@@ -56,7 +56,11 @@ end
 --#ignoredir TSoURDt3rd
 --#meta skipwad
 doom.currentGame = "strife"
+-- Needed for John Ringslinger
 doom.startingMeleeWeapon = "punchdagger"
+doom.startingWeapons = {[doom.startingMeleeWeapon] = true}
+-- Strifeguy doesn't start with anything iirc
+doom.startingAmmo = {}
 doom.noIwadChecks = function(v)
 	return not v.patchExists("INVBACK") or not v.patchExists("INVTOP")
 end
@@ -65,7 +69,10 @@ end
 --#ignoredir TSoURDt3rd/Strife
 --#define DOOM = true
 doom.currentGame = "doom"
+-- Needed for John Ringslinger
 doom.startingMeleeWeapon = "brassknuckles"
+doom.startingWeapons = {[doom.startingMeleeWeapon] = true}
+doom.startingAmmo = {bullets = 50}
 doom.noIwadChecks = function(v)
 	return not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
 end
