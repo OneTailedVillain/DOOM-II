@@ -103,11 +103,30 @@ doom.mthingReplacements = {
 
 doom.deathmatchDoomEdNum = 11
 
---#ifndef STRIFE
-doom.playerStarts = 4
---#else
-doom.playerStarts = 8
---#endif
+-- Array of what each player start goes to in-editor
+doom.playerStartMap = {
+	1,
+	2,
+	3,
+	4,
+	--#ifdef DOOM
+	4001,
+	4002,
+	4003,
+	4004,
+	--#elif HEXEN
+	-- Unsure why Hexen places its extended player starts all the way down here
+	9100,
+	9101,
+	9102,
+	9103,
+	--#elif STRIFE
+	5,
+	6,
+	7,
+	8,
+	--#endif
+}
 
 -- Automatically build based on every defined object's mobjinfo
 for i = 0, INT32_MAX do

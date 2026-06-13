@@ -181,10 +181,9 @@ addHook("MapLoad", function(mapid)
 		player = {},
 		deathmatch = {}
 	}
+	local coopspawns = #doom.playerStartMap
 
-	if type(doom.playerStarts) != "number" then doom.playerStarts = 4 end
-
-	for i = 1, doom.playerStarts do
+	for i = 1, coopspawns do
 		doom.spawnpoints.player[i] = {}
 	end
 
@@ -283,6 +282,47 @@ addHook("MapLoad", function(mapid)
 
 	gravity = prefGravity
 
+	-- Take out [mthing] and replace it with the MT constant [newType]
+	---@param mthing mapthing_t
+	local function replaceMapthing(mthing, newType)
+		if mthing.mobj then P_RemoveMobj(mthing.mobj) end
+		if not (gametyperules & GTR_SPAWNENEMIES) then
+			local objinfo = mobjinfo[newType]
+			if (objinfo.flags & MF_ENEMY) then
+				return false
+			end
+		end
+
+		local x = mthing.x*FRACUNIT
+		local y = mthing.y*FRACUNIT
+		local z
+
+		if mthing.mobj and (mthing.mobj.info.flags & MF_SPAWNCEILING) then
+			z = P_CeilingzAtPos(x, y, 0, 0)
+		else
+			z = P_FloorzAtPos(x, y, 0, 0)
+		end
+		local teleman = P_SpawnMobj(x, y, z, newType)
+		teleman.angle = FixedAngle(mthing.angle*FRACUNIT)
+		if not (teleman and teleman.valid) then
+			print("replaceMapthing: Overridden object invalidated itself")
+			return false
+		end
+		-- The overridden mapthing won't be considered for kill and item counts, so adjust those here
+		if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTKILL) then
+			doom.killcount = ($ or 0) + 1
+		end
+		if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTITEM) then
+			doom.itemcount = ($ or 0) + 1
+		end
+		return teleman
+	end
+
+	local playerStartLookup = {}
+	for slot, doomednum in ipairs(doom.playerStartMap) do
+		playerStartLookup[doomednum] = slot
+	end
+
 	for mthing in mapthings.iterate do
 		if (mthing.z & 1) and not multiplayer then
 			continue
@@ -303,6 +343,15 @@ addHook("MapLoad", function(mapid)
 			end
 		end
 
+		-- Diagnostic: warn about thing types 1-35 that are not player starts
+		-- and have no replacement entry
+		if mthing.type >= 1 and mthing.type <= 35 then
+			if not playerStartLookup[mthing.type] and not doom.mthingReplacements[mthing.type] then
+				print(string.format("DP: Potentially missing thing type '%d' placed at (%d, %d)",
+					mthing.type, mthing.x, mthing.y))
+			end
+		end
+
 		local override = doom.callHook(
 			"MapThingSpawn",
 			doom.hookTypes.lastfunc,
@@ -311,42 +360,29 @@ addHook("MapLoad", function(mapid)
 
 		if override == false then
 			continue -- block spawn completely
-		elseif override != nil then
+		elseif override ~= nil then
 			mthing.type = override -- override doomednum
 		end
 
 		if doom.mthingReplacements[mthing.type] then
-			if not (gametyperules & GTR_SPAWNENEMIES) then
-				local objinfo = mobjinfo[doom.mthingReplacements[mthing.type]]
-				if (objinfo.flags & MF_ENEMY) then
-					continue
-				end
-			end
-
-			local x = mthing.x*FRACUNIT
-			local y = mthing.y*FRACUNIT
-			local z
-			if mthing.mobj and (mthing.mobj.info.flags & MF_SPAWNCEILING) then
-				z = P_CeilingzAtPos(x, y, 0, 0)
-			else
-				z = P_FloorzAtPos(x, y, 0, 0)
-			end
-			local teleman = P_SpawnMobj(x, y, z, doom.mthingReplacements[mthing.type])
-			teleman.angle = FixedAngle(mthing.angle*FRACUNIT)
-			if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTKILL) then
-				doom.killcount = ($ or 0) + 1
-			end
-			if teleman and ((teleman.info and teleman.info.doomflags or 0) & DF_COUNTITEM) then
-				doom.itemcount = ($ or 0) + 1
-			end
+			replaceMapthing(mthing, doom.mthingReplacements[mthing.type])
+		-- extrainfo eats 4 mapthing type bits, so undo that if extrainfo is present
+		elseif mthing.extrainfo then
+			replaceMapthing(mthing, mthing.type + (mthing.extrainfo << 4))
 		end
 
 		-- Player starts
-		if mthing.type >= 1 and mthing.type <= doom.playerStarts then
-			table.insert(doom.spawnpoints.player[mthing.type], {
+		local startslot = playerStartLookup[mthing.type]
+
+		if startslot then
+			if not doom.spawnpoints.player[startslot] then
+				doom.spawnpoints.player[startslot] = {}
+			end
+
+			table.insert(doom.spawnpoints.player[startslot], {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,
-				z = P_FloorzAtPos(x, y, 0, 0),
+				z = P_FloorzAtPos(mthing.x*FRACUNIT, mthing.y*FRACUNIT, 0, 0),
 				angle = FixedAngle(mthing.angle * FRACUNIT),
 				mthing = mthing
 			})
@@ -386,8 +422,8 @@ addHook("MapLoad", function(mapid)
 		if not player.mo then continue end
 
 		local function getPlayerSpawn(preferred)
-			for i = 0, doom.playerStarts - 1 do
-				local slot = ((preferred - 1 + i) % 4) + 1
+			for i = 0, coopspawns - 1 do
+				local slot = ((preferred - 1 + i) % coopspawns) + 1
 				local list = doom.spawnpoints.player[slot]
 
 				if list and list[#list] then
