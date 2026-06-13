@@ -267,7 +267,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
 
     if not whatIs then
         -- Line had a special, but it isn't interactable
-        if lineSpecial != 0 then
+        if lineSpecial then
             print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
             if not silent then
                 S_StartSound(ray.target, sfx_noway)
