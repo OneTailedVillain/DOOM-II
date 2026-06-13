@@ -270,7 +270,6 @@ def make_cycle_sequence(src_wad, out_wad, prefix, start, end, base_start, base_e
 	if hasattr(out_wad, "data") and "TEXTURES" in out_wad.data:
 		raw = out_wad.data["TEXTURES"].data.decode("utf-8", errors="ignore")
 		src_textures = parse_textures_lump(raw)
-		print("Parsed textures:", list(src_textures.keys())[:10])
 
 	# Remove existing outputs
 	for i in range(start, end + 1):
