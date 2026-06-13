@@ -1811,7 +1811,7 @@ addHook("PostThinkFrame", function()
 		if not player.mo then return end
 		if player.mo.doom.flags & DF_SHADOW then
 			if not P_GetSupportsForSkin(player).noPartialInvisEffect then
-				player.mo.frame = $ | FF_ADD | FF_TRANS10
+				player.mo.frame = $ | FF_TRANS80
 			end
 		end
 	end
