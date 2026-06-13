@@ -462,13 +462,6 @@ doom.textscreen = {
 
 doom.pistolstartstate = {
 		useinvbackups = true,
-			rockets = 0,
-			cells = 0,
-		},
-		weapons = {
-			brassknuckles = true,
-			pistol = true,
-		},
 		weapons = doom.startingWeapons,
 		ammo = doom.startingAmmo,
 		health = 100,
