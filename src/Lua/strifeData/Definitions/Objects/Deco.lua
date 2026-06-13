@@ -296,3 +296,51 @@ local states = {
 }
 
 DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_KLAX", "sfx_alarm")
+
+function A_KlaxonBlare(actor)
+	S_StartSound(actor, sfx_alarm)
+end
+
+local name = "KlaxonWarningLight"
+
+local object = {
+	radius = 1,
+	height = 1,
+	doomednum = 244,
+	conversationid = 121,
+	sprite = SPR_KLAX,
+	reactiontime = 60,
+	flags = MF_NOGRAVITY|MF_NOBLOCKMAP,
+}
+
+local states = {
+	stand = {
+		{action = A_DoomTurretLook, frame = A, tics = 5, next = "stand"},
+	},
+	chase = {
+		{action = A_KlaxonBlare, frame = B, tics = 6},
+		{action = nil,           frame = C, tics = 60, next = "chase"},
+	},
+}
+
+DefineDoomActor(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_CNDL")
+
+local name = "Candle"
+
+local object = {
+	radius = 1,
+	height = 1,
+	doomednum = 34,
+	conversationid = 222,
+	sprite = SPR_CNDL
+}
+
+local states = {
+	{frame = A|FF_FULLBRIGHT, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)

@@ -29,6 +29,7 @@ doom.addAmmo("phosphorgrenades", {
 
 doom.addAmmo("missiles", {
 	icon = "SBOAMMO1",
+	pickupamount = 4,
 	max = 100
 })
 

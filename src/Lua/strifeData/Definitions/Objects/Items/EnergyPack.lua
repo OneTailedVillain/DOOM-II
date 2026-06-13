@@ -1,12 +1,12 @@
-SafeFreeSlot("SPR_MSSL", "sfx_itemup")
-local name = "MiniMissiles"
+SafeFreeSlot("SPR_BRY1", "sfx_itemup")
+local name = "EnergyPack"
 local object = {
 	radius = 20,
 	height = 16,
-	doomednum = 2010,
-	conversationid = {181, 175, 179},
+	doomednum = 17,
+	conversationid = {184, 178, 182},
 	deathsound = sfx_itemup,
-	sprite = SPR_MSSL,
+	sprite = SPR_BRY1,
 	doomflags = DF_COUNTITEM|DF_DM2RESPAWN
 }
 local states = {
@@ -16,9 +16,9 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end
 	local player = mobj.player
 	local funcs = P_GetMethodsForSkin(player)
-	local result = funcs.giveAmmoFor(player, "minimissiles", item.doom.flags)
+	local result = funcs.giveAmmoFor(player, "energypack", item.doom.flags)
 	if not result then return true end
 	
-	DOOM_DoMessage(player, "$TXT_MINIMISSILES")
+	DOOM_DoMessage(player, "$TXT_ENERGYPACK")
 end
 DefineDoomItem(name, object, states, onPickup)
