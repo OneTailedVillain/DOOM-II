@@ -474,6 +474,10 @@ doom.pistolstartstate = {
 		armorefficiency = FRACUNIT/3,
 	}
 
+doom.pistolstartstate.ammo = $ or {}
+doom.pistolstartstate.weapons = $ or {}
+doom.pistolstartstate.ammo["none"] = INT32_MIN
+
 -- DEHACKED Bullshit
 doom.soulspheregrant = 100
 doom.maxsoulsphere = 200
