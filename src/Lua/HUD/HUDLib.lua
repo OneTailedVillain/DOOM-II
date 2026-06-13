@@ -166,6 +166,30 @@ local function manualBuildS2FONT(v)
 	cacheShit.fonts["S2FONT"] = fontTable
 end
 
+local function manualBuildINVFON(v, font)
+	local fontTable = {}
+	local patches = {}
+	for i = 0, 9 do
+		patches["INVFON" .. tostring(font) .. i] = 48 + i
+	end
+	patches["INVFON" .. tostring(font) .. "_"] = 37
+	local zeroPatch = v.cachePatch("INVFON"..font.."0")
+	for patch, code in pairs(patches) do
+		local pdata = v.cachePatch(patch)
+		if v.patchExists(patch) then
+			local width = zeroPatch.width + 1
+			fontTable[code] = {
+				patch = pdata,
+				patchname = patch,
+				width = width,
+			}
+		else
+			print("Warning: patch '" .. patch .. "' not found!")
+		end
+	end
+	cacheShit.fonts["INVFON" .. tostring(font)] = fontTable
+end
+
 -- Either creates or caches a fontset
 local function cacheFont(v, font, force)
 	if not cacheShit.fonts[font] or force then
@@ -183,6 +207,10 @@ local function cacheFont(v, font, force)
 			manualBuildAMMNUM(v, font)
 		elseif font == "WI" then
 			manualBuildWI(v, font)
+		elseif font == "INVFONY" then
+			manualBuildINVFON(v, "Y")
+		elseif font == "INVFONG" then
+			manualBuildINVFON(v, "G")
 		else
 			local fontTable = {}
 			for code = 0, 255 do
