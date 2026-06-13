@@ -480,6 +480,9 @@ local expectedUserdatas = {
 	stair = "sector_t",
 	elevator = "sector_t",
 	sectorscroll = "sector_t",
+	alarm = "sector_t",
+	commmessage = "line_t",
+	message = "sector_t",
 }
 
 local function sectorHasUnfittableObject(a, b, c, d)
@@ -1600,6 +1603,33 @@ local thinkers = {
 		end
 		sector.lightlevel = data.target or 35
 		doom.stopThinker(sector)
+	end,
+
+	commmessage = function(line, data)
+		if data.used then return end
+		-- TODO: Voice
+		DOOM_DoMessage(data.triggerer, "Incoming message...")
+		local id = data.id
+		if id == "tag" then
+			id = line.tag
+		end
+		print(doom.logs[id])
+		if data.repeatable then
+			doom.stopThinker(sector)
+		else
+			data.used = true
+		end
+	end,
+
+	message = function(sector, data)
+		if not data.triggerer then doom.stopThinker(sector) return end
+		DOOM_DoMessage(data.triggerer, data.message)
+		S_StartSound(data.triggerer.mo, data.sound)
+		doom.stopThinker(sector)
+	end,
+
+	alarm = function(sector, data)
+	
 	end,
 }
 
