@@ -489,13 +489,14 @@ local function sectorHasUnfittableObject(a, b, c, d)
 	-- resolve args to bounds
 	local minx, maxx, miny, maxy
 
-	if a and a.lines then
+	if a and type(a) == "userdata" then
 		-- 'a' is a sector_t, compute bounding box from its lines
 		minx = INT32_MAX
 		maxx = INT32_MIN
 		miny = INT32_MAX
 		maxy = INT32_MIN
 
+		if not (a and a.valid) then print("Sector devalidated") return false end
 		for linenum = 0, #a.lines - 1 do
 			local line = a.lines[linenum]
 			for i = 1, 2 do
