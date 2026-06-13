@@ -194,6 +194,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 
 	local whatIs = doom.lineActions[lineSpecial]
 	if not whatIs then
+		print("Potential invalid line special '" .. tostring(lineSpecial) .. "'")
 		S_StartSound(ray.target, sfx_noway)
 		P_KillMobj(ray)
 		return true
