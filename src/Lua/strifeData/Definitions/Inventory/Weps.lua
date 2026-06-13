@@ -1,5 +1,5 @@
 DOOM_Freeslot(
-"SPR_PNCH",
+"SPR_PNCH", "SPR_PUNG",
 "sfx_sawidl", "sfx_sawful", "sfx_sawup", "sfx_sawhit",
 "sfx_punch",
 "sfx_pistol",
@@ -38,7 +38,10 @@ doom.addWeapon("punchdagger", {
 			{frame = D, tics = 5},
 			{frame = C, tics = 4},
 			{frame = B, tics = 5, action = A_DoomReFire},
-		}
+		},
+		flash = {
+			{frame = A, tics = 1}
+		},
 	},
 	ammotype = "none",
 })

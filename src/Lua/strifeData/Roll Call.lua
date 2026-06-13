@@ -1,4 +1,5 @@
 dofile(doom.currentGame .. "Data/Definitions/Inventory/Ammo.lua")
+dofile(doom.currentGame .. "Data/Definitions/Inventory/Weps.lua")
 dofile(doom.currentGame .. "Data/Definitions/Inventory/Doomweps.lua")
 dofile(doom.currentGame .. "Data/Definitions/Objects/Deco.lua")
 dofile(doom.currentGame .. "Data/Definitions/Objects/Actors/Beggars.lua")
