@@ -1,6 +1,9 @@
+--#ifdef UNFINISHEDCLASSES
 freeslot("sfx_lttpds")
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
+	if player.mo.skin != "dpecalttp" then return end
 	local funcs = P_GetMethodsForSkin(player)
 	if not funcs.hasWeapon(player, "pegasusboots") then return end
 	if not (player.cmd.buttons & BT_FIRENORMAL) then
@@ -29,6 +32,8 @@ end)
 
 addHook("MobjMoveBlocked", function(movingmobj, mobj, line)
 	local player = movingmobj.player
+	if not player.mo then return end
+	if player.mo.skin != "dpecalttp" then return end
 	if not player.doom.pegasuscharging then return end
 	if mobj then
 		return
@@ -44,3 +49,4 @@ addHook("MobjMoveBlocked", function(movingmobj, mobj, line)
 		return
 	end
 end, MT_PLAYER)
+--#endif

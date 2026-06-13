@@ -1,3 +1,4 @@
+--#ifdef UNFINISHEDCLASSES
 freeslot("SPR_LINK_SSG", "SPR_LINK_FIREROD", "sfx_lttpbd", "sfx_lttpbb", "sfx_lttpaf",
 "sfx_lttplh", "sfx_lttpld")
 
@@ -50,10 +51,14 @@ local function SkillMaskFor(skill)
 end
 
 addHook("MapLoad", function()
-	local toCheckFor = {
-		keycards = {MT_DOOM_BLUEKEYCARD, MT_DOOM_YELLOWKEYCARD, MT_DOOM_REDKEYCARD},
-		skulls = {MT_DOOM_BLUESKULL, MT_DOOM_YELLOWSKULL, MT_DOOM_REDSKULL},
-	}
+	local toCheckFor
+
+	if doom.currentGame == "doom" then
+		toCheckFor = {
+			keycards = {MT_DOOM_BLUEKEYCARD, MT_DOOM_YELLOWKEYCARD, MT_DOOM_REDKEYCARD},
+			skulls = {MT_DOOM_BLUESKULL, MT_DOOM_YELLOWSKULL, MT_DOOM_REDSKULL},
+		}
+	end
 
 	doom.zsnes_keycardexistent = false
 	doom.zsnes_skullkeyexistent = false
@@ -177,7 +182,7 @@ local function A_DoomFireShotgun2(actor, var1, var2, weapon)
 	A_DoomGunFlash(actor)
 end
 
-doom.charSupport.alttplinkdpexamp = {
+doom.charSupport.dpecalttp = {
 	noHUD = true,
 
 	-- Custom CSS bullshit
@@ -350,3 +355,4 @@ doom.charSupport.alttplinkdpexamp = {
 	forceDisableJump = true,
     methods = methods
 }
+--#endif

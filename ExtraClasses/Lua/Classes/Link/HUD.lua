@@ -1,3 +1,4 @@
+--#ifdef UNFINISHEDCLASSES
 local function drawNumber(v, x, y, num, len, flags)
 	local str = string.format("%0" .. len .. "d", num)
 	for i = 1, #str do
@@ -43,6 +44,8 @@ local function drawHearts(v, x, y, curHealth, maxHealth, hearts, perRow, flags)
 end
 
 hud.add(function(v, player)
+	if not player.mo then return end
+	if player.mo.skin != "dpecalttp" then return end
 	local leftpiece = v.cachePatch("ZSNESHUDCURITEM")
 	local centpiece = v.cachePatch("ZSNESHUDCENTERALIGN")
 	local rightpiece = v.cachePatch("ZSNESHUDRIGHTALIGN")
@@ -126,3 +129,4 @@ hud.add(function(v, player)
 		v.draw(32 + 96 + 40 + 16 + 16, 15 + 8, v.cachePatch(patchname), V_SNAPTOTOP)
 	end
 end)
+--#endif

@@ -495,8 +495,8 @@ dofile("Obituaries.lua")
 ---@field sprite? spritenum_t The weapon sprite this weapon uses
 ---@field weaponslot? integer The slot this weapon occupies in the player's inventory
 ---@field order? integer The order of this weapon in the player's inventory (higher == lower)
----@field damage table The damage values for this weapon, in order of {min, max, steps}
----@field pellets integer The number of shootmobjs fired by this weapon
+---@field damage? table The damage values for this weapon, in order of {min, max, steps}
+---@field pellets? integer The number of shootmobjs fired by this weapon
 ---@field shootmobj? mobjtype_t The type of object this weapon fires (defaults to hitscanner)
 ---@field raycaster? boolean Whether this weapon uses raycasting (defaults to false)
 ---@field shotcost? integer The ammo cost per shot
@@ -820,8 +820,8 @@ dofile("Obituaries.lua")
 ---@field STSTR_NOMUS? string Message for when the target selection is nonexistent.
 ---@field STSTR_DQDON? string Message for when IDDQD is activated.
 ---@field STSTR_DQDOFF? string Message for when IDDQD is deactivated.
----@field STSTR_KFAADDED stringtype Message for when IDKFA is activated.
----@field STSTR_FAADDED stringtype Message for when IDFA is activated.
+---@field STSTR_KFAADDED? stringtype Message for when IDKFA is activated.
+---@field STSTR_FAADDED? stringtype Message for when IDFA is activated.
 ---@field STSTR_NCON? string Message for when noclip is activated.
 ---@field STSTR_NCOFF? string Message for when noclip is deactivated.
 ---@field STSTR_BEHOLD? string Message for when IDBEHOLD is typed.

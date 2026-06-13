@@ -1,3 +1,4 @@
+--#ifdef UNFINISHEDCLASSES
 freeslot("SPR_LINK_SLINGSHOT_WEP", "SPR_LINK_FIGHTERSWORD")
 
 SafeFreeSlot(
@@ -249,3 +250,4 @@ doom.addWeapon("bomb", {
 	},
 	ammotype = "bombs",
 })
+--#endif

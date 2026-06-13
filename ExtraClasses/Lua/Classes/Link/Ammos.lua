@@ -1,3 +1,4 @@
+--#ifdef UNFINISHEDCLASSES
 doom.addAmmo("rupees", {
 	pickupamount = 5,
 	max = 250,
@@ -25,3 +26,4 @@ doom.addAmmo("bombs", {
 	smallpickupName = "bomb",
 	bigpickupName = "bombs"
 })
+--#endif
