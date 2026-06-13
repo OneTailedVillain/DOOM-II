@@ -458,7 +458,8 @@ for internalName, data in pairs(doom.configents) do
 		else
 			local localstore = getLocalStore(player)
 			if not localstore then return end
-			localstore[internalName] = normalized
+			-- TODO: Kinda sucks
+			localstore[internalName] = getStoreValue(data, value)
 			CONS_Printf(player, "Set " .. internalName .. " to " .. tostring(normalized))
 
 			if player == consoleplayer then
