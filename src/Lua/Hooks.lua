@@ -682,6 +682,26 @@ local function BuildStairs(startsec, stairsize, speed)
 end
 
 local function FindNextHighestFromBackups(sec, curHeight)
+	local best = nil
+
+	for i = 0, #sec.lines-1 do
+		local other = getNextSector(sec.lines[i], sec)
+		if other then
+			local h = doom.sectorbackups[other].lastTicFloorHeight
+			if h == nil then
+				h = other.floorheight
+			end
+
+			if h > curHeight and (best == nil or h < best) then
+				best = h
+			end
+		end
+	end
+
+	return best or curHeight
+end
+
+local function FindHighestFromBackups(sec, curHeight)
 	local best = curHeight
 
 	for i = 0, #sec.lines-1 do
@@ -1043,53 +1063,84 @@ local thinkers = {
 	end,
 
 	lift = function(sector, data)
-		-- opening
+		-- determine behavior
+		local lowerFirst = (data.mode ~= "raisewaitlower")
+
+		-- cache original floor
+		local original = doom.sectorbackups[sector].floor or 0
+		local speed = (data.speed == "fast") and 8*FRACUNIT or 4*FRACUNIT
+
+		-- opening movement
 		if not data.reachedGoal then
-			local target = P_FindLowestFloorSurrounding(sector)
-			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
+			local target
+
+			if lowerFirst then
+				target = P_FindLowestFloorSurrounding(sector)
+			else
+				target = P_FindHighestFloorSurrounding(sector)
+			end
 
 			if not data.init then
 				S_StartSound(sector, sfx_pstart)
 				data.init = true
 			end
 
-			sector.floorheight = $ - speed
+			if lowerFirst then
+				sector.floorheight = $ - speed
 
-			if sector.floorheight <= target then
-				S_StartSound(sector, sfx_pstop)
-				sector.floorheight = target
-				data.reachedGoal = true
-				data.waitClock = data.delay or 150
+				if sector.floorheight <= target then
+					S_StartSound(sector, sfx_pstop)
+					sector.floorheight = target
+					data.reachedGoal = true
+					data.waitClock = data.delay or 150
+				end
+			else
+				sector.floorheight = $ + speed
+
+				if sector.floorheight >= target then
+					S_StartSound(sector, sfx_pstop)
+					sector.floorheight = target
+					data.reachedGoal = true
+					data.waitClock = data.delay or 150
+				end
 			end
 
 		-- waiting
 		elseif data.waitClock and data.waitClock > 0 then
 			data.waitClock = $ - 1
 
-		-- closing
+		-- return movement
 		else
-			local target = doom.sectorbackups[sector].floor or 0
-			local speed = data.speed == "fast" and 8*FRACUNIT or 4*FRACUNIT
-
 			if data.init then
 				S_StartSound(sector, sfx_pstart)
 				data.init = false
 			end
 
-			sector.floorheight = $ + speed
+			if lowerFirst then
+				sector.floorheight = $ + speed
 
-			if sector.floorheight >= target then
-				S_StartSound(sector, sfx_pstop)
-				sector.floorheight = target
-
-				-- remove thinker
-				doom.stopThinker(sector)
-
-				-- if repeatable, reset any flags for next trigger
-				if data.repeatable then
-					data.reachedGoal = false
-					data.waitClock = nil
+				if sector.floorheight < original then
+					return
 				end
+			else
+				sector.floorheight = $ - speed
+
+				if sector.floorheight > original then
+					return
+				end
+			end
+
+			-- reached original position
+			S_StartSound(sector, sfx_pstop)
+			sector.floorheight = original
+
+			-- remove thinker
+			doom.stopThinker(sector)
+
+			-- reset if repeatable
+			if data.repeatable then
+				data.reachedGoal = false
+				data.waitClock = nil
 			end
 		end
 	end,
