@@ -27,7 +27,7 @@ local states = {
 		{action = A_DoomTurretLook, frame = A, tics = 5, next = "stand"}
 	},
 	chase = {
-		{action = A_DoomKlaxonBlare, frame = B, tics = 6, next = "chase"},
+		{action = A_DoomKlaxonBlare, frame = B, tics = 6},
 		{action = nil,               frame = C, tics = 60, next = "chase"},
 	},
 }
