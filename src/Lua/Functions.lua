@@ -1746,9 +1746,16 @@ rawset(_G, "DOOM_NextLevel", function()
 	end
 	G_SetCustomExitVars(nextLev, 1, gametype or GT_DOOM, true)
 
+	-- TODO: Maybe try to get this down to just calling G_ExitLevel() again?
+	if not multiplayer then
+		G_ExitLevel()
+		return
+	end
+
 	for player in players.iterate() do
 		P_DoPlayerFinish(player)
 		player.exiting = 1
+		player.doom.intpause = TICRATE*99
 	end
 end)
 
