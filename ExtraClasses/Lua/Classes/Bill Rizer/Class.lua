@@ -68,6 +68,8 @@ methods.damage = function(player, damage, attacker, proj, damageType, minhealth)
 end
 
 addHook("PlayerThink", function(player)
+	if not player.mo then return end
+	if player.mo.skin != "dpecbillrizer" then return end
 	if player.doom.bill_ogheight == nil then player.doom.bill_ogheight = player.height end
 	if player.doom.bill_lives == nil then player.doom.bill_lives = 3 end
 	if player.doom.bill_hurtflash then
