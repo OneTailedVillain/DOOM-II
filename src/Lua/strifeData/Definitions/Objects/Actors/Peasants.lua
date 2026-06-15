@@ -21,7 +21,7 @@ local object = {
 	disintegratesound = sfx_dsrptr,
 	burningsound = sfx_burnme,
 	sprite = SPR_PEAS,
-	doomflags = DF_COUNTKILL
+	doomflags = 0
 }
 
 local states = {

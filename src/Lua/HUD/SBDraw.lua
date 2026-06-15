@@ -207,7 +207,8 @@ local function getCurrentWeaponDelay(player)
 	end
 
 	local delay = psp.tics or 0
-	local frame = (psp.frame or 1) + 1
+	if psp.frame == nil then psp.frame = 1 end
+	local frame = psp.frame + 1
 
 	for i = frame, #attack do
 		delay = $ + (attack[i].tics or 0)
@@ -218,7 +219,7 @@ end
 
 local function drawWeaponSelect(v, xoffs, y, delay)
 	local del = getWeaponSelectYOffset(delay)
-	v.draw(6 + xoffs, y - 2 - (del / 2), v.cachePatch("CURWEAP"), V_PERPLAYER|V_SNAPTOBOTTOM)
+	v.draw(6 + xoffs, y - 2 - (del / 2), v.cachePatch("CURWEAPA"), V_PERPLAYER|V_SNAPTOBOTTOM)
 end
 
 ---@param v videolib
@@ -233,7 +234,11 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	local armor = funcs.getArmor(player)
 
 	local hudflags = V_PERPLAYER|V_SNAPTOTOP|V_SNAPTOLEFT
-	v.draw(17, 11, v.cachePatch("STTHEALT"), hudflags)
+	local patch = "STTHEALT"
+	if health <= 20 then
+		patch = (leveltime/5 & 1) and "STTHEALR" or "STTHEALT"
+	end
+	v.draw(17, 11, v.cachePatch(patch), hudflags)
 	doom.drawInFont(v, (100) * FRACUNIT, (11) * FRACUNIT, FRACUNIT, "S2FONT", tostring(health) .. "%", hudflags, "right")
 	v.draw(17, 11 + 16, v.cachePatch("STTARMOR"), hudflags)
 	doom.drawInFont(v, (100) * FRACUNIT, (11 + 16) * FRACUNIT, FRACUNIT, "S2FONT", tostring(armor) .. "%", hudflags, "right")
@@ -279,7 +284,7 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 
 				local myAmmoType = myWep.ammotype
 				local iHasIt = player.doom.weapons[name]
-				local ammolessWeapon = myWep.shotcost <= 0
+				local ammolessWeapon = (myWep.shotcost or 0) <= 0
 
 				if not iHasIt and not player.doom.ammo[myAmmoType] then
 					continue

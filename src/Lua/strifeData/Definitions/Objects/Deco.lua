@@ -344,3 +344,58 @@ local states = {
 }
 
 DefineDoomDeco(name, object, states, onPickup)
+
+-- TODO: SeHackEd
+SafeFreeSlot("SPR_HMN1")
+
+local name = "DeadRebel"
+
+local object = {
+	radius = 1,
+	height = 1,
+	doomednum = 19,
+	conversationid = 235,
+	sprite = SPR_HMN1
+}
+
+local states = {
+	{frame = N, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_PEAS")
+
+local name = "DeadPeasant"
+
+local object = {
+	radius = 1,
+	height = 1,
+	doomednum = 18,
+	conversationid = 232,
+	sprite = SPR_PEAS
+}
+
+local states = {
+	{frame = N, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)
+
+SafeFreeSlot("SPR_HATR")
+
+local name = "RebelHelmet"
+
+local object = {
+	radius = 1,
+	height = 1,
+	doomednum = 218,
+	conversationid = 286,
+	sprite = SPR_HATR
+}
+
+local states = {
+	{frame = A, tics = -1},
+}
+
+DefineDoomDeco(name, object, states, onPickup)

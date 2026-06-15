@@ -46,9 +46,27 @@ local function DrawStatusBarNumbers(v, player)
     ST_drawLine(49, 175, barlength, lifecolor1, V_SNAPTOBOTTOM);
     ST_drawLine(49, 176, barlength, lifecolor2, V_SNAPTOBOTTOM);
 
+	if myHealth > 100 then
+		lifecolor1 = 112
+		lifecolor2 = lifecolor1 + 3
+
+		local oldbarlength = barlength
+		barlength = 200 - barlength
+
+		ST_drawLine(49 + oldbarlength, 172, barlength, lifecolor1, V_SNAPTOBOTTOM)
+		ST_drawLine(49 + oldbarlength, 173, barlength, lifecolor2, V_SNAPTOBOTTOM)
+		ST_drawLine(49 + oldbarlength, 175, barlength, lifecolor1, V_SNAPTOBOTTOM)
+		ST_drawLine(49 + oldbarlength, 176, barlength, lifecolor2, V_SNAPTOBOTTOM)
+	end
+
 	-- TODO: V_DrawPatch(2, 177, invarmor[plyr->armortype - 1]);
 	doom.drawInFont(v, 20*FRACUNIT, 191*FRACUNIT, FRACUNIT, "INVFONY", myArmor, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 end
+
+COM_AddCommand("doom_sethealth", function(player, health)
+	local funcs = P_GetMethodsForSkin(player)
+	funcs.setHealth(player, tonumber(health) or 1)
+end)
 
 ---@param drawer videolib
 local function drawStatusBar(drawer, player)

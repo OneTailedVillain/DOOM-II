@@ -20,8 +20,7 @@ local object = {
 	deathsound = sfx_psdtha,
 	disintegratesound = sfx_dsrptr,
 	burningsound = sfx_burnme,
-	sprite = SPR_BEGR,
-	doomflags = DF_COUNTKILL
+	sprite = SPR_BEGR
 }
 
 local states = {

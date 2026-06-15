@@ -328,6 +328,33 @@ addHook("MapLoad", function(mapid)
 			continue
 		end
 
+		--#ifndef DOOM
+		-- Also modify thing flags according to specification if the thing is valid. and stuff
+		if mthing.mobj then
+			local mobj = mthing.mobj
+			local curFlags = mthing.options
+
+			--#ifdef STRIFE
+			-- For some reason, Strife decided to move Ambush on bit 5 and use bit 3 for standing still
+			local MTF_AMBUSH = 0x0020
+			local MTF_STANDSTILL = 0x0008
+			local MTF_FRIENDLY = 0x0040
+			local MTF_25TRANS = 0x0100
+			local MTF_INVISIBLE = 0x0200
+			if curFlags & MTF_AMBUSH then
+				mobj.flags2 = $ | MF2_AMBUSH
+			else
+				mobj.flags2 = $ & ~MF2_AMBUSH
+			end
+
+			if curFlags & MTF_STANDSTILL then
+				mobj.doom = $ or {flags = 0}
+				mobj.doom.flags = $ | DF_STANDSTILL
+			end
+			--#endif
+		end
+		--#endif
+
 		local needed = SkillMaskFor(doom.gameskill)
 		if not (mthing.options & needed) then
 			continue

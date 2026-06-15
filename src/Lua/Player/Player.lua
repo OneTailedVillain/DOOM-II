@@ -255,8 +255,45 @@ addHook("PlayerThink", function(player)
 	end
 end)
 
+local nameMapping = {
+	[A_DoomReFire] = "Refire",
+	[A_DoomFire] = "FireWeapon",
+	[A_DoomWeaponReady] = "WeaponReady",
+	[A_DoomLower] = "WeaponLower",
+	[A_DoomRaise] = "WeaponRaise"
+}
+
+local function DOOM_RunStateAction(player, stateDef)
+	/*
+	local actionName = stateDef and stateDef.action
+	if actionName then
+		actionName = nameMapping[actionName]
+	end
+	print(actionName)
+	*/
+    if not stateDef or not stateDef.action then
+        return
+    end
+
+    local wepDef = DOOM_GetWeaponDef(player)
+    if not wepDef then
+        return
+    end
+
+    stateDef.action(
+        player.mo,
+        stateDef.var1,
+        stateDef.var2,
+        wepDef
+    )
+end
+
+doom.runStateAction = DOOM_RunStateAction
+
 local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
     local psp = DOOM_GetPSprite(player, slot)
+	--print("ApplyStateJump", targetState, targetFrame)
+	if targetFrame == nil then targetFrame = 1 end
 
     -- Allow jumping to arbitrary real states or fakestates
     if targetState == nil then
@@ -264,7 +301,7 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
     end
 
     psp.state = targetState
-    psp.frame = targetFrame or 1
+    psp.frame = targetFrame
 
     local wepDef = DOOM_GetWeaponDef(player)
     if not wepDef then
@@ -272,14 +309,14 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
     end
 
     local stateDef, realSlot = DOOM_ResolveStateDef(wepDef, targetState, psp.frame)
-	if realSlot then
+	if realSlot != nil then
 		-- Real state: collapse into engine state system
 		psp.state = realSlot
 		psp.frame = nil
 	else
 		-- Fakestate: keep string + frame
 		psp.state = targetState
-		psp.frame = targetFrame or 1
+		psp.frame = targetFrame
 	end
 
 	if targetState != S_NULL then
@@ -290,11 +327,9 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
 		stateDef = {tics = INT32_MAX}
 	end
 
-    psp.tics = stateDef.tics or 0
+	psp.tics = stateDef.tics or 0
 
-    if stateDef.action then
-        stateDef.action(player.mo, stateDef.var1, stateDef.var2, wepDef)
-    end
+	DOOM_RunStateAction(player, stateDef)
 end
 
 local HOLD_STATES = {
@@ -302,8 +337,14 @@ local HOLD_STATES = {
     lower = true,
 }
 
+local mapping = {
+	[PSP_WEAPON] = "weapon",
+	[PSP_FLASH] = "Flash"
+}
+
 local function DOOM_AdvancePSprite(player, slot, fallbackState)
     local psp = DOOM_GetPSprite(player, slot)
+	--print("slot=".. tostring(mapping[slot]), "state=" .. tostring(psp.state), "frame=" .. tostring(psp.frame), "tics=" .. tostring(psp.tics))
     local wepDef = DOOM_GetWeaponDef(player)
     if not wepDef then return end
 
@@ -316,9 +357,7 @@ local function DOOM_AdvancePSprite(player, slot, fallbackState)
     if not frameDef then
         if HOLD_STATES[psp.state] then
             psp.tics = 1
-            if frameDef and frameDef.action then
-                frameDef.action(player.mo, frameDef.var1, frameDef.var2, wepDef)
-            end
+			DOOM_RunStateAction(player, frameDef)
             return
         end
 
@@ -341,23 +380,20 @@ local function DOOM_AdvancePSprite(player, slot, fallbackState)
         return
     end
 
-    local nextFrame = (psp.frame or 1) + 1
+	if psp.frame == nil then psp.frame = 1 end
+    local nextFrame = psp.frame + 1
     local nextDef = DOOM_ResolveStateDef(wepDef, psp.state, nextFrame)
 
     if nextDef then
         psp.frame = nextFrame
         psp.tics = nextDef.tics or 0
-        if nextDef.action then
-            nextDef.action(player.mo, nextDef.var1, nextDef.var2, wepDef)
-        end
+		DOOM_RunStateAction(player, nextDef)
         return
     end
 
     if HOLD_STATES[psp.state] then
         psp.tics = 1
-        if frameDef.action then
-            frameDef.action(player.mo, frameDef.var1, frameDef.var2, wepDef)
-        end
+		DOOM_RunStateAction(player, frameDef)
         return
     end
 

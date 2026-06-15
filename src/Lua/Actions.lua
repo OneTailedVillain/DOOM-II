@@ -79,7 +79,8 @@ local function DOOM_EnterSeeState(actor)
     end
 
     actor.state = actor.info.seestate
-    actor.reactiontime = 8
+    actor.reactiontime = actor.info.reactiontime or 8
+	actor.threshold = 10
     return true
 end
 
@@ -184,7 +185,11 @@ function A_DoomLook2(actor)
     local targ = secdata and secdata.soundtarget
     actor.threshold = 0
 
-    if targ and (targ.flags & MF_SHOOTABLE) then
+	targ = $ or {flags = 0, doom = {flags = 0}}
+	if not targ.doom then targ.doom = {} end
+	-- Players are automatically friendly
+	local isFriendly = actor.doom.flags & DF_FRIENDLY and (targ.doom.flags & DF_FRIENDLY or targ.type == MT_PLAYER)
+    if targ and (targ.flags & MF_SHOOTABLE) and not isFriendly then
         actor.target = targ
         if actor.info.seesound then
             local seesound = actor.info.seesound
@@ -202,21 +207,146 @@ function A_DoomLook2(actor)
         return
     end
 
-	local mi = mobjinfo[actor.type]
-
+    local mi = mobjinfo[actor.type]
     local s1 = mi.user_idleanim1 or mi.spawnstate
-    local s2 = mi.user_idleanim2 or mi.user_idleanim1
-    local s3 = mi.user_idleanim3 or mi.user_idleanim2
+    local s2 = mi.user_idleanim2 or mi.user_idleanim1 or s1
+    local s3 = mi.user_idleanim3 or mi.user_idleanim2 or s2
 
     local standstill = (actor.doom.flags & (DF_STANDSTILL or 0))
-    local r = DOOM_Random() % 3
-    if r == 0 then
-        actor.state = s1
-    elseif r == 1 then
-        actor.state = s2
-    else
-        actor.state = (not standstill) and s3 or s2
-    end
+
+	if DOOM_Random() < 30 then
+		actor.state = (DOOM_Random() & 1) == 0 and s1 or s2
+	end
+
+	if not standstill and DOOM_Random() < 40 then
+		actor.state = s3
+	end
+end
+
+local CHF_FASTCHASE = 1
+local CHF_NOPLAYACTIVE = 2
+local CHF_NIGHTMAREFAST = 4
+local CHF_RESURRECT = 8
+local CHF_DONTMOVE = 16
+local CHF_NORANDOMTURN = 32
+local CHF_NODIRECTIONTURN = 64
+local CHF_NOPOSATTACKTURN = 128
+local CHF_STOPIFBLOCKED = 256
+local CHF_DONTIDLE = 512
+local CHF_DONTLOOKALLAROUND = 1024
+
+local function P_TryWalk(actor)
+	if not P_Move(actor, actor.info.speed / FRACUNIT) then
+		return false
+	end
+	actor.movecount = DOOM_Random() & 15
+	return true
+end
+
+local function P_RandomChaseDir(actor)
+	local olddir = actor.movedir or DI_NODIR
+	local turnaround = opposite and opposite[olddir] or DI_NODIR
+	local turndir
+
+	-- TODO: ZDOOM: Make some actors follow the player!!
+
+	-- sometimes continue forward
+	if DOOM_Random() < 150 then
+		if P_TryWalk(actor) then
+			return
+		end
+	end
+
+	-- pick a turning direction
+	turndir = ((DOOM_Random() & 1) ~= 0) and -1 or 1
+
+	if olddir == DI_NODIR then
+		olddir = DOOM_Random() & 7
+	end
+
+	-- try all directions except turnaround
+	local tdir = (olddir + turndir) & 7
+	while tdir ~= olddir do
+		if tdir ~= turnaround then
+			actor.movedir = tdir
+			if P_TryWalk(actor) then
+				return
+			end
+		end
+
+		tdir = (tdir + turndir) & 7
+	end
+
+	-- last resort: try turnaround
+	if turnaround ~= DI_NODIR then
+		actor.movedir = turnaround
+		if P_TryWalk(actor) then
+			actor.movecount = DOOM_Random() & 15
+			return
+		end
+	end
+
+	-- stuck
+	actor.movedir = DI_NODIR
+end
+
+-- Ensure these flags exist even if not yet officially declared
+local DF_INCOMBAT = DF_INCOMBAT or 0
+local DF_INCONVERSATION = DF_INCONVERSATION or 0
+local DF_STANDSTILL = DF_STANDSTILL or 0
+
+function A_DoomWander(actor, flags)
+	-- clears combat state (Strife-like behavior)
+	if actor.flags4 then
+		actor.flags4 = actor.flags4 & ~DF_INCOMBAT
+	end
+
+	-- don't act while in conversation
+	if actor.doom.flags and (actor.doom.flags & DF_INCONVERSATION) then
+		return
+	end
+
+	-- don't move if forced to stand still
+	if actor.doom.flags and (actor.doom.flags & DF_STANDSTILL) then
+		return
+	end
+
+	-- reaction delay
+	if actor.reactiontime and actor.reactiontime > 0 then
+		actor.reactiontime = $ - 1
+		return
+	end
+
+	-- turn toward movement direction if allowed
+	if not (flags & CHF_NODIRECTIONTURN) and actor.movedir > DI_NODIR then
+		-- snap angle to nearest 45 sector
+		actor.angle = $ & (7<<29)
+
+		-- convert to degrees
+		local target = actor.movedir << 29
+
+		-- Lugent didn't MR this! But credits to them
+		local delta = FixedInt(AngleFixed(target - actor.angle))
+		if delta < 45 or delta > 315 then
+			actor.angle = target
+		elseif delta < 180 then
+			actor.angle = $ + ANGLE_45
+		else
+			actor.angle = $ - ANGLE_45
+		end
+	end
+
+	-- movement / random turning logic
+	local moved = P_Move(actor, actor.info.speed / FRACUNIT)
+
+	if ((actor.movecount and (actor.movecount - 1 < 0)) and not (flags & CHF_NORANDOMTURN))
+		or (not moved and not (flags & CHF_STOPIFBLOCKED))
+	then
+		P_RandomChaseDir(actor)
+		actor.movecount = (actor.movecount or 0) + 5
+	else
+		actor.movecount = (actor.movecount or 0) - 1
+	end
 end
 
 /*
@@ -586,7 +716,14 @@ void A_Pain (mobj_t* actor)
 
 function A_DoomPain(actor)
     if (actor.info.painsound)
-		S_StartSound (actor, actor.info.painsound)
+		local painsound = actor.info.painsound
+		if painsound == sfx_pespna
+		or painsound == sfx_pespnb
+		or painsound == sfx_pespnc
+		or painsound == sfx_pespnd then
+			painsound = sfx_pespna + DOOM_Random()%4
+		end
+		S_StartSound (actor, painsound)
 	end
 end
 
@@ -810,6 +947,8 @@ function A_SawHit(actor, var1, var2, weapon)
 end
 
 -- Cut-down definitions for SPECIFICALLY enemies
+-- This is the DEFAULT ENEMY WEAPON DEFINITION TABLE,
+-- any idTech 1 data should overwrite this if this is inaccurate
 ---@type table<integer, shortweapondef_t>
 doom.predefinedWeapons = {
 	{
@@ -846,21 +985,70 @@ doom.predefinedWeapons = {
 	},
 }
 
+function A_NotDoomFire(actor)
+	print("Fucking")
+    local weapon = (actor.player and DOOM_GetWeaponDef(actor.player))
+    if not weapon then return end
+
+    local player = actor.mo and actor or actor.player
+    if not player then return end
+
+    local funcs = P_GetMethodsForSkin(player)
+    local curAmmo = funcs.getCurAmmo(player)
+    local curType = funcs.getCurAmmoType(player)
+
+    local shouldDecrease = true
+    if curAmmo ~= false and weapon.shotcost ~= 0 then
+        if curAmmo - weapon.shotcost < 0 then return end
+    else
+        shouldDecrease = false
+    end
+
+    if weapon.firesound then
+        S_StartSound(actor, weapon.firesound)
+    end
+
+    P_NoiseAlert(actor, actor)
+
+    if weapon.states and weapon.states.flash then
+        A_DoomGunFlash(actor)
+    end
+
+    local spread
+    if weapon.noinitfirespread and not player.doom.refire then
+        spread = {horiz = 0, vert = 0}
+    else
+        spread = weapon.spread
+    end
+
+    if shouldDecrease then
+        funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
+    end
+
+    DOOM_Fire(player, weapon.maxdist or MISSILERANGE,
+        spread and spread.horiz or 0,
+        spread and spread.vert or 0,
+        weapon.pellets or 1,
+        weapon.damage[1], weapon.damage[2], weapon.damage[3],
+        weapon.shootmobj, weapon.shootflags2, weapon.shootfuse,
+        weapon.firefunc, weapon.hitsound)
+end
+
 function A_DoomFire(actor, var1, weaponDef, weapon)
     -- Determine if this is a player or enemy
-    local isPlayerActor = actor.player ~= nil
-    local player = actor.player
+    local player = actor.mo and actor or actor.player
 
-    if isPlayerActor then
-		local wepProperties = weaponDef or {}
+    if player then
+		local wepProperties = type(weaponDef) == "table" and weaponDef or {}
         -- Player logic
-		--P_NoiseAlert(actor, actor)
         local funcs = P_GetMethodsForSkin(player)
         local curAmmo = funcs.getCurAmmo(player)
         local curType = funcs.getCurAmmoType(player)
+		local shouldDecrease = true
 
-		if type(curAmmo) != "boolean" then
+		if curAmmo != false and weapon.shotcost != 0 then
 			if curAmmo - weapon.shotcost < 0 then return end
+		else shouldDecrease = false
 		end
 
 		if weapon.firesound and not wepProperties.noFireSound then
@@ -881,7 +1069,9 @@ function A_DoomFire(actor, var1, weaponDef, weapon)
             spread = weapon.spread
         end
 
-        funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
+		if shouldDecrease then
+    	    funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
+		end
 
         DOOM_Fire(player, weapon.maxdist or MISSILERANGE, spread and spread.horiz or 0, spread and spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     else
@@ -1198,63 +1388,6 @@ function A_DoomHeadAttack(actor)
 	DOOM_SpawnMissile(actor, actor.target, MT_DOOM_CACODEMONSHOT)
 end
 
-/*
-void
-A_WeaponReady
-( player_t*	player,
-  pspdef_t*	psp )
-{
-    statenum_t	newstate;
-    int		angle;
-
-    // get out of attack state
-    if (player->mo->state == &states[S_PLAY_ATK1]
-	|| player->mo->state == &states[S_PLAY_ATK2] )
-    {
-	P_SetMobjState (player->mo, S_PLAY);
-    }
-
-    if (player->readyweapon == wp_chainsaw
-	&& psp->state == &states[S_SAW])
-    {
-	S_StartSound (player->mo, sfx_sawidl);
-    }
-
-    // check for change
-    //  if player is dead, put the weapon away
-    if (player->pendingweapon != wp_nochange || !player->health)
-    {
-	// change weapon
-	//  (pending weapon should allready be validated)
-	newstate = weaponinfo[player->readyweapon].downstate;
-	P_SetPsprite (player, ps_weapon, newstate);
-	return;
-    }
-
-    // check for fire
-    //  the missile launcher and bfg do not auto fire
-    if (player->cmd.buttons & BT_ATTACK)
-    {
-	if ( !player->attackdown
-	     || (player->readyweapon != wp_missile
-		 && player->readyweapon != wp_bfg) )
-	{
-	    player->attackdown = true;
-	    P_FireWeapon (player);
-	    return;
-	}
-    }
-    else
-	player->attackdown = false;
-
-    // bob the weapon based on movement speed
-    angle = (128*leveltime)&FINEMASK;
-    psp->sx = FRACUNIT + FixedMul (player->bob, finecosine[angle]);
-    angle &= FINEANGLES/2-1;
-    psp->sy = WEAPONTOP + FixedMul (player->bob, finesine[angle]);
-}
-*/
-
 function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 	local player = actor.player
 	local funcs = P_GetMethodsForSkin(player)
@@ -1536,7 +1669,7 @@ function A_DoomFirePistol(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	local pd = player.doom
 	DOOM_Fire(actor, MISSILERANGE, pd.refire == 0, true, 1, 5, 15)
-	pd.ammo[weapon.ammotype] = $ - 1
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	S_StartSound(actor, sfx_pistol)
 	A_DoomGunFlash(actor)
 end
@@ -1545,7 +1678,7 @@ function A_DoomFireShotgun(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	local pd = player.doom
 	DOOM_Fire(actor, MISSILERANGE, false, true, 7, 5, 15)
-	pd.ammo[weapon.ammotype] = $ - 1
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	S_StartSound(actor, sfx_shotgn)
 	A_DoomGunFlash(actor)
 end
@@ -1554,7 +1687,7 @@ function A_DoomFireShotgun2(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	local pd = player.doom
 	DOOM_Fire(actor, MISSILERANGE, false, FRACUNIT*71/10, 20, 5, 15)
-	pd.ammo[weapon.ammotype] = $ - 2
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 2)
 	S_StartSound(actor, sfx_dshtgn)
 	A_DoomGunFlash(actor)
 end
@@ -1564,7 +1697,7 @@ function A_DoomFireCGun(actor, var1, var2, weapon)
 	local pd = player.doom
 
 	DOOM_Fire(actor, MISSILERANGE, pd.refire == 0, true, 1, 5, 15)
-	pd.ammo[weapon.ammotype] = $ - 1
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	S_StartSound(actor, sfx_pistol)
 
 	A_DoomGunFlash(actor)
@@ -1576,7 +1709,7 @@ function A_DoomFireMissile(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	if not player then return end
 	local pd = player.doom
-	pd.ammo[weapon.ammotype] = $ - 1
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	DOOM_Fire(actor, MISSILERANGE, true, true, 1, nil, nil, nil, MT_DOOM_ROCKETPROJ)
 end
 
@@ -1584,7 +1717,7 @@ function A_DoomFirePlasma(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	local pd = player.doom
 
-	pd.ammo[weapon.ammotype] = $ - 1
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	DOOM_Fire(actor, MISSILERANGE, true, true, 1, nil, nil, nil, MT_DOOM_PLASMASHOT)
 
 	A_DoomGunFlash(actor)
@@ -1595,7 +1728,7 @@ end
 function A_DoomFireBFG(actor, var1, var2, weapon)
 	local player = actor.mo and actor or actor.player
 	local pd = player.doom
-	pd.ammo[weapon.ammotype] = $ - doom.bfgshotcost
+	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or doom.bfgshotcost)
 	DOOM_Fire(actor, MISSILERANGE, true, true, 1, nil, nil, nil, MT_DOOM_BFGBALL)
 end
 

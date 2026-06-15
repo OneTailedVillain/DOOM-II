@@ -34,7 +34,7 @@ local object = {
 	-- TODO:
 	--doomflags = DF_COUNTKILL
 }
-
+/*
 DefineDoomActor(name, object, states)
 
 doom.addHook("MobjDamage", function(target, inflictor, source, damage, damagetype, minhealth)
@@ -46,3 +46,4 @@ doom.addHook("MobjDamage", function(target, inflictor, source, damage, damagetyp
     -- Forward damage to player
     DOOM_DamageMobj(player.mo, inflictor, source, damage, damagetype, minhealth)
 end, MT_DOOM_VOODOODOLL)
+*/

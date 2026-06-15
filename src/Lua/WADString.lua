@@ -1321,6 +1321,7 @@ doom.obitStrings = {
 
 -- Loads the strings for the specified game type
 -- Effectively the same as adding the damn strings in WADLoad like before (it simply sucked more)
+--#ifdef DOOM -- Always assume the strings will be the same if non-DOOM
 function doom.loadStrings(gameType)
 	if gameType == "srb2" then
 		doom.strings = {
@@ -2139,3 +2140,176 @@ function doom.loadStrings(gameType)
 		}
 	end
 end
+--#elif STRIFE
+function doom.loadStrings(gameType)
+	doom.strings = {
+		D_DEVSTR = "Development mode ON.\n",
+		D_CDROM = "CD-ROM Version: Accessing strife.cd\n",
+
+		PRESSKEY = "press a key.",
+		PRESSYN = "press y or n.",
+		QUITMSG = "are you sure you want to\nquit this great game?",
+
+		LOADNET = "you can't load while in a net game!\n\npress a key.",
+		QLOADNET = "you can't quickload during a netgame!\n\npress a key.",
+		QSAVESPOT = "you haven't picked a\nquicksave slot yet!\n\npress a key.",
+		SAVEDEAD = "you're not playing a game\n\npress a key.",
+		QSPROMPT = "quicksave over your game named\n\n'%s'?\n\npress y or n.",
+		QLPROMPT = "do you want to quickload\n\n'%s'?\n\npress y or n.",
+
+		NEWGAME = "you can't start a new game\nwhile in a network game.\n\npress a key.",
+		NIGHTMARE = "are you sure? this skill level\nisn't even remotely fair.\n\npress y or n.",
+		SWSTRING = "this is the shareware version of doom.\n\nyou need to order the entire trilogy.\n\npress a key.",
+
+		MSGOFF = "Messages OFF",
+		MSGON = "Messages ON",
+		NETEND = "you can't end a netgame!\n\npress a key.",
+		ENDGAME = "are you sure you want\nto end the game?\n\npress y or n.",
+
+		DOSY = "(press y to quit)",
+
+		DETAILHI = "High detail",
+		DETAILLO = "Low detail",
+
+		GAMMALVL0 = "Gamma correction OFF",
+		GAMMALVL1 = "Gamma correction level 1",
+		GAMMALVL2 = "Gamma correction level 2",
+		GAMMALVL3 = "Gamma correction level 3",
+		GAMMALVL4 = "Gamma correction level 4",
+
+		EMPTYSTRING = "empty slot",
+
+		GOTARMOR = "Picked up the armor.",
+		GOTMEGA = "Picked up the MegaArmor!",
+		GOTHTHBONUS = "Picked up a health bonus.",
+		GOTARMBONUS = "Picked up an armor bonus.",
+		GOTSTIM = "Picked up a stimpack.",
+		GOTMEDINEED = "Picked up a medikit that you REALLY need!",
+		GOTMEDIKIT = "Picked up a medikit.",
+		GOTSUPER = "Supercharge!",
+
+		GOTBLUECARD = "Picked up a blue keycard.",
+		GOTYELWCARD = "Picked up a yellow keycard.",
+		GOTREDCARD = "Picked up a red keycard.",
+		GOTBLUESKUL = "Picked up a blue skull key.",
+		GOTYELWSKUL = "Picked up a yellow skull key.",
+		GOTREDSKULL = "Picked up a red skull key.",
+
+		GOTINVUL = "Invulnerability!",
+		GOTBERSERK = "Berserk!",
+		GOTINVIS = "Partial Invisibility",
+		GOTSUIT = "Radiation Shielding Suit",
+		GOTMAP = "Computer Area Map",
+		GOTVISOR = "Light Amplification Visor",
+		GOTMSPHERE = "MegaSphere!",
+
+		GOTCLIP = "Picked up a clip.",
+		GOTCLIPBOX = "Picked up a box of bullets.",
+		GOTROCKET = "Picked up a rocket.",
+		GOTROCKBOX = "Picked up a box of rockets.",
+		GOTCELL = "Picked up an energy cell.",
+		GOTCELLBOX = "Picked up an energy cell pack.",
+		GOTSHELLS = "Picked up 4 shotgun shells.",
+		GOTSHELLBOX = "Picked up a box of shotgun shells.",
+		GOTBACKPACK = "Picked up a backpack full of ammo!",
+
+		GOTBFG9000 = "You got the BFG9000!  Oh, yes.",
+		GOTCHAINGUN = "You got the chaingun!",
+		GOTCHAINSAW = "A chainsaw!  Find some meat!",
+		GOTLAUNCHER = "You got the rocket launcher!",
+		GOTPLASMA = "You got the plasma gun!",
+		GOTSHOTGUN = "You got the shotgun!",
+		GOTSHOTGUN2 = "You got the super shotgun!",
+
+		PD_BLUEO = "You need a blue key to activate this object",
+		PD_REDO = "You need a red key to activate this object",
+		PD_YELLOWO = "You need a yellow key to activate this object",
+		PD_BLUEK = "You need a blue key to open this door",
+		PD_REDK = "You need a red key to open this door",
+		PD_YELLOWK = "You need a yellow key to open this door",
+
+		GGSAVED = "game saved.",
+
+		HUSTR_MSGU = "[Message unsent]",
+
+		HUSTR_1 = "AREA  1: sanctuary",
+		HUSTR_2 = "AREA  2: town",
+		HUSTR_3 = "AREA  3: front base",
+		HUSTR_4 = "AREA  4: power station",
+		HUSTR_5 = "AREA  5: prison",
+		HUSTR_6 = "AREA  6: sewers",
+		HUSTR_7 = "AREA  7: castle",
+		HUSTR_8 = "AREA  8: Audience Chamber",
+		HUSTR_9 = "AREA  9: Castle: Programmer's Keep",
+		HUSTR_10 = "AREA 10: New Front Base",
+		HUSTR_11 = "AREA 11: Borderlands",
+		HUSTR_12 = "AREA 12: the temple of the oracle",
+		HUSTR_13 = "AREA 13: Catacombs",
+		HUSTR_14 = "AREA 14: mines",
+		HUSTR_15 = "AREA 15: Fortress: Administration",
+		HUSTR_16 = "AREA 16: Fortress: Bishop's Tower",
+		HUSTR_17 = "AREA 17: Fortress: The Bailey",
+		HUSTR_18 = "AREA 18: Fortress: Stores",
+		HUSTR_19 = "AREA 19: Fortress: Security Complex",
+		HUSTR_20 = "AREA 20: Factory: Receiving",
+		HUSTR_21 = "AREA 21: Factory: Manufacturing",
+		HUSTR_22 = "AREA 22: Factory: Forge",
+		HUSTR_23 = "AREA 23: Order Commons",
+		HUSTR_24 = "AREA 24: Factory: Conversion Chapel",
+		HUSTR_25 = "AREA 25: Catacombs: Ruined Temple",
+		HUSTR_26 = "AREA 26: proving grounds",
+		HUSTR_27 = "AREA 27: The Lab",
+		HUSTR_28 = "AREA 28: Alien Ship",
+		HUSTR_29 = "AREA 29: Entity's Lair",
+		HUSTR_30 = "AREA 30: Abandoned Front Base",
+		HUSTR_31 = "AREA 31: Training Facility",
+		HUSTR_32 = "AREA  1: Sanctuary",
+		HUSTR_33 = "AREA  2: Town",
+		HUSTR_34 = "AREA  3: Movement Base",
+
+		HUSTR_CHATMACRO1 = "Fucker!",
+		HUSTR_CHATMACRO2 = "--SPLAT-- Instant wall art.",
+		HUSTR_CHATMACRO3 = "That had to hurt!",
+		HUSTR_CHATMACRO4 = "Smackings!",
+		HUSTR_CHATMACRO5 = "Gib-O-Matic baby.",
+		HUSTR_CHATMACRO6 = "Burn!  Yah! Yah!",
+		HUSTR_CHATMACRO7 = "Buh-Bye!",
+		HUSTR_CHATMACRO8 = "Sizzle chest!",
+		HUSTR_CHATMACRO9 = "That sucked!",
+		HUSTR_CHATMACRO0 = "Mommy?",
+
+		HUSTR_TALKTOSELF1 = "You mumble to yourself",
+		HUSTR_TALKTOSELF2 = "Who's there?",
+		HUSTR_TALKTOSELF3 = "You scare yourself",
+		HUSTR_TALKTOSELF4 = "You start to rave",
+		HUSTR_TALKTOSELF5 = "You've lost it...",
+
+		HUSTR_MESSAGESENT = "[Message Sent]",
+
+		HUSTR_KEYGREEN = "g",
+		HUSTR_KEYINDIGO = "i",
+		HUSTR_KEYBROWN = "b",
+		HUSTR_KEYRED = "r",
+
+		AMSTR_FOLLOWON = "Follow Mode ON",
+		AMSTR_FOLLOWOFF = "Follow Mode OFF",
+		AMSTR_GRIDON = "Grid ON",
+		AMSTR_GRIDOFF = "Grid OFF",
+		AMSTR_MARKEDSPOT = "Marked Spot",
+		AMSTR_MARKSCLEARED = "Last Mark Cleared",
+
+		STSTR_MUS = "Music Change",
+		STSTR_NOMUS = "IMPOSSIBLE SELECTION",
+		STSTR_DQDON = "You're Invincible!",
+		STSTR_DQDOFF = "You're a looney!",
+		STSTR_KFAADDED = "Very Happy Ammo Added",
+		STSTR_FAADDED = "Ammo Added",
+		STSTR_NCON = "No Clipping Mode ON",
+		STSTR_NCOFF = "No Clipping Mode OFF",
+		STSTR_BEHOLD = "Bzrk, Inviso, Mask, Health, Pack, Stats",
+		STSTR_BEHOLDX = "Power-up Toggled",
+		STSTR_CHOPPERS = "... doesn't suck - GM",
+		STSTR_CLEV = "Changing Level..."
+	}
+end
+--#endif

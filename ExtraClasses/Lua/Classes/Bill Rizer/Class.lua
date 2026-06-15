@@ -1,10 +1,24 @@
-freeslot("sfx_brdead")
+freeslot("sfx_brdead", "sfx_brglif")
 
 ---@type doommethods_t
 local methods = deepcopy(doom.charSupportBaseMethods)
+-- How many kills are needed to get an extra life
+local KILLSFORLIFE = 25
+
+methods.onKill = function(player, victim)
+	if not (victim.doom.flags & DF_FRIENDLY) then
+		player.doom.bill_kills = ($ or 0) + 1
+	end
+	if player.doom.bill_kills >= KILLSFORLIFE then
+		player.doom.bill_lives = $ + 1
+		S_StartSound(nil, sfx_brglif, player)
+		player.doom.bill_kills = 0
+	end
+end
 
 methods.onSoulsphere = function(player)
 	player.doom.bill_lives = $ + 1
+	S_StartSound(nil, sfx_brglif, player)
 end
 
 methods.damage = function(player, damage, attacker, proj, damageType, minhealth)
@@ -35,8 +49,12 @@ methods.damage = function(player, damage, attacker, proj, damageType, minhealth)
 
 		if player.mo.doom.health < 1 and player.playerstate == PST_LIVE then
 			--P_KillMobj(mobj, proj, attacker, damageType)
-			P_InstaThrust(player.mo, player.mo.angle - ANGLE_180, 8*FRACUNIT)
-			P_SetObjectMomZ(player.mo, FixedDiv(69*FRACUNIT,5*FRACUNIT), false)
+			P_InstaThrust(player.mo, player.mo.angle - ANGLE_180, 4*FRACUNIT)
+			P_SetObjectMomZ(player.mo, FixedDiv(69*FRACUNIT,10*FRACUNIT), false)
+			mobj.momx = $*3/2
+			mobj.momy = $*3/2
+			mobj.momz = $*3/2
+			mobj.doom.health = 0
 			S_StartSound(player.mo, sfx_brdead)
 			player.height = 16*FRACUNIT
 			player.doom.bill_deathtimer = 1
@@ -63,15 +81,14 @@ doom.charSupport.dpecbillrizer = {
 	useDoomMovement = true,
     methods = methods,
 
-	-- Custom CSS bullshit
 	css = {
 		name = "Bill Rizer",
 		description = {
-			"Fighter with tools for every range",
-			"Strikes hard up close and can",
-			"Easily turn defense into pressure",
-			"Manages ammo and magic for peak output",
-			"But careless resource use leaves him exposed"
+			"Burns through hordes with ease",
+			"Using less ammo than others",
+			"But his low health leaves",
+			"No room for mistakes",
+			"Once the bullets fly"
 		},
 		sprite = SPR2_WALK,
 		sequence = {A, 4}
@@ -79,19 +96,19 @@ doom.charSupport.dpecbillrizer = {
 
 	properties = {
 		damagefactor = {
-			all = FRACUNIT,
+			all = FRACUNIT*3,
 		},
 
 		movefactor = 2300, -- How fast the player will move in DOOM movement. Default is 2048.
 		walkfactor = FRACUNIT*2/3, -- How much of the movefactor the player will use while walking in DOOM movement. Default is FRACUNIT/2.
 		mass = 100, -- Player mass. Only relevant for explosion pushback.
 
-		starthealth = 32,
-		maxhealth = 32,
+		starthealth = 96,
+		maxhealth = 96,
 
 		-- The maximum value that Armor Bonuses
 		-- And Megaspheres can get Armor to
-		armormax = 200, -- effectively nothing (don't do 0 because of potential percenting errors)
+		armormax = 200,
 
 		armorproperties = { -- DOOMPort behavior makes it so security and combat armors ignore the armor property, which works in our favor for making the armors the blue and red tunics while preventing too much power by way of armor bonuses.
 			armorclassmult = 100, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
@@ -103,6 +120,11 @@ doom.charSupport.dpecbillrizer = {
 		startweapon = "bill-rifle",
 		startweapons = {
 			["bill-rifle"] = true
+		},
+
+		weaponremapping = {
+			shotgun = "bill-spreadgun",
+			chaingun = "bill-machinegun",
 		}
 	},
 
@@ -110,7 +132,7 @@ doom.charSupport.dpecbillrizer = {
 		strings = {
 			GOTCHAINSAW = "You got the Homing Gun!  Find some aliens!",
 			GOTSHOTGUN = "You got the Spread Gun!",
-			GOTSHOTGUN2 = "You learned the Flame Thrower!",
+			GOTSHOTGUN2 = "You got the Flame Thrower!",
 			GOTCHAINGUN = "You got the Machine Gun!",
 			GOTLAUNCHER = "You got the Crush Gun!",
 			GOTPLASMA = "You got the Laser!",

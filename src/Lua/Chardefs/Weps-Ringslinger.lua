@@ -28,7 +28,7 @@ local function setupWeaponDelay(weapondelayTics, frameChar)
             tics = 1
         }
 
-        if i == 1 then frameData.action = A_DoomFire end
+        if i == 1 then frameData.action = A_NotDoomFire end
         if i == iters then frameData.action = A_DoomReFire end
 
         table.insert(states.attack, frameData)
@@ -40,7 +40,8 @@ end
 doom.addWeapon("infinityring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
-	user_johnringslingericon = "INFNIND",
+	shotcost = 1,
+	user_johnringslingericon = "INFNINDA",
     order = -1,
     damage = {25, 25},
     noinitfirespread = true,
@@ -53,7 +54,8 @@ doom.addWeapon("infinityring", {
 doom.addWeapon("matchring", {
     sprite = SPR_WRNG,
     weaponslot = 1,
-	user_johnringslingericon = "RINGIND",
+	shotcost = 1,
+	user_johnringslingericon = "RINGINDA",
     order = 0,
     damage = {15, 15},
     noinitfirespread = true,
@@ -67,7 +69,8 @@ doom.addWeapon("matchring", {
 doom.addWeapon("automaticring", {
     sprite = SPR_WRNG,
     weaponslot = 2,
-	user_johnringslingericon = "AUTOIND",
+	shotcost = 1,
+	user_johnringslingericon = "AUTOINDA",
     order = 2,
     damage = {8, 8},
     noinitfirespread = true,
@@ -82,7 +85,7 @@ doom.addWeapon("automaticring", {
 doom.addWeapon("bouncering", {
     sprite = SPR_WRNG,
     weaponslot = 3,
-	user_johnringslingericon = "BNCEIND",
+	user_johnringslingericon = "BNCEINDA",
     order = 3,
     damage = {17, 17},
 	shotcost = 2,
@@ -99,7 +102,8 @@ doom.addWeapon("bouncering", {
 doom.addWeapon("scatterring", {
     sprite = SPR_WRNG,
     weaponslot = 4,
-	user_johnringslingericon = "SCATIND",
+	shotcost = 1,
+	user_johnringslingericon = "SCATINDA",
     order = 2,
     damage = {19, 19},
     noinitfirespread = true,
@@ -237,7 +241,8 @@ doom.addWeapon("scatterring", {
 doom.addWeapon("grenadering", {
     sprite = SPR_WRNG,
     weaponslot = 5,
-	user_johnringslingericon = "GRENIND",
+	shotcost = 1,
+	user_johnringslingericon = "GRENINDA",
     order = 2,
     damage = {15, 15}, -- Relies on blast damage
     noinitfirespread = true,
@@ -253,7 +258,8 @@ doom.addWeapon("grenadering", {
 doom.addWeapon("explosionring", {
     sprite = SPR_WRNG,
     weaponslot = 6,
-	user_johnringslingericon = "BOMBIND",
+	shotcost = 1,
+	user_johnringslingericon = "BOMBINDA",
     order = 2,
     damage = {4, 4}, -- Relies on blast damage
     noinitfirespread = true,
@@ -268,7 +274,7 @@ doom.addWeapon("explosionring", {
 doom.addWeapon("railring", {
     sprite = SPR_WRNG,
     weaponslot = 7,
-	user_johnringslingericon = "RAILIND",
+	user_johnringslingericon = "RAILINDA",
     order = 2,
     damage = {250, 250},
 	shotcost = 20,
@@ -734,7 +740,7 @@ addHook("MobjThinker", HomingRingThinker, MT_DOOM_THROWNHOMING)
 doom.addWeapon("homingring", {
     sprite = SPR_WRNG,
     weaponslot = 3,
-	user_johnringslingericon = "HOMGIND",
+	user_johnringslingericon = "HOMGINDA",
     order = 4,
     damage = {19, 19},
 	shotcost = 2,

@@ -276,6 +276,7 @@ doom.titlemenus = {
 		lineheight = 20,
 		x = 40,
 		y = 50,
+		dontdrawcursor = true,
 
 		entries = function()
 			return doom.buildCSSMenu()
@@ -446,38 +447,37 @@ local function drawMenuEntry(v, entry, x, y)
 		return {y = y, skullpatch = "M_CURSOR"}
 
 	elseif entry.drawtype == "css" then
+		--------------------------------------------------
+		-- Animation/frame setup
+		--------------------------------------------------
+
 		local seq = entry.sequence
 		local base = seq[1]
 		local count = seq[2] or 1
 		local tics = seq[3] or 4
 
-		local frame = ((hudtime / tics) % count)
+		local frame = ((hudtime / tics) % count) + base
 		local vf = 0
 		local sprite2 = entry.nonselectedsprite2 or SPR2_STND
-		frame = frame + base
 
-		-- Adjust frame based on highlight state
+		-- Current selection
+
 		if entry.highlight == "current" then
-			frame = frame
-			y = 112
 			sprite2 = entry.sprite2
-		elseif entry.highlight == "up" then
-			frame = entry.nonselectedframe
-			y = 50
-			vf = V_SNAPTOTOP
-		elseif entry.highlight == "down" then
-			frame = entry.nonselectedframe
-			y = 175
-			vf = V_SNAPTOBOTTOM
+			y = 112
 		else
 			return
 		end
+
+		--------------------------------------------------
+		-- Character sprite
+		--------------------------------------------------
 
 		local patch = v.getSprite2Patch(entry.skin, sprite2, frame)
 
 		if patch then
 			v.drawScaled(
-				(x + 32) * FRACUNIT,
+				(x + 200) * FRACUNIT,
 				(y + 8) * FRACUNIT,
 				skins[entry.skin].highresscale,
 				patch,
@@ -486,36 +486,62 @@ local function drawMenuEntry(v, entry, x, y)
 			)
 		end
 
-		if entry.highlight == "current" then
-			doom.drawInFont(v,
-				(x + 60) * FRACUNIT,
-				(y - 48) * FRACUNIT,
-				FRACUNIT,
-				"STCFN",
-				entry.name,
-				vf,
-				"left"
-			)
+		-- Current character info
 
-			-- Normalize description to a table
+		if entry.highlight == "current" then
 			local lines = {}
+
 			if type(entry.description) == "string" then
 				for line in entry.description:gmatch("[^\n]+") do
-					table.insert(lines, line)
+					lines[#lines + 1] = line
 				end
 			elseif type(entry.description) == "table" then
 				lines = entry.description
 			end
 
-			-- Draw up to 6 lines
-			for i = 1, min(6, #lines) do
-				doom.drawInFont(v,
-					(x + 60) * FRACUNIT,
-					(y - 40 + (i * 8)) * FRACUNIT,
+			local maxLines = 7
+
+			for i = 1, min(7, #lines) do
+				doom.drawInFont(
+					v,
+					160 * FRACUNIT,
+					(200 - (maxLines * 8) + ((i - 1) * 8)) * FRACUNIT,
 					FRACUNIT,
 					"STCFN",
 					lines[i],
-					vf,
+					0,
+					"center"
+				)
+			end
+		end
+
+		-- Class list
+
+		if entry.highlight == "current" then
+			local cssEntries = resolveEntries(doom.titlemenus.cssselect)
+			local selectedIndex = menustatus.selection + 1
+
+			local listX = 8
+			local listY = 48
+
+			for i, classEntry in ipairs(cssEntries) do
+				local prefix = ""
+
+				if i == selectedIndex then
+					prefix = ">"
+				end
+
+				local byte = string.format("%03d", string.byte(">"))
+				local len = v.cachePatch("STCFN" .. byte).width
+
+				doom.drawInFont(
+					v,
+					(listX + (prefix == "" and len or 0)) * FRACUNIT,
+					(listY + (i - 1) * 8) * FRACUNIT,
+					FRACUNIT,
+					"STCFN",
+					prefix .. (classEntry.name or classEntry.label or "UNKNOWN"),
+					0,
 					"left"
 				)
 			end
@@ -572,7 +598,7 @@ local function DrawTitleScreen(v, player)
             local override = drawMenuEntry(v, entry, baseX, y)
 
             -- Draw skull cursor
-            if not menuDef.nocursor and k == selIndex then
+            if not (menuDef.nocursor or menuDef.dontdrawcursor) and k == selIndex then
                 local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
                 local skullX = override and override.x or (baseX + SKULLXOFF)
                 local skullY = override and override.y or y

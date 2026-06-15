@@ -1330,7 +1330,8 @@ rawset(_G, "DOOM_ResolveStateDef", function(wepDef, state, frame)
 		return nil
 	end
 
-	local entry = stateTable[frame or 1]
+	if frame == nil then frame = 1 end
+	local entry = stateTable[frame]
 	if not entry then
 		return nil
 	end
@@ -1375,7 +1376,7 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
     end
 
     state = state or DOOM_GetPSpriteDefaultState(slot)
-    frame = frame or 1
+    if frame == nil then frame = 1 end
 
     local psp = DOOM_GetPSprite(player, slot)
 
@@ -1405,13 +1406,10 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
     local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
     if not stateDef then
         return
-    end
+	end
 
-    psp.tics = stateDef.tics or 0
-
-    if stateDef.action then
-        stateDef.action(player.mo, stateDef.var1, stateDef.var2, wepDef)
-    end
+	psp.tics = stateDef.tics or 0
+	doom.runStateAction(player, stateDef)
 
     return true
 end)
@@ -1430,8 +1428,10 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	local curWep = DOOM_GetWeaponDef(player)
 	local curAmmo = funcs.getCurAmmo(player)
 
+	local shouldfire
+
 	if curWep.ontryfire then
-		local shouldfire = curWep.ontryfire(player, curWep, curAmmo)
+		shouldfire = curWep.ontryfire(player, curWep, curAmmo)
 	end
 
 	if shouldfire != nil then
@@ -1744,17 +1744,11 @@ rawset(_G, "DOOM_NextLevel", function()
 			nextLev = 1100 -- aka "nextLev = TITLE" (i don't trust SRB2's constants for this)
 		end
 	end
-	G_SetCustomExitVars(nextLev, 1, gametype, true)
+	G_SetCustomExitVars(nextLev, 1, gametype or GT_DOOM, true)
 
-	if not multiplayer then
-		G_ExitLevel()
-	else
-		for player in players.iterate() do
-			P_DoPlayerFinish(player)
-		end
-		-- Multiplayer is a point of contention for this mod for some reason,
-		-- Use commands instead and don't even bother doing a proper fix
-		-- COM_BufInsertText(server, "map " .. nextLev .. " -f")
+	for player in players.iterate() do
+		P_DoPlayerFinish(player)
+		player.exiting = 1
 	end
 end)
 

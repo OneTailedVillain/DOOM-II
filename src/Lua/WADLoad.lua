@@ -653,6 +653,7 @@ local function doLoadingShit()
 		end
 	end
 
+	--#ifdef DOOM
 	-- Load the appropriate strings based on the detected game
 	if matchedGame == "srb2" then
 		-- Autopatch SRB2 March 2000 Prototype
@@ -762,6 +763,9 @@ local function doLoadingShit()
 			[31] = {text = "$C6TEXT", secret = true,  bg = "M31CUTSC"},
 		}
 	end
+	--#elif STRIFE
+		doom.loadStrings()
+	--#endif
 
 	doom.matchedGame = matchedGame or $
 end

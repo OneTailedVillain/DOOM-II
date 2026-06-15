@@ -267,7 +267,12 @@ local function doAutomap(v, player, noHUD)
     doom.drawStatusBar(v, displayplayer)
 	-- doom.mapString
 	doom.drawInFont(v,
-	0, 160*FRACUNIT,
+	0,
+	--#ifdef DOOM
+	160*FRACUNIT,
+	--#elif STRIFE
+	152*FRACUNIT,
+	--#endif
 	FRACUNIT,
 	"STCFN",
 	DOOM_ResolveString("$" .. doom.mapString .. gamemap),

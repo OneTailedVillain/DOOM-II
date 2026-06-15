@@ -52,7 +52,8 @@
 		"DF_SKULLFLY",
 		"CF_NOMOMENTUM",
 		"PSP_FLASH",
-		"PSP_WEAPON"
+		"PSP_WEAPON",
+		"DF_FRIENDLY"
 	],
     "Lua.diagnostics.disable": [
         "deprecated",

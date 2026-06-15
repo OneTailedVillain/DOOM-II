@@ -28,6 +28,9 @@ local states = {
 	stand = {
 		{action = A_DoomLook2, frame = C, tics = 5, next = "stand"}
 	},
+	idleanim1 = {
+		{action = nil, frame = A, tics = 8, next = "stand"}
+	},
 	idleanim2 = {
 		{action = nil, frame = A, tics = 8, next = "stand"}
 	},

@@ -519,7 +519,7 @@ doom.charSupport.sonic = {
 	forceDisableJump = true,
     methods = methods
 }
-
+/*
 freeslot("SPR_SD2_TAILSFISTS",
 "SPR_SD2_TAILSPISTOL",
 "SPR_SD2_TAILSSAW",
@@ -774,3 +774,4 @@ doom.charSupport.metalsonic = {
 	forceDisableJump = true,
     methods = methods
 }
+*/
