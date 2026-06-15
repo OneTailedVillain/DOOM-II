@@ -510,7 +510,8 @@ local function drawMenuEntry(v, entry, x, y)
 					"STCFN",
 					lines[i],
 					0,
-					"center"
+					"center",
+					v.getColormap(nil, nil, "BOOMCRGRAY")
 				)
 			end
 		end
@@ -542,7 +543,8 @@ local function drawMenuEntry(v, entry, x, y)
 					"STCFN",
 					prefix .. (classEntry.name or classEntry.label or "UNKNOWN"),
 					0,
-					"left"
+					"left",
+					v.getColormap(nil, nil, "BOOMCRGRAY")
 				)
 			end
 		end
