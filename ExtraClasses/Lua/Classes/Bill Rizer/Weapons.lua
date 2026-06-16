@@ -26,6 +26,10 @@ local shotstates = {
         {sprite = SPR_BILL_SHOT, frame = 2|FF_SEMIBRIGHT, tics = 9/2},
         {sprite = SPR_BILL_SHOT, frame = 3|FF_SEMIBRIGHT, tics = -1},
     },
+
+	machine = {
+        {sprite = SPR_BILL_SHOT, frame = 1|FF_SEMIBRIGHT, tics = -1},
+    },
 }
 
 local states = FreeDoomStates("BillShot", shotstates)
@@ -43,6 +47,14 @@ mobjinfo[freeslot("MT_BILL_SPREADSHOT")] = {
 	radius = 4*FRACUNIT,
 	height = 8*FRACUNIT,
 	speed = 40*FRACUNIT,
+	flags = MF_MISSILE|MF_NOGRAVITY
+}
+
+mobjinfo[freeslot("MT_BILL_MACHINESHOT")] = {
+	spawnstate = states.machine[1],
+	radius = 4*FRACUNIT,
+	height = 8*FRACUNIT,
+	speed = 60*FRACUNIT,
 	flags = MF_MISSILE|MF_NOGRAVITY
 }
 
@@ -130,9 +142,8 @@ doom.addWeapon("bill-machinegun", {
 	damage = {16, 16},
 	pellets = 1,
 	firesound = sfx_brmfir,
-	raycaster = true,
 	bill_icon = "MACHINE",
-	-- TODO: shootmobj = MT_BILL_RIFLESHOT,
+	shootmobj = MT_BILL_MACHINESHOT,
 	shotcost = 0,
 	spread = {
 		horiz = 0,
