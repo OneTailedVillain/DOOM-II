@@ -1419,6 +1419,122 @@ local thinkers = {
 				return
 			end
 		end
+		-- Donut (EV_DoDonut / line special 9)
+		if data.action == "donut" then
+			if not data.init then
+				local hole = sector
+
+				-- Find lowest-numbered linedef of hole sector
+				local firstline = hole.lines[0]
+				if not firstline then
+					doom.stopThinker(sector)
+					return
+				end
+
+				-- Must be two-sided
+				local ring
+				if firstline.frontsector == hole then
+					ring = firstline.backsector
+				else
+					ring = firstline.frontsector
+				end
+
+				if not (ring and ring.valid) then
+					doom.stopThinker(sector)
+					return
+				end
+
+				-- Find ring's outside sector
+				local outside
+				local outsideLine
+
+				for i = 0, #ring.lines-1 do
+					local line = ring.lines[i]
+
+					local other
+					if line.frontsector == ring then
+						other = line.backsector
+					elseif line.backsector == ring then
+						other = line.frontsector
+					end
+
+					-- Skip lines shared with hole
+					if other and other ~= hole then
+						outside = other
+						outsideLine = line
+						break
+					end
+				end
+
+				if not (outside and outside.valid) then
+					doom.stopThinker(sector)
+					return
+				end
+
+				local finalheight = outside.floorheight
+
+				-- Hole moves to final height
+				data.targetHeight = finalheight
+
+				-- Spawn ring thinker
+				doom.addThinker(ring, {
+					type = "floor",
+					action = "donut_ring",
+					targetHeight = finalheight,
+					outsideFloorPic = outside.floorpic,
+					outsideSpecial = outside.special,
+					speed = data.speed
+				})
+
+				data.init = true
+			end
+
+			local target = data.targetHeight
+
+			if sector.floorheight < target then
+				sector.floorheight = min($ + spd, target)
+			elseif sector.floorheight > target then
+				sector.floorheight = max($ - spd, target)
+			end
+
+			if not (leveltime & 7) then
+				S_StartSound(sector, sfx_stnmov)
+			end
+
+			if sector.floorheight == target then
+				doom.sectorbackups[sector].floor = target
+				S_StartSound(sector, sfx_pstop)
+				doom.stopThinker(sector)
+			end
+
+			return
+		end
+
+		if data.action == "donut_ring" then
+			local target = data.targetHeight
+
+			if sector.floorheight < target then
+				sector.floorheight = min($ + spd, target)
+			elseif sector.floorheight > target then
+				sector.floorheight = max($ - spd, target)
+			end
+
+			if not (leveltime & 7) then
+				S_StartSound(sector, sfx_stnmov)
+			end
+
+			if sector.floorheight == target then
+				sector.floorpic = data.outsideFloorPic
+				sector.special = data.outsideSpecial
+
+				doom.sectorbackups[sector].floor = target
+
+				S_StartSound(sector, sfx_pstop)
+				doom.stopThinker(sector)
+			end
+
+			return
+		end
 
 		-- Convenience fields used for platform-like behavior
 		if data.action == "oscillate" and not data.init then
