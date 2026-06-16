@@ -111,9 +111,9 @@ hud.add(function(drawer, player)
 			print("WARNING: No patch named '" .. tostring(patch) .. "'")
 		end
 	else
-		v.draw(12, 122, v.cachePatch(patch), hudflags)
+		v.draw(10, 122, v.cachePatch(patch), hudflags)
 	end
 	inbetween = 1
-	v.draw(34, 131, v.cachePatch("BILL-RAPIDFIRE" .. inbetween), hudflags)
+	v.draw(32, 131, v.cachePatch("BILL-RAPIDFIRE" .. inbetween), hudflags)
 	--v.draw(0, 0, v.cachePatch("BILL-HUDREFERENCE"), hudflags|V_SUBTRACT)
 end)
