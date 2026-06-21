@@ -114,7 +114,7 @@ dofile("Player/JohnDoom.lua")
 dofile("DEH Pointers.lua")
 dofile("Obituaries.lua")
 
-doom.fallbackstrings = {
+doom.fallbackreplacements = {
 	noway = sfx_noway,
 	oof = sfx_oof,
 	pdiehi = sfx_pdiehi,
@@ -122,9 +122,12 @@ doom.fallbackstrings = {
 }
 
 function doom.playReplaceableSound(mobj, stringentry, playertarget, playerlistener)
+	if not doom.fallbackreplacements[stringentry] then
+		print("No fallback replacement for string entry '" .. tostring(stringentry) .. "'")
+	end
 	local properties = P_GetPlayerSkinProperties(playertarget)
 	local sreps = properties.sounds or {}
-	local replacement = sreps[stringentry] or doom.fallbackstrings[stringentry]
+	local replacement = sreps[stringentry] or doom.fallbackreplacements[stringentry]
 	S_StartSound(mobj, replacement, playerlistener)
 end
 
