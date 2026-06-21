@@ -249,7 +249,7 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	local startXPos = 17
 	local xPos = startXPos
 	local yPos = 11 + 16 + 16
-	for _, patchname in pairs(keys.doom) do
+	for _, patchname in pairs(keys[doom.currentGame]) do
 		local patch = v.cachePatch(patchname)
 		v.draw(xPos, yPos, patch, hudflags)
 		xPos = $ + patch.width + 1

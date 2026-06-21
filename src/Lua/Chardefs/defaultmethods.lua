@@ -394,7 +394,7 @@ function doom.charSupportFinalize()
 	doom.charSupport["johndoom"].properties = {useDoomMovement = true}
 	doom.charSupport["johndoom"].useDoomMovement = true
 	doom.charSupport["johndoom"].css = {
-		name = "John Doom",
+		name = "John " .. doom.currentGame,
 		sequence = {A, 4},
 		sprite = SPR2_WALK,
 		description = {
