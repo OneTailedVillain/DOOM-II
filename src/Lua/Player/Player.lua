@@ -414,7 +414,7 @@ addHook("PlayerThink", function(player)
 
 	if (player.mo.eflags & MFE_JUSTHITFLOOR) then
 		if (player.doom.lastmomz or 0) <= doom.defaultgravity*-8 then
-			doom.playReplaceableSound(player.mo, sfx_noway, player)
+			doom.playReplaceableSound(player.mo, "oof", player)
 			--player.deltaviewheight = player.doom.lastmomz>>3
 		end
 	else
