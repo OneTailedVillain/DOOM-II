@@ -239,9 +239,10 @@ doom.charSupport.sonic = {
 
 	properties = {
 		sounds = {
-			[sfx_plpain] = sfx_sd2pai,
-			[sfx_pdiehi] = sfx_sd2dhi,
-			[sfx_pldeth] = sfx_sd2die,
+			plpain = sfx_sd2pai,
+			pdiehi = sfx_sd2dhi,
+			pldeth = sfx_sd2die,
+			noway = sfx_itemup,
 		},
 
 		dealdamagefactor = FRACUNIT,

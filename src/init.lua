@@ -114,6 +114,20 @@ dofile("Player/JohnDoom.lua")
 dofile("DEH Pointers.lua")
 dofile("Obituaries.lua")
 
+doom.fallbackstrings = {
+	noway = sfx_noway,
+	oof = sfx_oof,
+	pdiehi = sfx_pdiehi,
+	pldeth = sfx_pldeth
+}
+
+function doom.playReplaceableSound(mobj, stringentry, playertarget, playerlistener)
+	local properties = P_GetPlayerSkinProperties(playertarget)
+	local sreps = properties.sounds or {}
+	local replacement = sreps[stringentry] or doom.fallbackstrings[stringentry]
+	S_StartSound(mobj, replacement, playerlistener)
+end
+
 -- VSCode shit since with the advent of doomgfx it's now somewhat more viable as an option
 
 ---@class mapheader_t

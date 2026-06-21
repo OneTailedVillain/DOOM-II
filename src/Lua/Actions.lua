@@ -1593,16 +1593,16 @@ function A_DoomLight2(actor)
 end
 
 function A_DoomPlayerScream(actor)
-	local sound = sfx_pldeth
+	local sound = "pldeth"
 	-- Source code seems to suggest that hideth is locked to doom ii?
 	-- GZDoom says otherwise, though
 	if
 		-- doom.gamemode == "commercial" and
 		actor.doom.health < -50 then
-		sound = sfx_pdiehi
+		sound = "pdiehi"
 	end
 
-	S_StartSound(actor, sound)
+	doom.playReplaceableSound(actor, sound, actor.player)
 end
 
 local SKULLSPEED = 20 * FRACUNIT

@@ -185,7 +185,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 		if not (usedLine.flags & ML_TWOSIDED)
 		or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight
 		then
-			S_StartSound(ray.target, sfx_noway)
+
 			P_KillMobj(ray)
 			return true
 		end
@@ -195,7 +195,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 	local whatIs = doom.lineActions[lineSpecial]
 	if not whatIs then
 		print("Potential invalid line special '" .. tostring(lineSpecial) .. "'")
-		S_StartSound(ray.target, sfx_noway)
+		doom.playReplaceableSound(ray.target, "noway", ray.target.player)
 		P_KillMobj(ray)
 		return true
 	end
@@ -256,7 +256,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         or usedLine.frontsector.ceilingheight <= usedLine.backsector.floorheight then
             -- Blocked by geometry (interaction, but no interactable)
             if not silent then
-                S_StartSound(ray.target, sfx_noway)
+				doom.playReplaceableSound(ray.target, "noway", ray.target.player)
             end
             P_KillMobj(ray)
             return interacted, activated
@@ -270,7 +270,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         if lineSpecial then
             print("Invalid line special '" .. tostring(lineSpecial) .. "'!")
             if not silent then
-                S_StartSound(ray.target, sfx_noway)
+                doom.playReplaceableSound(ray.target, "noway", ray.target.player)
             end
             P_KillMobj(ray)
         end
