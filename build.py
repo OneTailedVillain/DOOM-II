@@ -296,7 +296,7 @@ def preprocess_file(file_path, defined_flags, directive_prefix="--#",
 
 def should_preprocess(file_path):
     """Return True for files that should be directive-processed."""
-    return file_path.suffix.lower() == ".lua" or file_path.name in {"S_SKIN", "MUSICDEF.txt", "SOC_PLAY.ini"}
+    return file_path.suffix.lower() == ".lua" or file_path.name in {"S_SKIN", "MUSICDEF.txt", "SOC_PLAY.ini", "ANIMDEFS.txt"}
 
 
 def parse_ignores(content):

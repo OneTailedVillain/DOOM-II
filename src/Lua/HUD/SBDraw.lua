@@ -222,13 +222,16 @@ local function drawWeaponSelect(v, xoffs, y, delay)
 	v.draw(6 + xoffs, y - 2 - (del / 2), v.cachePatch("CURWEAPA"), V_PERPLAYER|V_SNAPTOBOTTOM)
 end
 
+local keys = {
+	doom = {"STKEYS0", "STKEYS1", "STKEYS2", "STKEYS3", "STKEYS4", "STKEYS5"},
+	strife = {"STRIKEY1", "STRIKEY2", "STRIKEY3", "STRIKEY4", "STRIKEY5", "STRIKEY6", "STRIKEY7", "STRIKEY8", "STRIKEY9", "STRIKEYA", "STRIKEYB", "STRIKEYC", "STRIKEYD", "STRIKEYE", "STRIKEYF", "STRIKEYG", "STRIKEYH", "STRIKEYI", "STRIKEYJ", "STRIKEYK", "STRIKEYL", "STRIKEYM", "STRIKEYN", "STRIKEYO"},
+}
+
 ---@param v videolib
 doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	if inAutomap then return end
 	drawWeapon(v, player, 38)
 	local funcs = P_GetMethodsForSkin(player)
-	local ammo = funcs.getCurAmmo(player)
-	local weapon = player.doom.curwep
 	local weaponDelay = getCurrentWeaponDelay(player)
 	local health = funcs.getHealth(player)
 	local armor = funcs.getArmor(player)
@@ -243,97 +246,91 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	v.draw(17, 11 + 16, v.cachePatch("STTARMOR"), hudflags)
 	doom.drawInFont(v, (100) * FRACUNIT, (11 + 16) * FRACUNIT, FRACUNIT, "S2FONT", tostring(armor) .. "%", hudflags, "right")
 
-
-	if altArmsDisplay then
-		doom.drawInFont(v, 248 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", "ARMS", V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
-		if ammo ~= false then
-			local myWep = doom.weapons[weapon]
-			local myAmmoType = myWep and myWep.ammotype
-			local myAmmoDef = doom.ammos[myAmmoType]
-
-			doom.drawInFont(v, 32 * FRACUNIT, 176 * FRACUNIT, FRACUNIT, "SRBFN", tostring(myAmmoDef.name), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
-			doom.drawInFont(v, 48 * FRACUNIT, 184 * FRACUNIT, FRACUNIT, "SRBFN", tostring(ammo), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM, "left")
-			v.draw(16 + 22, 176 + 10, getPatch(v, "STLIVEX"), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM)
-
-			if myAmmoDef and myAmmoDef.icon then
-				v.draw(16, 176, getPatch(v, myAmmoDef.icon), V_PERPLAYER|V_SNAPTOLEFT|V_SNAPTOBOTTOM)
-			end
+	local startXPos = 17
+	local xPos = startXPos
+	local yPos = 11 + 16 + 16
+	for _, patchname in pairs(keys.doom) do
+		local patch = v.cachePatch(patchname)
+		v.draw(xPos, yPos, patch, hudflags)
+		xPos = $ + patch.width + 1
+		if xPos >= 99 then
+			xPos = startXPos
+			yPos = $ + 8
 		end
-	else
-		local shit = {
-			{"matchring", "rs_brassknuckles"},
-			{"automaticring"},
-			{"homingring", "bouncering"},
-			{"scatterring"},
-			{"grenadering"},
-			{"explosionring"},
-			{"railring"}
-		}
+	end
+	local shit = {
+		{"matchring", "rs_brassknuckles"},
+		{"automaticring"},
+		{"homingring", "bouncering"},
+		{"scatterring"},
+		{"grenadering"},
+		{"explosionring"},
+		{"railring"}
+	}
 
-		local ypos = 176
-		local xpos = (BASEVIDWIDTH / 2) - (7 * 10) - 6
+	local ypos = 176
+	local xpos = (BASEVIDWIDTH / 2) - (7 * 10) - 6
 
-		for slot, entries in ipairs(shit) do
-			local weaponcount = 0
+	for slot, entries in ipairs(shit) do
+		local weaponcount = 0
 
-			for _, name in ipairs(entries) do
-				local myWep = doom.weapons[name]
-				if not myWep then
-					continue
-				end
-
-				local myAmmoType = myWep.ammotype
-				local iHasIt = player.doom.weapons[name]
-				local ammolessWeapon = (myWep.shotcost or 0) <= 0
-
-				if not iHasIt and not player.doom.ammo[myAmmoType] then
-					continue
-				end
-
-				local flags = V_SNAPTOBOTTOM
-				local textflags = V_SNAPTOBOTTOM
-				local max = funcs.getMaxFor(player, myAmmoType) or 0
-				local cur = player.doom.ammo[myAmmoType] or 0
-
-				if not ammolessWeapon then
-					if cur >= max then
-						textflags = $|V_YELLOWMAP
-					end
-				end
-
-				if not iHasIt then
-					flags = $|V_80TRANS
-					textflags = $|V_TRANSLUCENT
-				elseif not cur then
-					flags = $|V_TRANSLUCENT
-					textflags = false
-				end
-
-				if ammolessWeapon then
-					textflags = false
-				end
-
-				local x = xpos + ((slot - 1) * 20)
-				local y = ypos - (weaponcount * 20)
-
-				v.draw(x, y, v.cachePatch(myWep.user_johnringslingericon), flags)
-
-				if name == player.doom.curwep then
-					drawWeaponSelect(v, x - 8, y, weaponDelay)
-				end
-
-				weaponcount = $ + 1
-
-				if not textflags then
-					continue
-				end
-
-				local translation = nil
-				if (textflags & V_YELLOWMAP) then
-					translation = "SRB2YELLOWMAP"
-				end
-				doom.drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
+		for _, name in ipairs(entries) do
+			local myWep = doom.weapons[name]
+			if not myWep then
+				continue
 			end
+
+			local myAmmoType = myWep.ammotype
+			local iHasIt = player.doom.weapons[name]
+			local ammolessWeapon = (myWep.shotcost or 0) <= 0
+
+			if not iHasIt and not player.doom.ammo[myAmmoType] then
+				continue
+			end
+
+			local flags = V_SNAPTOBOTTOM
+			local textflags = V_SNAPTOBOTTOM
+			local max = funcs.getMaxFor(player, myAmmoType) or 0
+			local cur = player.doom.ammo[myAmmoType] or 0
+
+			if not ammolessWeapon then
+				if cur >= max then
+					textflags = $|V_YELLOWMAP
+				end
+			end
+
+			if not iHasIt then
+				flags = $|V_80TRANS
+				textflags = $|V_TRANSLUCENT
+			elseif not cur then
+				flags = $|V_TRANSLUCENT
+				textflags = false
+			end
+
+			if ammolessWeapon then
+				textflags = false
+			end
+
+			local x = xpos + ((slot - 1) * 20)
+			local y = ypos - (weaponcount * 20)
+
+			v.draw(x, y, v.cachePatch(myWep.user_johnringslingericon), flags)
+
+			if name == player.doom.curwep then
+				drawWeaponSelect(v, x - 8, y, weaponDelay)
+			end
+
+			weaponcount = $ + 1
+
+			if not textflags then
+				continue
+			end
+
+			local translation = nil
+			if (textflags & V_YELLOWMAP) then
+				translation = "SRB2YELLOWMAP"
+			end
+			doom.drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
 		end
 	end
 end

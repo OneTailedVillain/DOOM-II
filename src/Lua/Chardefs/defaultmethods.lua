@@ -65,10 +65,10 @@ local baseMethods = {
 	getMaxArmor = function(player)
 		if not player or not player.mo then return nil end
 		local properties = P_GetPlayerSkinProperties(player)
-		if properties and properties.armormax != nil then
+		if properties and properties.maxarmor != nil then
 			-- Max armor property is used for armor bonuses,
 			-- So divide by 2 to get the actual max armor value for the player
-			return properties.armormax / 2
+			return properties.maxarmor / 2
 		end
 		if player.mo.doom and player.mo.doom.maxarmor ~= nil then
 			return player.mo.doom.maxarmor
@@ -364,11 +364,18 @@ doom.baseCharProperties = {
 	mass = 100,
 	starthealth = nil,
 	maxhealth = nil,
-	armormax = nil,
+	maxarmor = nil,
 	armorproperties = {
 		armorclassmult = 100,
 		armorclass1prot = FRACUNIT/3,
-		armorclass2prot = FRACUNIT/2
+		armorclass2prot = FRACUNIT/2,
+		hexen_armor = {
+			base = 15,
+			armor = 15,
+			shield = 15,
+			helm = 15,
+			amulet = 15,
+		},
 	},
 	pickupfactors = nil
 }

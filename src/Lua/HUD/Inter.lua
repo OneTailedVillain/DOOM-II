@@ -251,6 +251,7 @@ end
 
 local hudDir = "HUD/Modules/"
 local MPR = dofile(hudDir .. "MP Results.lua")
+local doAutomap, keyState = dofile(hudDir .. "Automap.lua")
 
 local function drawIntermission(v, player)
 	local inter = player.doom.intstate
@@ -358,3 +359,13 @@ hud.add(function(v, player)
 	drawIntermission(v, player)
 	timer = $ + 1
 end, "game")
+
+hud.add(function(v, player)
+	if doom.dontDrawHUDCondits() then return end
+	if not multiplayer then return end
+	if G_RingSlingerGametype() then
+		MPR(v, player)
+	else
+		doAutomap(v, player)
+	end
+end, "scores")

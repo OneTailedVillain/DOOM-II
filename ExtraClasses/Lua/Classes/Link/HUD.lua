@@ -46,6 +46,7 @@ end
 hud.add(function(v, player)
 	if not player.mo then return end
 	if player.mo.skin != "dpecalttp" then return end
+	if doom.dontDrawHUDCondits() then return end
 	local leftpiece = v.cachePatch("ZSNESHUDCURITEM")
 	local centpiece = v.cachePatch("ZSNESHUDCENTERALIGN")
 	local rightpiece = v.cachePatch("ZSNESHUDRIGHTALIGN")

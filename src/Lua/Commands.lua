@@ -16,9 +16,41 @@ local weaponMap = {
 	"bfg9000"
 }
 
+local function P_GiveArmor(player, class)
+	local funcs = P_GetMethodsForSkin(player)
+	local health = funcs.getArmor(player)
+	if health >= class*100 then return false end
+
+	local properties = P_GetPlayerSkinProperties(player)
+	if not properties.armorproperties then
+		properties.armorproperties = {
+			armorclassmult = 100,
+			armorclass1prot = FRACUNIT/3,
+			armorclass2prot = FRACUNIT/2
+		}
+	end
+	if properties.armorproperties.armorclassmult == nil then
+		properties.armorproperties.armorclassmult = 100
+	end
+	if properties.armorproperties.armorclass1prot == nil then
+		properties.armorproperties.armorclass1prot = FRACUNIT/3
+	end
+	if properties.armorproperties.armorclass1prot == nil then
+		properties.armorproperties.armorclass2prot = FRACUNIT/2
+	end
+
+	local classarmorval = properties.armorproperties.armorclassmult
+	local efficiency = properties.armorproperties.armorclass1prot
+
+	if class > 1 then
+		efficiency = properties.armorproperties.armorclass2prot
+	end
+
+	funcs.setArmor(player, class * classarmorval, efficiency)
+end
+
 local function giveWeaponsArmorAndAmmo(player)
 	local funcs = P_GetMethodsForSkin(player)
-	funcs.setArmor(player, 200, FRACUNIT/2)
 	for i = 1, 4 do
 		local aType = ammoMap[i]
 		local max = funcs.getMaxFor(player, aType)
@@ -45,6 +77,7 @@ COM_AddCommand("idkfa", function(player)
 	player.doom.keys = doom.KEY_RED|doom.KEY_BLUE|doom.KEY_YELLOW|doom.KEY_SKULLRED|doom.KEY_SKULLBLUE|doom.KEY_SKULLYELLOW
 	DOOM_DoMessage(player, "$STSTR_KFAADDED")
 	giveWeaponsArmorAndAmmo(player)
+	P_GiveArmor(player, doom.idkfaarmorclass)
 	if funcs.onCheat then
 		local returnVal = funcs.onCheat(player, "idkfa")
 	end
@@ -58,6 +91,7 @@ COM_AddCommand("idfa", function(player)
 	end
 	DOOM_DoMessage(player, "$STSTR_FAADDED")
 	giveWeaponsArmorAndAmmo(player)
+	P_GiveArmor(player, doom.idfaarmorclass)
 	if funcs.onCheat then
 		local returnVal = funcs.onCheat(player, "idfa")
 	end

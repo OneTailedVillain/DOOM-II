@@ -91,7 +91,21 @@ function A_DoomLook(actor)
 
 	local gotoseeyou = false
 
-	if (targ and targ.valid) and (targ.flags & MF_SHOOTABLE) then
+	-- Players are automatically friendly
+	local isFriendly = actor.doom.flags & DF_FRIENDLY and (targ.doom.flags & DF_FRIENDLY or targ.type == MT_PLAYER)
+
+	local player = targ and targ.player
+	local playerAlive = true
+
+	if player then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.getHealth(player) <= 0 then playerAlive = false end
+	elseif targ then
+		if targ.doom.health == nil then targ.doom.health = 0 end
+		if targ.doom.health <= 0 then playerAlive = false end
+	end
+
+	if (targ and targ.valid) and (targ.flags & MF_SHOOTABLE) and isFriendly and playerAlive then
 		actor.target = targ
 
 		if (actor.flags2 & MF2_AMBUSH) then
@@ -156,8 +170,24 @@ function A_DoomTurretLook(actor)
 
 	local gotoseeyou = false
 
-	if targ and (targ.flags & MF_SHOOTABLE) then
+	-- Players are automatically friendly
+	local isFriendly = actor.doom.flags & DF_FRIENDLY and (targ.doom.flags & DF_FRIENDLY or targ.type == MT_PLAYER)
+
+	local player = targ and targ.player
+	local playerAlive = true
+
+	if player then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.getHealth(player) <= 0 then playerAlive = false end
+	elseif targ then
+		if targ.doom.health == nil then targ.doom.health = 0 end
+		if targ.doom.health <= 0 then playerAlive = false end
+	end
+
+	if targ and (targ.flags & MF_SHOOTABLE) and not isFriendly and playerAlive then
 		actor.target = targ
+	else
+		actor.target = nil
 	end
 
 	if not actor.target then return end
@@ -189,7 +219,19 @@ function A_DoomLook2(actor)
 	if not targ.doom then targ.doom = {} end
 	-- Players are automatically friendly
 	local isFriendly = actor.doom.flags & DF_FRIENDLY and (targ.doom.flags & DF_FRIENDLY or targ.type == MT_PLAYER)
-    if targ and (targ.flags & MF_SHOOTABLE) and not isFriendly then
+
+	local player = targ and targ.player
+	local playerAlive = true
+
+	if player then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.getHealth(player) <= 0 then playerAlive = false end
+	elseif targ then
+		if targ.doom.health == nil then targ.doom.health = 0 end
+		if targ.doom.health <= 0 then playerAlive = false end
+	end
+
+    if targ and (targ.flags & MF_SHOOTABLE) and not isFriendly and playerAlive then
         actor.target = targ
         if actor.info.seesound then
             local seesound = actor.info.seesound
@@ -562,8 +604,16 @@ function A_DoomChase(actor)
 		end
 	end
 
+	local player = actor.target and actor.target.player
+	local playerAlive = true
+
+	if player then
+		local funcs = P_GetMethodsForSkin(player)
+		if funcs.getHealth(player) <= 0 then playerAlive = false end
+	end
+
 	// No valid target
-	if not actor.target or not (actor.target.flags & MF_SHOOTABLE) then
+	if not actor.target or not (actor.target.flags & MF_SHOOTABLE) or not playerAlive then
 		if DOOM_LookForPlayers(actor, true) then
 			return
 		end
@@ -986,7 +1036,6 @@ doom.predefinedWeapons = {
 }
 
 function A_NotDoomFire(actor)
-	print("Fucking")
     local weapon = (actor.player and DOOM_GetWeaponDef(actor.player))
     if not weapon then return end
 

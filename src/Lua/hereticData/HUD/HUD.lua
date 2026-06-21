@@ -63,6 +63,47 @@ local function buildColorString(num, digitColor, percentColor, includePercent)
 	return result
 end
 
+---@param v videolib
+local function drawINumber(v, x, y, num, flags, colors)
+	num = tonumber(num) or 0
+
+	local drawstr
+
+	if num < 0 then
+		if num < -9 then
+			v.draw(x + FRACUNIT, y + FRACUNIT,
+				v.cachePatch("LAME"), flags)
+			return
+		end
+
+		drawstr = "-"..(-num)
+	else
+		drawstr = tostring(num)
+	end
+
+	local len = #drawstr
+
+	-- Match Hexen's fixed 3-slot positioning.
+	if len == 1 then
+		x = $ + 18*FRACUNIT
+	elseif len == 2 then
+		x = $ + 9*FRACUNIT
+	end
+
+	drawMonospaceFont(
+		v,
+		x,
+		y,
+		FRACUNIT,
+		"IN",
+		drawstr,
+		flags,
+		nil,      -- already positioned
+		9,
+		colors
+	)
+end
+
 local function drawBigNum(v, x, y, num, maxnum, thresholdset, flags, percent, player)
     num = tonumber(num) or 0
     maxnum = tonumber(maxnum) or 0
@@ -127,38 +168,39 @@ local function drawBigNum(v, x, y, num, maxnum, thresholdset, flags, percent, pl
     end
 
     local percentColor = (grayPercenting ~= 0) and "A" or digitColor
-    local colors = buildColorString(tostring(num), digitColor, percentColor, percent)
+	local colors = buildColorString(
+		tostring(num),
+		digitColor,
+		percentColor,
+		percent
+	)
 
-    if percent then
-        drawMonospaceFont(
-            v,
-            fx + (offset * FRACUNIT),
-            fy,
-            FRACUNIT,
-            "IN",
-            tostring(num) .. "%",
-            flags,
-            "right",
-            offset,
-            colors
-        )
-    else
-        drawMonospaceFont(
-            v,
-            fx,
-            fy,
-            FRACUNIT,
-            "IN",
-            tostring(num),
-            flags,
-            "right",
-            offset,
-            colors
-        )
-    end
+	if percent then
+		drawMonospaceFont(
+			v,
+			fx + (offset * FRACUNIT),
+			fy,
+			FRACUNIT,
+			"IN",
+			tostring(num) .. "%",
+			flags,
+			"right",
+			offset,
+			colors
+		)
+	else
+		drawINumber(
+			v,
+			fx,
+			fy,
+			num,
+			flags,
+			colors
+		)
+	end
 end
 
-local function DrawStatusBarNumbers(v, player, noSBar)
+local function DrawStatusBarNumbers(v, player)
 	local funcs = P_GetMethodsForSkin(player)
 	local myMaxHealth = funcs.getMaxHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
@@ -168,12 +210,18 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 
 	if myAmmo != false then
 		drawBigNum(v, 109, 162, myAmmo, myMaxAmmo, "ammo", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
+		-- Heretic puts ammo icon at 111, 172
 	end
 
-	drawBigNum(v, 61, 170, player.doom.h_healthmarker, nil, nil, V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
+	local number = player.doom.h_healthmarker
+	if G_RingSlingerGametype() then
+		number = doom.getFrags(player)
+	end
+
+	drawBigNum(v, 61, 170, number, nil, nil, V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 
 
-	drawBigNum(v, 224, 170, myArmor, myMaxArmor,  "armor", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
+	drawBigNum(v, 228, 170, myArmor, myMaxArmor,  "armor", V_PERPLAYER|V_SNAPTOBOTTOM, false, player)
 end
 
 local function DrawKeys(v, player, noSBar)
@@ -250,6 +298,7 @@ local ChainWiggle = 0
 addHook("PlayerThink", function(player)
 	local funcs = P_GetMethodsForSkin(player)
 	local curHealth = funcs.getHealth(player)
+	local curMaxHealth = funcs.getMaxHealth(player)
 	if player.doom.h_healthmarker == nil then
 		player.doom.h_healthmarker = curHealth
 	end
@@ -303,42 +352,47 @@ addHook("PlayerThink", function(player)
 end)
 
 local function drawStatusBar(v, player, hudPref)
-	local sbpatch = hudPref != 6 and hudPref != 7
-	if sbpatch then
-		local screenWidth = v.width()
-		local hudScaleInt, hudScaleFixed = v.dupx()
-		local maybeTrueWidth = screenWidth / hudScaleInt
+	local screenWidth = v.width()
+	local hudScaleInt, hudScaleFixed = v.dupx()
+	local maybeTrueWidth = screenWidth / hudScaleInt
 
-		local bottomBorderPatch = v.cachePatch("BRDR_B")
-		local bottomBorderWidth = bottomBorderPatch.width
-		local bottomBorderRepeats = (maybeTrueWidth / bottomBorderWidth)
+	local bottomBorderPatch = v.cachePatch("BRDR_B")
+	local bottomBorderWidth = bottomBorderPatch.width
+	local bottomBorderRepeats = (maybeTrueWidth / bottomBorderWidth)
 
-		local centerBorderPatch = v.cachePatch("BRDR_C")
-		local centerBorderWidth = centerBorderPatch.width
-		local centerBorderRepeats = (maybeTrueWidth / centerBorderWidth)
+	local centerBorderPatch = v.cachePatch("BRDR_C")
+	local centerBorderWidth = centerBorderPatch.width
+	local centerBorderRepeats = (maybeTrueWidth / centerBorderWidth)
 
-		for i = 0, centerBorderRepeats do
-			v.draw(i * centerBorderWidth, 168, centerBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
-		end
-
-		for i = 0, bottomBorderRepeats do
-			v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
-		end
-
-		v.draw(0, 158, v.cachePatch("BARBACK"), V_SNAPTOBOTTOM|V_PERPLAYER)
-		if (player.pflags & PF_GODMODE) then
-			v.draw(16, 167, v.cachePatch("GOD1"), V_SNAPTOBOTTOM|V_PERPLAYER)
-			v.draw(287, 167, v.cachePatch("GOD1"), V_SNAPTOBOTTOM|V_PERPLAYER)
-		end
-		DrawCommonBar(v, player)
+	for i = 0, centerBorderRepeats do
+		v.draw(i * centerBorderWidth, 168, centerBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
 	end
+
+	for i = 0, bottomBorderRepeats do
+		v.draw(i * bottomBorderWidth, 168, bottomBorderPatch, V_SNAPTOLEFT|V_SNAPTOBOTTOM|V_PERPLAYER)
+	end
+
+	v.draw(0, 158, v.cachePatch("BARBACK"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	if (player.pflags & PF_GODMODE) then
+		v.draw(16, 167, v.cachePatch("GOD1"), V_SNAPTOBOTTOM|V_PERPLAYER)
+		v.draw(287, 167, v.cachePatch("GOD2"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	end
+	DrawCommonBar(v, player)
+
+	local sbpatch
+	if G_RingSlingerGametype() then
+		sbpatch = "STATBAR"
+	else
+		sbpatch = "LIFEBAR"
+	end
+	v.draw(34, 160, v.cachePatch(sbpatch), V_SNAPTOBOTTOM|V_PERPLAYER)
 
 	if netgame then
 		v.draw(143, 169, v.cachePatch("STFB0"), V_PERPLAYER|V_SNAPTOBOTTOM, v.getColormap("johndoom", player.mo.color))
 	end
 
-	DrawStatusBarNumbers(v, player, not sbpatch)
-	DrawKeys(v, player, not sbpatch)
+	DrawStatusBarNumbers(v, player)
+	DrawKeys(v, player)
 end
 
 doom.hudDraw["heretic"] = function(v, player)

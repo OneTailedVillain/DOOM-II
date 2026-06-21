@@ -24,6 +24,8 @@ ML_NOCLIMB         = 0x0040
 ML_EFFECT3         = 0x0100   # Peg Midtexture
 ML_EFFECT4         = 0x0200
 ML_EFFECT5         = 0x0400
+ML_NETONLY         = 0x0800   # No effect in singleplayer games
+ML_NONET           = 0x1000   # No effect in multiplayer games
 
 CUTSCENE_GRAPHICS = [
     ('FLOOR7_2', 'BRDR_C'),

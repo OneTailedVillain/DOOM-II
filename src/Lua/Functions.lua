@@ -437,6 +437,16 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 		end, MT)
 	end
 
+	---@param mobj mobj_t
+	addHook("MobjThinker", function(mobj)
+		if not (mobj.flags & MF_SPECIAL) then return end
+		-- stupid fucking hack
+		mobj.radius = 0
+		mobj.z = mobj.floorz
+		mobj.radius = FixedMul(mobjinfo[mobj.type].radius, mobj.scale)
+		mobj.momz = 0
+	end, MT)
+
     -- fill states and make them loop (last -> first)
     for i, frame in ipairs(stateFrames) do
         local thisName = string.format("S_%s_%d", prefix, i)
@@ -1611,8 +1621,8 @@ rawset(_G, "saveStatus", function(player)
     end
 
     -- Use saveState if it exists; otherwise, copy expectedValues to laststate
-    if funcs.saveState then
-        funcs.saveState(player, expectedValues)
+    if funcs.saveState and funcs.saveState(player, expectedValues) != false then
+        return
     else
         -- Fallback using expectedValues
         local last = player.doom.laststate
@@ -1802,7 +1812,10 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
         end
 
 		local funcs = P_GetMethodsForSkin(player)
-		local health = funcs.getHealth(player) or 0
+		local health = funcs.getHealth(player)
+		if health == nil or type(health) == "boolean" then
+			health = 0
+		end
 
         -- Skip dead players
         if health <= 0 then
@@ -1863,4 +1876,26 @@ function doom.giveWeapon(player, wepname, dflags)
 	end
 
 	return funcs.giveWeapon(player, wepname, dflags)
+end
+
+function doom.getFrags(player)
+	local fragcount = 0
+	for otherplayer in players.iterate() do
+		if otherplayer.spectator then continue end
+
+		local fragdiffs
+		local frags = player.doom.frags[#otherplayer] or 0
+		if #player != #otherplayer then
+			fragdiffs = frags
+		else
+			fragdiffs = -frags
+		end
+		fragcount = $ + fragdiffs
+	end
+	return fragcount
+end
+
+-- conditions for when the HUD shouldn't be drawn
+function doom.dontDrawHUDCondits()
+	return DOOM_IsExiting() or (doom.textscreen.active and doom.textscreen.postgraphic) or (doom.intermission and not doom.isdoom1) or doom.showendoom
 end

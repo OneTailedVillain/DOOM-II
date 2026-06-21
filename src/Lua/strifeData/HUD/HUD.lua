@@ -9,6 +9,7 @@ end
 local function DrawStatusBarNumbers(v, player)
 	local funcs = P_GetMethodsForSkin(player)
 	local myHealth = funcs.getHealth(player) or 0
+	local myMaxHealth = funcs.getMaxHealth(player) or 0
 	local myArmor = funcs.getArmor(player) or 0
 	local myAmmo = funcs.getCurAmmo(player)
 
@@ -20,6 +21,7 @@ local function DrawStatusBarNumbers(v, player)
 	end
 	doom.drawInFont(v, (72 + percentsOffset)*FRACUNIT, 162*FRACUNIT, FRACUNIT, "INVFONG", myHealth, V_PERPLAYER|V_SNAPTOBOTTOM, "right")
 
+	myHealth = ($ * 100) / myMaxHealth
 	local lifecolor1
 	if myHealth < 11 then
 		lifecolor1 = 64

@@ -803,7 +803,6 @@ end)
 ---@param player player_t
 addHook("PlayerThink", function(player)
 	player.pflags = $ & ~(PF_SPINNING)
-	camera.chase = false
 	player.drawangle = player.mo.angle
 end)
 
@@ -1177,7 +1176,7 @@ end, MT_PLAYER)
 addHook("ShouldDamage", function(mobj, inf, src, dmg, dt)
 	if dt == DMG_CRUSHED and not (inf or src) then return false end
 end)
-/*
+
 addHook("PlayerThink", function(player)
 	local mobj = player.mo
 	if not mobj then return end
@@ -1186,24 +1185,45 @@ addHook("PlayerThink", function(player)
 
 	if mobj.z > curSector.floorheight then
 		player.doom.conveyorhandled = false
+		player.cmomx = 0
+		player.cmomy = 0
 		return
 	end
+
+	local carryx, carryy = 0, 0
 
 	for k, data in iteratethinkerdata(curSector, "sectorscroll") do
 		if data.place ~= "floor" then continue end
 
-		player.cmomx = $ + data.carryx
-		player.cmomy = $ + data.carryy
+		carryx = $ + data.carryx
+		carryy = $ + data.carryy
 	end
 
-	if (player.cmomx ~= 0 or player.cmomy ~= 0) and not player.doom.conveyorhandled then
-		player.onconveyor = 4
+	--player.cmomx = carryx
+	--player.cmomy = carryy
 
-		mobj.momx = $ + player.cmomx
-		mobj.momy = $ + player.cmomy
-		player.doom.conveyorhandled = true
+	if (carryx or carryy) then
+		player.onconveyor = 1
+
+		-- Only apply any change in conveyor speed
+		local oldx = player.doom.lastcarryx or 0
+		local oldy = player.doom.lastcarryy or 0
+
+		local addx = carryx - oldx
+		local addy = carryy - oldy
+
+		if addx or addy then
+			--mobj.momx = $ + addx
+			--mobj.momy = $ + addy
+		end
+
+		player.doom.lastcarryx = carryx
+		player.doom.lastcarryy = carryy
+	else
+		player.doom.lastcarryx = 0
+		player.doom.lastcarryy = 0
 	end
 
-	-- print(mobj.momx / FU, (player.rmomx) / FU)
+	P_MovePlayer(player)
+	P_MoveOrigin(mobj, mobj.x + carryx, mobj.y + carryy, mobj.z)
 end)
-*/

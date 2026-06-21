@@ -354,10 +354,53 @@ local function applyDehackedStrings()
 	print("DEHACKED string application complete.")
 end
 
+/*
+DSDHacked
+
+DSDA-Doom supports "unlimited" states, sprites, sounds, and things in dehacked (until you run out of memory / reach 2^31 - 1). This is an extension of mbf21, which vastly increased the demand for raised limits in dehacked. This document is a specification of the behaviour.
+
+Use Doom version = 2021 in your dehacked file to signal that you are using dsdhacked indices. This allows ports to adapt your changes to their specific internal tables. Otherwise your file may be interpreted differently in different ports.
+Defaults
+
+When you define a new index, the game allocates new entities up to that value. The data is filled with default values, listed here. Anything not specifically mentioned is set to zero / null.
+State
+Field 	Value
+Sprite 	(invisible placeholder)
+Tics 	-1
+Next state 	(this index)
+Thing
+Field 	Value
+Fast speed 	-1
+Melee range 	64.0
+Sprite
+
+No defaults.
+Sound
+Field 	Value
+Priority 	127
+Pitch 	-1
+Volume 	-1
+Defining Things / States / Sounds
+
+You can define these as you normally do, with Thing 1234, Frame 4444, or Sound 137 for instance. From the perspective of dehacked format, there is no change except conceptually "every index exists" for these entities. There is no corresponding Sprite 111 block in dehacked, but sprites can be defined in the table discussed below.
+Defining Sound / Sprite Lumps
+
+You can set the lump names for sprites and sounds in the table sections of the dehacked file. These sections normally replace lump names (OLD1 = NEW1). If the left value is a number, it is interpreted as the index where you want to store the given name. You must set the lump names for any new sound or sprite indices that you reference elsewhere, otherwise the data won't be allocated and the associated sound / sprite won't actually exist. Here is an example:
+
+[SPRITES]
+1234 = NEW1
+63 = WHOA
+
+[SOUNDS]
+100 = EXPLOD
+3930 = TWISTR
+*/
+
 -- "This sink is so hard to clean, if only there was an easier way!"
 local function doDehacked()
 	if doom and doom.dehacked then
 		print("applying DEHACKED fields...")
+		local isDSDHacked = doom.dehacked.doomversion and doom.dehacked.doomversion >= 2021
 		local deh = doom.dehacked
 		local pointers = doom.dehackedpointers
 		applyDehackedStrings()
@@ -387,8 +430,115 @@ local function doDehacked()
 			doom.megaspheregrant = misc.megaspherehealth or doom.megaspheregrant
 		end
 		if not pointers then print("Pointers table devalidated itself") return end
+		if deh.bex_sprites then
+			for pnum, sprite in pairs(deh.bex_sprites) do
+				pointers.sprites[pnum] = freeslot("SPR_" .. sprite:upper())
+			end
+		end
+		if deh.bex_sounds then
+			for pnum, sound in pairs(deh.bex_sounds) do
+				pointers.sounds[pnum] = freeslot("sfx_" .. sound:lower())
+			end
+		end
+		if deh.frames then
+			for number, data in pairs(deh.frames) do
+				local FF_DOOMFB = 32768
+
+				if not pointers.frames[number] then
+					if isDSDHacked then
+						local stateNum = freeslot("S_DSDHACKED_" .. tostring(number))
+						states[stateNum] = {
+							sprite = SPR_NULL,
+							frame = 0,
+							action = A_Dummy,
+							var1 = 0,
+							var2 = 0,
+							tics = -1,
+							nextstate = stateNum,
+						}
+						pointers.frames[number] = $ or stateNum
+					else
+						print("WARNING: DEHACKED FRAME # " .. tostring(number) .. " EXCEEDS STATE POINTER LIMIT!")
+						continue
+					end
+				end
+
+				if pointers.frames[number] then
+					local frame = states[pointers.frames[number]]
+
+					-- Sprite handling
+					if data.spritenumber != nil then
+						local sprite = pointers.sprites[(data.spritenumber or 0) + 1]
+						if sprite == nil then
+							print("WARNING: FRAME #" .. tostring(number) ..
+								" (state index " .. tostring(pointers.frames[number]) ..
+								") has invalid sprite #" .. tostring(data.spritenumber) ..
+								" which has not been freeslotted yet!")
+							frame.sprite = SPR_UNKN
+						else
+							frame.sprite = sprite
+						end
+					end
+
+					-- Frame properties
+					if data.spritesubnumber != nil then
+						frame.frame = data.spritesubnumber
+						if frame.frame & FF_DOOMFB then
+							frame.frame = $ & ~ FF_DOOMFB
+							frame.frame = $ | FF_FULLBRIGHT
+						end
+					end
+					if data.duration != nil then
+						frame.tics = data.duration
+					end
+
+					-- Next frame handling
+					if data.nextframe != nil then
+						local nextState = pointers.frames[data.nextframe]
+						if nextState != nil then
+							frame.nextstate = nextState
+						else
+							print("WARNING: FRAME #" .. tostring(number) ..
+								" (state index " .. tostring(pointers.frames[number]) ..
+								") has invalid next frame #" .. tostring(data.nextframe))
+						end
+					end
+				else
+					print("NOTICE: DEHACKED FRAME # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
+				end
+			end
+		end
 		if deh.things then
+			local thingslotBreach = false
 			for number, data in pairs(deh.things) do
+				if not pointers.things[number] then
+					if isDSDHacked then
+						local thingNum = freeslot("MT_DSDHACKED_" .. tostring(number))
+						mobjinfo[thingNum] = {
+							doomednum = 0,
+							spawnstate = 0,
+							deathstate = 0,
+							deathsound = 0,
+							seestate = 0,
+							painstate = 0,
+							painchance = 0,
+							missilestate = 0,
+							meleestate = 0,
+							painsound = 0,
+							raisestate = 0,
+							radius = FRACUNIT*16,
+							height = FRACUNIT*20,
+							spawnhealth = 0,
+							speed = -1,
+						}
+						mobjinfo[thingNum].doomname = "DSDHACKED_" .. tostring(number)
+						pointers.things[number] = $ or thingNum
+					else
+						print("WARNING: DEHACKED THING #" .. tostring(number) .. " EXCEEDS THING POINTER LIMIT!")
+						continue
+					end
+				end
+				if thingslotBreach then break end
 				local mobjtype = pointers.things[number]
 				if mobjtype != nil and mobjinfo[mobjtype] then
 					local info = mobjinfo[mobjtype]
@@ -401,6 +551,7 @@ local function doDehacked()
 							print("WARNING: DEHACKED THING # " .. tostring(number) .. " HAS BITS CORRESPONDING TO MF2 FLAGS!")
 						end
 					end
+
 					info.doomednum = data["id #"] or info.doomednum
 					if info.doomednum <= 35 then
 						doom.mthingReplacements[info.doomednum] = pointers.things[number]
@@ -550,48 +701,6 @@ local function doDehacked()
 						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " HAS AN INVALID MOBJINFO!")
 					end
 				end
-			end
-		end
-		if deh.frames then
-			for number, data in pairs(deh.frames) do
-					if pointers.frames[number] then
-						local frame = states[pointers.frames[number]]
-
-						-- Sprite handling
-						if data.spritenumber != nil then
-							local sprite = pointers.sprites[(data.spritenumber or 0) + 1]
-							if sprite == nil then
-								print("WARNING: FRAME #" .. tostring(number) ..
-									" (state index " .. tostring(pointers.frames[number]) ..
-									") has invalid sprite #" .. tostring(data.spritenumber) ..
-									" which has not been freeslotted yet!")
-							else
-								frame.sprite = sprite
-							end
-						end
-
-						-- Frame properties
-						if data.spritesubnumber != nil then
-							frame.frame = data.spritesubnumber
-						end
-						if data.duration != nil then
-							frame.tics = data.duration
-						end
-
-						-- Next frame handling
-						if data.nextframe != nil then
-							local nextState = pointers.frames[data.nextframe]
-							if nextState != nil then
-								frame.nextstate = nextState
-							else
-								print("WARNING: FRAME #" .. tostring(number) ..
-									" (state index " .. tostring(pointers.frames[number]) ..
-									") has invalid next frame #" .. tostring(data.nextframe))
-							end
-						end
-					else
-						print("NOTICE: DEHACKED FRAME # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
-					end
 			end
 		end
 		if deh.pointers then

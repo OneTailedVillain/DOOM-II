@@ -28,82 +28,82 @@ Secret exits outside of the above maps restart the current map.
 doom.lineActions = {
 	-- === Direct ===
 	[1] = {
-		type = "door", kind = "open", stay = false, owner = "sector",
+		type = "door", mode = "opndcls", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[26] = {
-		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, mode = "opndcls", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[27] = {
-		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "opndcls", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[28] = {
-		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = false, owner = "sector",
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "opndcls", stay = false, owner = "sector",
 		fastdoor = false, repeatable = true, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[31] = {
-		type = "door", kind = "open", stay = true, owner = "sector",
+		type = "door", mode = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[32] = {
-		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, mode = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEK"
 	},
 	[33] = {
-		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_REDK"
 	},
 	[34] = {
-		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true, owner = "sector",
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "open", stay = true, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[46] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "opndcls", stay = true,
 		fastdoor = false, repeatable = true, activationType = "gunshot"
 	},
 	[117] = {
-		type = "door", kind = "open", stay = false, owner = "sector",
+		type = "door", mode = "opndcls", stay = false, owner = "sector",
 		fastdoor = true, repeatable = true, activationType = "switch"
 	},
 	[118] = {
-		type = "door", kind = "open", stay = true, owner = "sector",
+		type = "door", mode = "open", stay = true, owner = "sector",
 		fastdoor = true, repeatable = false, activationType = "switch"
 	},
 
 	-- === Remote ===
 	[29] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "open", stay = false,
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[63] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[4] = {
-		type = "door", kind = "open", stay = false, owner = "sector",
+		type = "door", mode = "open", stay = false, owner = "sector",
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[90] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
 
 	[103] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "open", stay = true,
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[61] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "opndcls", stay = true,
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[2] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "open", stay = true,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[86] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "opndcls", stay = true,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
 
@@ -125,45 +125,45 @@ doom.lineActions = {
 	},
 
 	[16] = {
-		type = "door", kind = "closewaitopen", delay = 30*TICRATE,
+		type = "door", kind = "clsopn", delay = 30*TICRATE,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[76] = {
-		type = "door", kind = "closewaitopen", delay = 30*TICRATE,
+		type = "door", kind = "clsopn", delay = 30*TICRATE,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
 
 	-- Fast variants
 	[111] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "open", stay = false,
 		fastdoor = true, repeatable = false, activationType = "switch"
 	},
 	[114] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		fastdoor = true, repeatable = true, activationType = "switch"
 	},
 	[108] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "open", stay = false,
 		fastdoor = true, repeatable = false, activationType = "walk"
 	},
 	[105] = {
-		type = "door", kind = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		fastdoor = true, repeatable = true, activationType = "walk"
 	},
 	[112] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "switch"
 	},
 	[115] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "opndcls", stay = true,
 		fastdoor = true, repeatable = true, activationType = "switch"
 	},
 	[109] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "walk"
 	},
 	[106] = {
-		type = "door", kind = "open", stay = true,
+		type = "door", mode = "opndcls", stay = true,
 		fastdoor = true, repeatable = true, activationType = "walk"
 	},
 
@@ -186,27 +186,27 @@ doom.lineActions = {
 
 	-- Key locked fast stays
 	[133] = {
-		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEO"
 	},
 	[99] = {
-		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEO"
 	},
 	[135] = {
-		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[134] = {
-		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "opndcls", stay = true,
 		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[137] = {
-		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "open", stay = true,
 		fastdoor = true, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 	[136] = {
-		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, kind = "open", stay = true,
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "opndcls", stay = true,
 		fastdoor = true, repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 
@@ -745,10 +745,65 @@ doom.lineActions = {
 	[244] = {
 		type = "teleport", linetoline = true, preserveangle = true,
 		crossSide = "front", activationType = "walk", repeatable = true
-	}
+	},
+
+	-- === Extensions and shittt ===
+
+	[219] = {
+		type = "floor", action = "lower", target = "nextneighbor",
+		repeatable = true, activationType = "switch"
+	},
+	[220] = {
+		type = "floor", action = "lower", target = "nextneighbor",
+		repeatable = true, activationType = "switch"
+	},
+	[221] = {
+		type = "floor", action = "lower", target = "nextneighbor",
+		repeatable = true, activationType = "switch"
+	},
+	[222] = {
+		type = "floor", action = "lower", target = "nextneighbor",
+		repeatable = true, activationType = "switch"
+	},
+/*
+2069	ID24	W1 Exit and Reset Inventory (Normal)
+2070	ID24	S1 Exit and Reset Inventory (Normal)
+2071	ID24	G1 Exit and Reset Inventory (Normal)
+2072	ID24	W1 Exit and Reset Inventory (Secret)
+2073	ID24	S1 Exit and Reset Inventory (Secret)
+2074	ID24	G1 Exit and Reset Inventory (Secret)
+*/
+
+	[2069] = {
+		type = "exit", secret = false, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
+	[2070] = {
+		type = "exit", secret = false, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
+	[2071] = {
+		type = "exit", secret = false, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
+	[2072] = {
+		type = "exit", secret = true, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
+	[2073] = {
+		type = "exit", secret = true, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
+	[2074] = {
+		type = "exit", secret = true, resetInventory = true,
+		repeatable = false, activationType = "switch"
+	},
 }
 
 --#ifdef DOOM
+-- This line is just a reprise
+doom.lineActions[159] = doom.lineActions[23]
+
 /*
 Detailed generalized linedef specification
 Boom has added generalized linedef types that permit the parameters of linedef actions to be nearly independently chosen. Instead of looking at the linedef special as one single number which corresponds to one single type, it is divided into entire ranges of effects where parts of the numbers are used as parameters.
@@ -1033,7 +1088,7 @@ local generalizedStairConfig = {
 		{bits = 3, shift = 0, description = "trigger"},
 		{bits = 2, shift = 3, description = "speed"},
 		{bits = 1, shift = 5, description = "monster"},
-		{bits = 2, shift = 6, description = "step"},
+		{bits = 2, shift = 6, description = "amount"},
 		{bits = 1, shift = 8, description = "dir"},
 		{bits = 1, shift = 9, description = "igntxt"}
 	},
@@ -1057,11 +1112,11 @@ local generalizedStairConfig = {
 		[0] = {monsters = false},
 		[1] = {monsters = true}
 	},
-	step = {
-		[0] = {step = 4},
-		[1] = {step = 8},
-		[2] = {step = 16},
-		[3] = {step = 24}
+	amount = {
+		[0] = {amount = 4},
+		[1] = {amount = 8},
+		[2] = {amount = 16},
+		[3] = {amount = 24}
 	},
 	dir = {
 		[0] = {dir = "down"},
@@ -1174,6 +1229,77 @@ local generalizedLiftConfig = {
 }
 
 applyGroupConfig(generalizedLiftConfig, 0x3400)
+
+-- Generalized doors
+-- Effect				Start of Range	End of Range	Size of Range
+-- Generalized doors	15 360 (0x3c00)	16 383 (0x3fff)	1024
+
+/*
+Generalized doors (1024 types)
+field	description	NBits	Mask	Shift 
+trigger	W1/WR/S1/SR/G1/GR/P1/PR	3	0x0007	0
+speed	slow/normal/fast/turbo	2	0x0018	3
+kind	odc/o/cdo/c	2	0x0060	5
+monster	n/y	1	0x0080	7
+delay	1/4/9/30 (secs)	2	0x0300	8
+DETH Nomenclature:
+
+W1[m] OpnD{1|4|9|30}Cls S
+WR[m] Opn               N
+S1[m] ClsD{1|4|9|30}Opn F
+SR[m] Cls               T
+G1[m]
+GR[m]
+D1[m]
+DR[m]
+*/
+
+local generalizedDoorConfig = {
+	fields = {
+		{bits = 3, shift = 0, description = "trigger"},
+		{bits = 2, shift = 3, description = "speed"},
+		{bits = 2, shift = 5, description = "kind"},
+		{bits = 1, shift = 7, description = "monster"},
+		{bits = 2, shift = 8, description = "delay"}
+	},
+	trigger = {
+		[0]={activationType="walk",repeatable=false}, -- W1
+		[1]={activationType="walk",repeatable=true},  -- WR
+		[2]={activationType="switch",repeatable=false}, -- S1
+		[3]={activationType="switch",repeatable=true},  -- SR
+		[4]={activationType="gunshot",repeatable=false}, -- G1
+		[5]={activationType="gunshot",repeatable=true},  -- GR
+		[6]={activationType="push",repeatable=false}, -- P1
+		[7]={activationType="push",repeatable=true},  -- PR
+	},
+	speed = {
+		[0] = {speed = "slow"},
+		[1] = {speed = "normal"},
+		[2] = {speed = "fast"},
+		[3] = {speed = "turbo"}
+	},
+	kind = {
+		[0] = {mode = "opndcls"}, -- odc
+		[1] = {mode = "open"}, -- o
+		[2] = {mode = "clsopn"}, -- cdo
+		[3] = {mode = "close"} -- c
+	},
+	monster = {
+		[0] = {monsters = false},
+		[1] = {monsters = true}
+	},
+	delay = {
+		[0] = {delay = 35}, -- 1 sec
+		[1] = {delay = 150}, -- 4 sec
+		[2] = {delay = 300}, -- 9 sec
+		[3] = {delay = 1050} -- 30 sec
+	},
+	baseEntry = {
+		type = "door"
+	}
+}
+
+applyGroupConfig(generalizedDoorConfig, 0x3c00)
 --#endif
 
 -- Now apply potential changes to the line special mapping

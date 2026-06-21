@@ -301,10 +301,11 @@ def wad_to_pk3(wad, pk3_path):
         'DOOM': 'DoomMarker',
         'ENDM': 'Endoom',
         'DEH': 'DehLanguageBex',
+        'UMAP': 'UMapInfo',
     }
 
     alt_soc_names = {
-        'MAPS': 'SOC_DOOMMAP',
+        'UMAP': 'SOC_UMapInfo',
     }
     
     with tempfile.TemporaryDirectory() as temp_dir:

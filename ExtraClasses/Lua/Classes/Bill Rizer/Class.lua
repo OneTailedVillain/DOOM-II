@@ -3,7 +3,7 @@ freeslot("sfx_brdead", "sfx_brglif")
 ---@type doommethods_t
 local methods = deepcopy(doom.charSupportBaseMethods)
 -- How many kills are needed to get an extra life
-local KILLSFORLIFE = 25
+local KILLSFORLIFE = 40 -- used to be 25
 
 methods.onKill = function(player, victim)
 	if not (victim.doom.flags & DF_FRIENDLY) then
@@ -93,7 +93,7 @@ doom.charSupport.dpecbillrizer = {
 			"Once the bullets fly"
 		},
 		sprite = SPR2_WALK,
-		sequence = {A, 4}
+		sequence = {A, 6}
 	},
 
 	properties = {
@@ -108,12 +108,10 @@ doom.charSupport.dpecbillrizer = {
 		starthealth = 96,
 		maxhealth = 96,
 
-		-- The maximum value that Armor Bonuses
-		-- And Megaspheres can get Armor to
-		armormax = 200,
+		maxarmor = 96,
 
 		armorproperties = { -- DOOMPort behavior makes it so security and combat armors ignore the armor property, which works in our favor for making the armors the blue and red tunics while preventing too much power by way of armor bonuses.
-			armorclassmult = 100, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
+			armorclassmult = 96, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
 			armorclass1prot = FRACUNIT/3, -- Blue tunic protects this much in source game
 			armorclass2prot = FRACUNIT/2, -- Red tunic protects this much in source game
 		},

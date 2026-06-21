@@ -25,14 +25,6 @@ from modules.carouselspriteshit import createCarouselGraphics
 from modules.prepack_resolver import resolve_prepacked_carousel
 from modules.pngtopatch import png_to_patch
 
-# Add UMAPINFO parser import
-try:
-	from wadmod_umapinfo import UmapInfoParser
-	HAS_UMAPINFO = True
-except ImportError:
-	print("Warning: UMAPINFO parser module not found. UMAPINFO parsing will be disabled.")
-	HAS_UMAPINFO = False
-
 # Attempt to import OMGIFOL
 try:
 	from omg import WAD, WadIO, Lump, Flat, Graphic
@@ -324,10 +316,19 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	created = make_cycle_sequence(src_wad, out_wad, "COMP", 4, 6, 4, 4)
 	print(f"COMP created: {created}")
 
-	created = make_cycle_sequence(src_wad, out_wad, "RED", 1, 3, 1, 1)
+	created = make_cycle_sequence(src_wad, out_wad, "RED", 1, 3, 1, 3)
 	print(f"RED created: {created}")
 
-	# MIDI to OGG conversion (optional)
+	created = make_cycle_sequence(src_wad, out_wad, "LITEY", 1, 3, 1, 3)
+	print(f"LITEY created: {created}")
+
+	created = make_cycle_sequence(src_wad, out_wad, "LITER", 1, 3, 1, 3)
+	print(f"LITER created: {created}")
+
+	created = make_cycle_sequence(src_wad, out_wad, "LITEB", 1, 3, 1, 3)
+	print(f"LITEB created: {created}")
+
+	# MIDI to OGG conversion
 	if options.get('midi_to_ogg', False):
 		print("Converting MIDI to OGG...")
 		try:

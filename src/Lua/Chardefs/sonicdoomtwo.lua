@@ -263,7 +263,7 @@ doom.charSupport.sonic = {
 
 		-- The maximum value that Armor Bonuses
 		-- And Megaspheres can get Armor to
-		armormax = 126,
+		maxarmor = 126,
 
 		armorproperties = {
 			armorclassmult = 126/2, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
@@ -548,7 +548,7 @@ doom.charSupport.tails = {
 		mass = 100,
 		starthealth = 100,
 		maxhealth = 125,
-		armormax = 250,
+		maxarmor = 250,
 		movefactor = 2048,
 		walkfactor = FRACUNIT/2,
 
@@ -631,7 +631,7 @@ doom.charSupport.knuckles = {
 		mass = 120,
 		starthealth = 125,
 		maxhealth = 125,
-		armormax = 250,
+		maxarmor = 250,
 		movefactor = 1920,
 		walkfactor = FRACUNIT/2,
 
@@ -713,7 +713,7 @@ doom.charSupport.metalsonic = {
 		mass = 90,
 		starthealth = 90,
 		maxhealth = 90,
-		armormax = 150,
+		maxarmor = 150,
 		movefactor = 2304,
 		walkfactor = FRACUNIT/2,
 

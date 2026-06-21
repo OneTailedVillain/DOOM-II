@@ -301,6 +301,12 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
                 doom.doObituary(ray.target, ray.target, ray.target, doom.damage and doom.damage.exit)
                 return interacted, activated
             end
+		elseif whatIs.resetInventory then
+			for player in players.iterate() do
+				local funcs = P_GetMethodsForSkin(player)
+				if not funcs.throwOutSaveState then player.doom.laststate = {} end
+				funcs.throwOutSaveState(player)
+			end
         end
     end
 

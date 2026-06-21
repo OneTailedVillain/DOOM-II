@@ -560,6 +560,7 @@ local function sectorHasUnfittableObject(a, b, c, d)
 		maxy = INT32_MIN
 
 		if not (a and a.valid) then print("Sector devalidated") return false end
+		if not (a.lines and a.lines.valid) then print("Sector lines devalidated") return false end
 		for linenum = 0, #a.lines - 1 do
 			local line = a.lines[linenum]
 			for i = 1, 2 do
@@ -986,24 +987,38 @@ local thinkers = {
 	end,
 
 	door = function(sector, data)
-		local openTarget = P_FindLowestCeilingSurrounding(sector) - 4*FRACUNIT
+		local openTarget   = P_FindLowestCeilingSurrounding(sector) - 4*FRACUNIT
 		local closedTarget = sector.floorheight
-		local speed = data.fastdoor and 8*FRACUNIT or 2*FRACUNIT
 
-		-- init
-		if not data.direction then
-			-- default = open first
-			data.direction = data.closewaitopen and -1 or 1
+		local speedInfo = {
+			slow   = {speed = FRACUNIT,   blaze = false},
+			normal = {speed = 2*FRACUNIT, blaze = false},
+			fast   = {speed = 4*FRACUNIT, blaze = true},
+			turbo  = {speed = 8*FRACUNIT, blaze = true},
+		}
+
+		local info = speedInfo[data.speed] or speedInfo.normal
+		local speed = info.speed
+
+		local startsClosed = (data.mode == "clsopn" or data.mode == "close")
+		local waitsAtOpen  = (data.mode == "opndcls")
+		local waitsAtClose = (data.mode == "clsopn")
+		local canBounce    = (data.mode ~= "clsopn")
+
+		-- initialize
+		-- SRB2 treats 0 as falsy, so check nil in specific
+		if data.direction == nil then
+			data.direction = startsClosed and -1 or 1
 		end
 
-		-- moving upward
+		--------------------------------------------------
+		-- Opening
+		--------------------------------------------------
+
 		if data.direction == 1 then
 			if not data.init then
-				if data.fastdoor then
-					S_StartSound(sector, sfx_bdopn)
-				else
-					S_StartSound(sector, sfx_doropn)
-				end
+				S_StartSound(sector,
+					info.blaze and sfx_bdopn or sfx_doropn)
 				data.init = true
 			end
 
@@ -1011,43 +1026,37 @@ local thinkers = {
 
 			if sector.ceilingheight >= openTarget then
 				sector.ceilingheight = openTarget
-				data.lastDirection = 1
 
-				if data.stay or data.closewaitopen then
+				if waitsAtOpen then
+					data.direction = 0
+					data.waitClock = data.delay or 150
+				else
 					doom.stopThinker(sector)
-
 					if data.repeatable then
 						data.direction = nil
 						data.waitClock = nil
 						data.init = nil
 					end
-				else
-					data.direction = 0
-					data.waitClock = data.delay or 150
 				end
 			end
 
-		-- moving downward
+		--------------------------------------------------
+		-- Closing
+		--------------------------------------------------
+
 		elseif data.direction == -1 then
 			if data.init then
-				if data.fastdoor then
-					S_StartSound(sector, sfx_bdcls)
-				else
-					S_StartSound(sector, sfx_dorcls)
-				end
+				S_StartSound(sector,
+					info.blaze and sfx_bdcls or sfx_dorcls)
 				data.init = false
 			end
 
 			sector.ceilingheight = $ - speed
 
-			-- crush check:
-			-- only regular doors bounce back up
-			if sectorHasUnfittableObject(sector) and not data.closewaitopen then
-				if data.fastdoor then
-					S_StartSound(sector, sfx_bdopn)
-				else
-					S_StartSound(sector, sfx_doropn)
-				end
+			-- crush reversal only applies to Open->Wait->Close
+			if canBounce and sectorHasUnfittableObject(sector) then
+				S_StartSound(sector,
+					info.blaze and sfx_bdopn or sfx_doropn)
 
 				data.direction = 1
 				sector.ceilingheight = $ + speed
@@ -1056,14 +1065,12 @@ local thinkers = {
 
 			if sector.ceilingheight <= closedTarget then
 				sector.ceilingheight = closedTarget
-				data.lastDirection = -1
 
-				if data.closewaitopen then
+				if waitsAtClose then
 					data.direction = 0
 					data.waitClock = data.delay or 150
 				else
 					doom.stopThinker(sector)
-
 					if data.repeatable then
 						data.direction = nil
 						data.waitClock = nil
@@ -1072,18 +1079,18 @@ local thinkers = {
 				end
 			end
 
-		-- waiting
-		elseif data.direction == 0 then
-			if data.stay then return end
+		--------------------------------------------------
+		-- Waiting
+		--------------------------------------------------
 
+		elseif data.direction == 0 then
 			data.waitClock = $ - 1
 
 			if data.waitClock <= 0 then
-				-- resume opposite direction
-				if data.closewaitopen then
-					data.direction = 1
-				else
+				if waitsAtOpen then
 					data.direction = -1
+				elseif waitsAtClose then
+					data.direction = 1
 				end
 			end
 		end
@@ -1339,7 +1346,7 @@ local thinkers = {
 		end
 		data.started = true
 
-		local stepSize = data.amount * FRACUNIT
+		local stepSize = (data.amount or 8) * FRACUNIT
 		local speed = data.speed == "fast" and FRACUNIT*4 or FRACUNIT/4
 		BuildStairs(sector, stepSize, speed)
 
@@ -1525,7 +1532,7 @@ local thinkers = {
 
 			if sector.floorheight == target then
 				sector.floorpic = data.outsideFloorPic
-				sector.special = data.outsideSpecial
+				doom.sectorspecials[sector] = data.outsideSpecial
 
 				doom.sectorbackups[sector].floor = target
 
@@ -1681,6 +1688,77 @@ local thinkers = {
 					end
 				end
 				target = best
+			elseif data.target == "nextneighbor" then
+				-- Find the next adjacent floor based on current direction
+				local currentHeight = sector.floorheight
+				local bestHeight = nil
+				
+				if data.action == "raise" then
+					-- Find the lowest adjacent floor GREATER than current
+					for i = 0, #sector.lines - 1 do
+						local line = sector.lines[i]
+						local othersec = nil
+						
+						if line.frontsector == sector and line.backsector then
+							othersec = line.backsector
+						elseif line.backsector == sector and line.frontsector then
+							othersec = line.frontsector
+						end
+						
+						if othersec and othersec.valid then
+							local neighborHeight = othersec.floorheight
+							if neighborHeight > currentHeight then
+								if bestHeight == nil or neighborHeight < bestHeight then
+									bestHeight = neighborHeight
+								end
+							end
+						end
+					end
+					
+					if bestHeight ~= nil then
+						target = bestHeight
+					else
+						-- No higher neighbor exists, don't move
+						print("floor thinker: no higher neighbor found for nextneighbor")
+						doom.stopThinker(sector)
+						return
+					end
+					
+				elseif data.action == "lower" then
+					-- Find the highest adjacent floor LESS than current
+					for i = 0, #sector.lines - 1 do
+						local line = sector.lines[i]
+						local othersec = nil
+						
+						if line.frontsector == sector and line.backsector then
+							othersec = line.backsector
+						elseif line.backsector == sector and line.frontsector then
+							othersec = line.frontsector
+						end
+						
+						if othersec and othersec.valid then
+							local neighborHeight = othersec.floorheight
+							if neighborHeight < currentHeight then
+								if bestHeight == nil or neighborHeight > bestHeight then
+									bestHeight = neighborHeight
+								end
+							end
+						end
+					end
+					
+					if bestHeight ~= nil then
+						target = bestHeight
+					else
+						-- No lower neighbor exists, don't move
+						print("floor thinker: no lower neighbor found for nextneighbor")
+						doom.stopThinker(sector)
+						return
+					end
+				else
+					print("floor thinker: nextneighbor requires action to be 'raise' or 'lower'")
+					doom.stopThinker(sector)
+					return
+				end
 			else
 				-- unknown target
 				print("floor thinker: unknown target '" .. tostring(data.target) .. "'")
@@ -1708,20 +1786,23 @@ local thinkers = {
 					doom.sectorbackups[sector].floor = newfloor
 					-- handle "changes" (texture change) if caller provided newfloorpic
 					if data.changes then
-						if data.newfloorpic then
+						if data.changeType == "zero" then
 							sector.floorpic = data.newfloorpic
-						end
-						-- Can potentially be 0
-						if data.newSectorSpecial != nil then
-							sector.special = data.newSectorSpecial
+							doom.sectorspecials[sector] = 0
+
+						elseif data.changeType == "texture" then
+							sector.floorpic = data.newfloorpic
+
+						elseif data.changeType == "type" then
+							sector.floorpic = data.newfloorpic
+							doom.sectorspecials[sector] = data.newSectorSpecial
 						end
 					end
 					-- play stop sound
 					S_StartSound(sector, sfx_pstop)
 					-- crush behavior
 					if data.crush then
-						-- mark sector special if desired (C sets sec->special sometimes)
-						sector.special = sector.special or 0
+						doom.sectorspecials[sector] = sector.special or 0
 					end
 					-- remove thinker
 					doom.stopThinker(sector)
@@ -1731,8 +1812,18 @@ local thinkers = {
 					sector.floorheight = target
 					local newfloor = deepcopy(sector.floorheight)
 					doom.sectorbackups[sector].floor = newfloor
-					if data.changes and data.newfloorpic then
-						sector.floorpic = data.newfloorpic
+					if data.changes then
+						if data.changeType == "zero" then
+							sector.floorpic = data.newfloorpic
+							doom.sectorspecials[sector] = 0
+
+						elseif data.changeType == "texture" then
+							sector.floorpic = data.newfloorpic
+
+						elseif data.changeType == "type" then
+							sector.floorpic = data.newfloorpic
+							doom.sectorspecials[sector] = data.newSectorSpecial
+						end
 					end
 					S_StartSound(sector, sfx_pstop)
 					doom.stopThinker(sector)
@@ -1886,21 +1977,28 @@ local function thinkFrameIterator(any, data, thinkertable)
 		fn(any, data)
 end
 
+local function doorStartsClosing(data)
+	return data.mode == "clsopn"
+		or data.mode == "close"
+end
+
 local function restartDoorOpposite(sector, data)
-	-- If we're waiting, use the last real movement direction.
-	-- Otherwise, flip the current movement direction.
-	local dir = data.direction
-	if dir == 0 or dir == nil then
-		dir = data.lastDirection or (data.closewaitopen and -1 or 1)
+	if not data.repeatable or data.activationType != "switch" then return end
+	if data.direction == 1 then
+		data.direction = -1
+
+	elseif data.direction == -1 then
+		data.direction = 1
+
+	else -- waiting or uninitialized
+		if data.mode == "clsopn" or data.mode == "close" then
+			data.direction = 1      -- was waiting after closing
+		else
+			data.direction = -1     -- was waiting after opening
+		end
 	end
 
-	data.lastDirection = dir
-	data.direction = -dir
 	data.waitClock = nil
-
-	-- Force the correct startup sound for the new direction on the next tick.
-	-- open  = init false
-	-- close = init true
 	data.init = (data.direction == -1)
 end
 

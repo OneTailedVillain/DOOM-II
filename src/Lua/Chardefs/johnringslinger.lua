@@ -46,7 +46,7 @@ doom.charSupport.johnringslinger = {
 
 		-- The maximum value that Armor Bonuses
 		-- And Megaspheres can get Armor to
-		armormax = 150,
+		maxarmor = 150,
 
 		armorproperties = {
 			armorclassmult = 75, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)

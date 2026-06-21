@@ -20,12 +20,639 @@ from modules.dehacked_parser import parse_key_value_pairs_from_text, parse_dehac
 from modules.lua_generator import build_lua_deh_table, build_structured_lua_deh, parse_endoom_and_build_lua
 from modules.midi_converter import convert_mus_to_midi
 
+try:
+	from modules.umapinfo_processor import MAPINFOProcessor
+except ImportError:
+	MAPINFOProcessor = None
+	print("Warning: umapinfo_processor module not found. UMAPINFO processing disabled.")
+
 MUSIC_DEFINITIONS = None
 
 REMOTE_MUSICDEF_URL = (
 	"https://raw.githubusercontent.com/OneTailedVillain/DOOM-II/"
 	"refs/heads/main/Python/data/music_definitions.json"
 )
+
+DOOM2_SOC_TEXT = """
+Level 1
+Levelname = MAP01
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = RUNNIN
+
+Level 2
+Levelname = MAP02
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = STALKS
+
+Level 3
+Levelname = MAP03
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = COUNTD
+
+Level 4
+Levelname = MAP04
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = BETWEE
+
+Level 5
+Levelname = MAP05
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DOOM
+
+Level 6
+Levelname = MAP06
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = THE_DA
+
+Level 7
+Levelname = MAP07
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = SHAWN
+
+Level 8
+Levelname = MAP08
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DDTBLU
+
+Level 9
+Levelname = MAP09
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = IN_CIT
+
+Level 10
+Levelname = MAP10
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DEAD
+
+Level 11
+Levelname = MAP11
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = STLKS2
+
+Level 12
+Levelname = MAP12
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = THEDA2
+
+Level 13
+Levelname = MAP13
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DOOM2
+
+Level 14
+Levelname = MAP14
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DDTBL2
+
+Level 15
+Levelname = MAP15
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = RUNNI2
+Lua.NextSecretLevel = 30
+
+Level 16
+Levelname = MAP16
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DEAD2
+
+Level 17
+Levelname = MAP17
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = STLKS3
+
+Level 18
+Levelname = MAP18
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = ROMERO
+
+Level 19
+Levelname = MAP19
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = SHAWN2
+
+Level 20
+Levelname = MAP20
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = MESSAG
+
+Level 21
+Levelname = MAP21
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = COUNT2
+
+Level 22
+Levelname = MAP22
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = DDTBL3
+
+Level 23
+Levelname = MAP23
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = AMPIE
+
+Level 24
+Levelname = MAP24
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = THEDA3
+
+Level 25
+Levelname = MAP25
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = ADRIAN
+
+Level 26
+Levelname = MAP26
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = MESSG2
+
+Level 27
+Levelname = MAP27
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = ROMER2
+
+Level 28
+Levelname = MAP28
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = TENSE
+
+Level 29
+Levelname = MAP29
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = SHAWN3
+
+Level 30
+Levelname = MAP30
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+Act = 0
+NoZone = 1
+Music = OPENIN
+
+Level 31
+Levelname = MAP31
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+WideIcon = true
+Act = 0
+NoZone = 1
+Music = EVIL
+NextLevel = 16
+Lua.NextSecretLevel = 32
+
+Level 32
+Levelname = MAP32
+NoTitleCard = true
+SelectHeading = Campaign
+NoVisitNeeded = true
+TypeOfLevel = Singleplayer,Doom,Co-op
+LevelSelect = 1
+WideIcon = true
+Act = 0
+NoZone = 1
+Music = ULTIMA
+NextLevel = 16
+"""
+
+def parse_soc_templates(soc_text):
+	"""
+	Parse the provided SOC level headers into a dict:
+		level_number -> dict of field_name -> field_value (as string)
+	Handles multi‑line values (e.g., TypeOfLevel) by concatenating.
+	"""
+	templates = {}
+	lines = soc_text.strip().splitlines()
+	i = 0
+	while i < len(lines):
+		line = lines[i].strip()
+		if not line:
+			i += 1
+			continue
+		if line.startswith("Level "):
+			# e.g. "Level 1"
+			level_num = int(line.split()[1])
+			i += 1
+			fields = {}
+			# Read fields until empty line or next "Level"
+			while i < len(lines):
+				l = lines[i].strip()
+				if not l:
+					i += 1
+					continue
+				if l.startswith("Level "):
+					break
+				if '=' in l:
+					key, val = l.split('=', 1)
+					key = key.strip()
+					val = val.strip()
+					# Store as string; we'll keep it as is.
+					fields[key] = val
+				else:
+					# Could be continuation of previous value (e.g., multi‑line TypeOfLevel?)
+					# In our template, all are single‑line.
+					pass
+				i += 1
+			templates[level_num] = fields
+		else:
+			i += 1
+	return templates
+
+def mapname_to_levelnum(mapname):
+	"""Convert Doom map name (ExMx or MAPxx) to a level number."""
+	mapname = mapname.upper()
+	if mapname.startswith("E") and 'M' in mapname:
+		# ExMx format
+		m = re.match(r'E(\d)M(\d{1,2})', mapname)
+		if m:
+			ep = int(m.group(1))
+			mp = int(m.group(2))
+			# SRB2 uses the same numbering as Doom: (ep-1)*9 + mp
+			return (ep - 1) * 9 + mp
+	elif mapname.startswith("MAP"):
+		num = mapname[3:]
+		if num.isdigit():
+			return int(num)
+	return None
+
+def strip_d_music(music_name):
+	"""Remove 'D_' prefix from music name if present."""
+	if music_name and music_name.startswith("D_"):
+		return music_name[2:]
+	return music_name
+
+def lua_string(s):
+	"""Return a Lua single-quoted string literal."""
+	out = []
+	for c in s:
+		match c:
+			case "\\":
+				out.append("\\\\")
+			case "'":
+				out.append("\\'")
+			case "\n":
+				out.append("\\n")
+			case "\r":
+				out.append("\\r")
+			case "\t":
+				out.append("\\t")
+			case _:
+				if ord(c) < 32 or ord(c) == 127:
+					out.append(f"\\x{ord(c):02X}")
+				else:
+					out.append(c)
+	return "'" + "".join(out) + "'"
+
+def generate_lua_umap(processor):
+	"""
+	Generate a Lua table containing all UMAPINFO data.
+	"""
+	lines = ["UMAPINFO = {"]
+	for mapname, mapdef in processor.maps.items():
+		# Convert mapdef to a Lua table
+		fields = []
+		for key, value in mapdef.__dict__.items():
+			if key == 'mapname':
+				continue
+			if value is None:
+				continue
+			# Special handling for bossactions, episode, intertext etc.
+			if key == 'bossactions' and value:
+				# Convert list of BossAction objects to table
+				ba_str = []
+				for ba in value:
+					ba_str.append(f"{{thingtype={lua_string(ba.thingtype)}, linespecial={ba.linespecial}, tag={ba.tag}}}")
+				fields.append(f"	bossactions = {{{', '.join(ba_str)}}}")
+			elif key == 'episode' and value:
+				if value == 'clear':
+					fields.append("	episode = 'clear'")
+				elif isinstance(value, list):
+					ep_str = []
+					for ep in value:
+						ep_str.append(f"{{patch={lua_string(ep.patch)}, name={lua_string(ep.name)}, key={lua_string(ep.key)}}}")
+					fields.append(f"	episode = {{{', '.join(ep_str)}}}")
+				else:
+					fields.append(f"	episode = {repr(value)}")
+			elif key in ('intertext', 'intertextsecret') and value:
+				if value == 'clear':
+					fields.append(f"	{key} = 'clear'")
+				elif isinstance(value, list):
+					# Convert list to Lua table
+					items = ', '.join(f"{lua_string(item)}" for item in value)
+					fields.append(f"	{key} = {{{items}}}")
+				else:
+					fields.append(f"	{key} = {repr(value)}")
+			else:
+				# Simple value
+				if isinstance(value, str):
+					fields.append(f"	{key} = {lua_string(value)}")
+				elif isinstance(value, bool):
+					fields.append(f"	{key} = {str(value).lower()}")
+				elif isinstance(value, int):
+					fields.append(f"	{key} = {value}")
+				else:
+					fields.append(f"	{key} = {repr(value)}")
+		lines.append(f'  ["{mapname}"] = {{')
+		lines.extend(fields)
+		lines.append("  },")
+	lines.append("}")
+	return "\n".join(lines)
+
+def generate_soc_patch(processor, base_templates):
+	"""
+	Generate a SOC patch that overrides level headers for maps that have
+	UMAPINFO definitions. Uses the base templates to preserve all fields.
+	Returns a string.
+	"""
+	soc_lines = []
+	for mapname, mapdef in processor.maps.items():
+		levelnum = mapname_to_levelnum(mapname)
+		if levelnum is None:
+			print(f"UMAPINFO: Skipping map '{mapname}' - cannot determine level number.")
+			continue
+
+		# Try to get base template; otherwise use fallback
+		if levelnum in base_templates:
+			fields = dict(base_templates[levelnum])
+		else:
+			print(f"UMAPINFO: No base template for level {levelnum} (map {mapname}), using fallback template.")
+			fields = {
+				"NoTitleCard": "true",
+				"SelectHeading": "Campaign",
+				"NoVisitNeeded": "true",
+				"TypeOfLevel": "Singleplayer,Doom,Co-op",
+				"LevelSelect": "1",
+				"Act": "0",
+				"NoZone": "1",
+				"Music": ""
+			}
+
+		# Override fields from UMAPINFO
+		if mapdef.music:
+			fields['Music'] = strip_d_music(mapdef.music)
+		if mapdef.levelname:
+			fields['Levelname'] = mapdef.levelname   # new field, added
+		if mapdef.next:
+			next_level = mapname_to_levelnum(mapdef.next)
+			if next_level is not None:
+				fields['NextLevel'] = str(next_level)
+		if mapdef.nextsecret:
+			sec_level = mapname_to_levelnum(mapdef.nextsecret)
+			if sec_level is not None:
+				# SRB2 uses Lua.NextSecretLevel
+				fields['Lua.NextSecretLevel'] = str(sec_level)
+
+		# Write the Level header
+		soc_lines.append(f"Level {levelnum}")
+		# Write fields in a deterministic order (optional)
+		# To preserve original order, we could use the order from base_templates.
+		# We'll just write all fields sorted.
+		for key, value in fields.items():
+			soc_lines.append(f"{key} = {value}")
+		soc_lines.append("")  # blank line between levels
+	return "\n".join(soc_lines)
+
+def process_umapinfo(src_wadio, out_wad, base_templates):
+	"""
+	Process UMAPINFO lump from source WAD.
+	If found, parse it and generate LUA_UMAP and SOC_UMAP lumps.
+	Returns True if processing occurred, False otherwise.
+	"""
+	if MAPINFOProcessor is None:
+		return False
+
+	# Check if UMAPINFO exists
+	try:
+		entries = src_wadio.entries
+	except AttributeError:
+		return False
+
+	umapinfo_lump_name = None
+	for entry in entries:
+		lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+		if lname == "UMAPINFO":
+			umapinfo_lump_name = lname
+			break
+
+	if umapinfo_lump_name is None:
+		for entry in entries:
+			lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+			if lname == "MAPINFO":
+				umapinfo_lump_name = lname
+				break
+
+	if umapinfo_lump_name is None:
+		return False
+
+	print("UMAPINFO lump found, processing...")
+	try:
+		umapinfo_text = src_wadio.read(umapinfo_lump_name).decode('utf-8')
+	except Exception as e:
+		print(f"Failed to read UMAPINFO: {e}")
+		return False
+
+	try:
+		format=umapinfo_lump_name == "MAPINFO" and "mapinfo" or "umapinfo"
+		processor = MAPINFOProcessor(umapinfo_text, format=format)
+		# Parse
+		processor.parse()
+		print(f"Parsed UMAPINFO: {len(processor.maps)} map definitions")
+	except Exception as e:
+		print(f"Error parsing UMAPINFO: {e}")
+		return False
+
+	# Generate LUA_UMAP
+	lua_content = generate_lua_umap(processor)
+	out_wad.data["LUA_UMAP"] = Lump(lua_content.encode('utf-8'))
+	print("Added LUA_UMAP lump")
+
+	# Generate SOC patch
+	soc_content = generate_soc_patch(processor, base_templates)
+	if soc_content:
+		out_wad.data["SOC_UMAP"] = Lump(soc_content.encode('utf-8'))
+		print("Added SOC_UMAP lump")
+	else:
+		print("No SOC patch generated (no applicable maps?)")
+
+	return True
 
 def _hash_bytes(data: bytes) -> str:
 	return hashlib.sha256(data).hexdigest()
@@ -279,20 +906,27 @@ def make_cycle_sequence(src_wad, out_wad, prefix, start, end, base_start, base_e
 
 	# Collect base assets (flats OR textures)
 	base = {}
+	last_found = None
 
 	for b in range(base_start, base_end + 1):
 		bn = f"{prefix}{b}"
 
 		if bn in src_flats:
 			base[b] = ("flat", src_flats[bn].copy())
+			last_found = b
 			print("Found flat:", bn)
 
 		elif bn in src_textures:
 			base[b] = ("texture", src_textures[bn].copy())
+			last_found = b
 			print("Found texture:", bn)
 
+		elif last_found is not None:
+			base[b] = base[last_found]
+			print(f"Base missing: {bn}, using {prefix}{last_found}")
+
 		else:
-			print("Base missing:", bn)
+			print(f"Base missing: {bn}, no previous base available")
 
 	base_count = base_end - base_start + 1
 
@@ -398,6 +1032,11 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_
 		musicdef_lump = create_musicdef_lump(endoom_md5, music_lumps, music_def_file)
 		out_wad.data["MUSICDEF"] = musicdef_lump
 		print(f"Created MUSICDEF lump with {len(music_lumps)} entries")
+
+
+	# Load base SOC templates
+	base_templates = parse_soc_templates(DOOM2_SOC_TEXT)
+	process_umapinfo(src_wadio, out_wad, base_templates)
 
 	return len(ex_to_new_map)
 
@@ -863,6 +1502,18 @@ def normalize_pegging_flags_to_doom(wad_obj):
 					new_flags = new_flags | ML_TWOSIDED
 				elif not two_sided and (new_flags & ML_TWOSIDED):
 					new_flags = new_flags & ~ML_TWOSIDED
+
+				ML_NETONLY = 0x0800
+				MF_NONET = 0x1000
+
+				# All binary versions I've seen don't include anything for these
+				if (new_flags & ML_NETONLY):
+					new_flags = new_flags & ~ML_NETONLY
+
+				if (new_flags & ML_NONET):
+					new_flags = new_flags & ~ML_NETONLY
+					# TODO really should do this AFTER we do BOOM support and shit
+					# new_flags = new_flags | (1 << 16)
 
 				if new_flags != flags:
 					ld_data[flags_off:flags_off+2] = new_flags.to_bytes(2, "little")

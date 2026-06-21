@@ -279,6 +279,7 @@ local function doAutomap(v, player, noHUD)
 	V_SNAPTOBOTTOM|V_SNAPTOLEFT)
 end
 
+if not doom.automapHooksRegistered then
 local zooming = 0
 local movingx = 0
 local movingy = 0
@@ -343,5 +344,7 @@ end)
 rawset(_G, "DOOM_InAutomap", function()
 	return keyState.automap
 end)
+doom.automapHooksRegistered = keyState
+end
 
-return doAutomap, keyState
+return doAutomap, doom.automapHooksRegistered

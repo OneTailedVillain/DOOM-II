@@ -46,7 +46,7 @@ levelname = MAP01
 NoTitleCard = true
 SelectHeading = Campaign
 NoVisitNeeded = true
-TypeOfLevel = Singleplayer,Doom,Co-op,Competition,Race
+TypeOfLevel = Singleplayer,Doom,Co-op
 LevelSelect = 1
 Act = 0
 NoZone = 1
@@ -205,6 +205,7 @@ LevelSelect = 1
 Act = 0
 NoZone = 1
 Music = RUNNI2
+Lua.NextSecretLevel = 30
 
 Level 16
 levelname = MAP16
@@ -382,6 +383,8 @@ WideIcon = true
 Act = 0
 NoZone = 1
 Music = EVIL
+NextLevel = 16
+Lua.NextSecretLevel = 32
 
 Level 32
 levelname = MAP32

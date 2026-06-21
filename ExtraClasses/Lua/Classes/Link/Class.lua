@@ -185,7 +185,6 @@ end
 doom.charSupport.dpecalttp = {
 	noHUD = true,
 
-	-- Custom CSS bullshit
 	css = {
 		name = "Link",
 		description = {
@@ -220,7 +219,7 @@ doom.charSupport.dpecalttp = {
 
 		-- The maximum value that Armor Bonuses
 		-- And Megaspheres can get Armor to
-		armormax = 1, -- effectively nothing (don't do 0 because of potential percenting errors)
+		maxarmor = 1, -- effectively nothing (don't do 0 because of potential percenting errors)
 
 		armorproperties = { -- DOOMPort behavior makes it so security and combat armors ignore the armor property, which works in our favor for making the armors the blue and red tunics while preventing too much power by way of armor bonuses.
 			armorclassmult = 50, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)

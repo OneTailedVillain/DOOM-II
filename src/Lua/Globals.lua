@@ -15,6 +15,8 @@ local toDeclare = {
 	DF_SKULLFLY = 8192,
 	DF_SKINCOLOR1 = 16384,
 	DF_SKINCOLOR2 = 32768,
+	DF_FRIENDLY = 65536,
+	DF_STANDSTILL = 131072,
 	pw_strength = 1,
 	pw_ironfeet = 2,
 	pw_invisibility = 3,
@@ -50,9 +52,6 @@ rawset(_G, "deepcopy", function(orig)
 	return copy
 end)
 
-if not doom then
-	rawset(_G, "doom", {})
-end
 rawset(_G, "A_None", "none")
 
 ---@type doomglobal_t
@@ -171,7 +170,7 @@ local wepBase = {
     order = 1,
     damage = {5, 15},
     raycaster = true,
-    shotcost = 1,
+    shotcost = nil,
     pellets = 1,
     spread = {
         horiz = 0,
@@ -461,18 +460,20 @@ doom.textscreen = {
 }
 
 doom.pistolstartstate = {
-		useinvbackups = true,
-		weapons = doom.startingWeapons,
-		ammo = doom.startingAmmo,
-		health = 100,
-		maxhealth = 100,
-		armor = 0,
-		maxarmor = 100,
-		curwep = "pistol",
-		curwepslot = 1,
-		curwepcat = 2,
-		armorefficiency = FRACUNIT/3,
-	}
+	useinvbackups = true,
+	weapons = doom.startingWeapons,
+	ammo = doom.startingAmmo,
+	health = 100,
+	maxhealth = 100,
+	armor = 0,
+	maxarmor = 100,
+	curwep = doom.readyWeapon,
+	curwepslot = 1,
+	curwepcat = 2,
+	armorefficiency = FRACUNIT/3,
+}
+
+print(doom.pistolstartstate.ammo and doom.pistolstartstate.ammo["bullets"] or "no ammo table")
 
 doom.pistolstartstate.ammo = $ or {}
 doom.pistolstartstate.weapons = $ or {}

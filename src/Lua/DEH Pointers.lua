@@ -445,8 +445,8 @@ doom.dehackedpointers = {
 		[4] = MT_DOOM_ARCHVILE,
 		[5] = MT_DOOM_ARCHVILEFIRE, -- Archvile Attack
 		[6] = MT_DOOM_REVENANT, -- Revenant
-		[7] = nil, -- Revenant Fireball
-		[8] = nil, -- Fireball Trail
+		[7] = MT_DOOM_REVENANT_PROJECTILE, -- Revenant Fireball
+		[8] = MT_DOOM_REVENANT_TRACER, -- Fireball Trail
 		[9] = MT_DOOM_MANCUBUS, -- Mancubus
 		[10] = MT_DOOM_MANCUBUSFIREBALL, -- Mancubus Fireball
 		[11] = MT_DOOM_CHAINGUNNER,
@@ -681,6 +681,12 @@ doom.dehackedpointers = {
 		sfx_skesit,
 		sfx_skeatk,
 		sfx_radio,
+		-- MBF helper dog sounds
+		sfx_dgsit,
+		sfx_dgatk,
+		sfx_dgact,
+		sfx_dgdth,
+		sfx_dgpain,
 	},
 
 	frames = {
@@ -1392,5 +1398,18 @@ doom.dehackedpointers = {
 		[964] = S_DOOM_SHORTTECHNOFLOORLAMP_2,
 		[965] = S_DOOM_SHORTTECHNOFLOORLAMP_3,
 		[966] = S_DOOM_SHORTTECHNOFLOORLAMP_4,
+	},
+
+	-- String to codepointer mapping
+	bex_codeptr = {
+		Chase = A_DoomChase,
+		Scream = A_DoomScream,
+		Fall = A_DoomFall,
+		Punch = A_DoomPunch,
+		FirePistol = A_DoomFirePistol,
+		ReFire = A_DoomReFire,
+		WeaponReady = A_DoomWeaponReady
 	}
 }
+
+function A_Dummy() end

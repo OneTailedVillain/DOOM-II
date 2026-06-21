@@ -216,23 +216,6 @@ local function drawBOOMString(v, x, y, str, cr, f)
     end
 end
 
-function doom.getFrags(player)
-	local fragcount = 0
-	for otherplayer in players.iterate() do
-		if otherplayer.spectator then continue end
-
-		local fragdiffs
-		local frags = player.doom.frags[#otherplayer] or 0
-		if #player != #otherplayer then
-			fragdiffs = frags
-		else
-			fragdiffs = -frags
-		end
-		fragcount = $ + fragdiffs
-	end
-	return fragcount
-end
-
 ---@param v videolib
 ---@param player player_t
 local function DoBOOMHud(v, player)
@@ -415,10 +398,10 @@ local function DoBOOMHud(v, player)
 		if not funcs.hasWeapon(player, trueweapon) then continue end
 		trueweapon = doom.weapons[$]
 
-		local ammo = funcs.getAmmoFor(player, trueweapon.ammotype) or 0
+		local ammo = funcs.getAmmoFor(player, trueweapon.ammotype)
 		local fullammo = funcs.getMaxFor(player, trueweapon.ammotype)
 		local isInfinite = false
-		if fullammo == false or fullammo == nil then
+		if ammo == false or ammo == nil or fullammo == false or fullammo == nil then
 			isInfinite = true
 		end
 		local ammopct = not isInfinite and (100*ammo)/fullammo or 0
@@ -553,9 +536,9 @@ local function DoBOOMHud(v, player)
 
 	local hud_nosecrets = player.doom.prefs.nosecrets
 	if not hud_nosecrets then
-		hud_monsecstr = $ .. "\x1b\x36K \x1b\x33" .. player.doom.killcount .. "/" .. doom.killcount
-		hud_monsecstr = $ .. " \x1b\x37I \x1b\x33" .. doom.items .. "/" .. doom.itemcount
-		hud_monsecstr = $ .. " \x1b\x35S \x1b\x33" .. doom.secrets .. "/" .. doom.secretcount
+		hud_monsecstr = $ .. "\x1b\x36K \x1b\x33" .. (player.doom.kills or "NIL") .. "/" .. (doom.killcount or "NIL")
+		hud_monsecstr = $ .. " \x1b\x37I \x1b\x33" .. (player.doom.items or "NIL") .. "/" .. (doom.itemcount or "NIL")
+		hud_monsecstr = $ .. " \x1b\x35S \x1b\x33" .. (player.doom.secrets or "NIL") .. "/" .. (doom.secretcount or "NIL")
 		drawBOOMString(v, w_monsec.x, w_monsec.y, hud_monsecstr, nil, w_monsec.f)
 	end
 /*

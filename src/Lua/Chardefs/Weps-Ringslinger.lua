@@ -66,6 +66,8 @@ doom.addWeapon("matchring", {
     ammotype = "bullets",
 })
 
+mobjinfo[MT_REDRING].deathsound = sfx_s3k33
+
 doom.addWeapon("automaticring", {
     sprite = SPR_WRNG,
     weaponslot = 2,
@@ -81,6 +83,8 @@ doom.addWeapon("automaticring", {
     states = setupWeaponDelay(2, H),
     ammotype = "bullets",
 })
+
+mobjinfo[MT_THROWNAUTOMATIC].deathsound = sfx_s3k33
 
 doom.addWeapon("bouncering", {
     sprite = SPR_WRNG,
@@ -98,6 +102,8 @@ doom.addWeapon("bouncering", {
     states = setupWeaponDelay(TICRATE/4, F),
     ammotype = "shells",
 })
+
+mobjinfo[MT_THROWNBOUNCE].deathsound = sfx_s3k33
 
 doom.addWeapon("scatterring", {
     sprite = SPR_WRNG,
@@ -238,6 +244,8 @@ doom.addWeapon("scatterring", {
     ammotype = "shells",
 })
 
+mobjinfo[MT_THROWNSCATTER].deathsound = sfx_s3k33
+
 doom.addWeapon("grenadering", {
     sprite = SPR_WRNG,
     weaponslot = 5,
@@ -276,7 +284,7 @@ doom.addWeapon("railring", {
     weaponslot = 7,
 	user_johnringslingericon = "RAILINDA",
     order = 2,
-    damage = {250, 250},
+    damage = {400, 400},
 	shotcost = 20,
     noinitfirespread = true,
     pellets = 1,
@@ -286,7 +294,7 @@ doom.addWeapon("railring", {
 		S_StartSound(player.mo, sfx_rail1)
 		if bullet then
 			bullet.doom = $ or {}
-			bullet.doom.damage = 250
+			bullet.doom.damage = 400
 			for i = 0, 255 do
 				if i & 1 then
 					P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_SPARK)
@@ -450,7 +458,7 @@ mobjinfo[MT_DOOM_THROWNHOMING] = {
 	spawnstate = mtSt.active[1],
 	seesound = sfx_homifr,
 	deathstate = mobjinfo[MT_THROWNSCATTER].deathstate,
-	deathsound = sfx_itemup,
+	deathsound = sfx_s3k33,
 	speed = 90*FRACUNIT,
 	radius = 19*FRACUNIT,
 	height = 19*FRACUNIT,

@@ -6,6 +6,12 @@ local phaseByKey = {
 	secrets = 6,
 }
 
+local requiresPhases = {
+	kills = true,
+	items = true,
+	secrets = true
+}
+
 local SCALEFACTOR = FRACUNIT*5/6
 
 -- background width is no longer scaled
@@ -48,6 +54,8 @@ local function MPR(v, player)
 	if G_RingSlingerGametype() then
 		columns = {
 			{key = "frags", label = "FRAG", percent = false},
+			{key = "deaths", label = "DETH", percent = false},
+			{key = "ping", label = "PING", percent = false},
 		}
 	else
 		columns = {
@@ -79,7 +87,7 @@ local function MPR(v, player)
 
 	local y
 
-	local function drawShit(x, text, alignment)
+	local function drawShit(x, text, alignment, translation)
 		if not x then x = 0 end
 
 		doom.drawInFont(
@@ -90,7 +98,8 @@ local function MPR(v, player)
 			"STCFN",
 			text,
 			V_ALLOWLOWERCASE,
-			alignment
+			alignment,
+			v.getColormap(nil, nil, translation or nil)
 		)
 	end
 
@@ -147,7 +156,7 @@ local function MPR(v, player)
 			)
 		end
 
-		drawShit(entryx + padding, data.name)
+		drawShit(entryx + padding, data.name, nil, data.name == displayplayer.name and "HIGHLIGHT")
 
 		for i, col in ipairs(columns) do
 			local value = data[col.key] or 0
@@ -155,7 +164,7 @@ local function MPR(v, player)
 
 			local text
 
-			if phaseByKey[col.key] > data.pd.intstate then
+			if requiresPhases[col.key] and phaseByKey[col.key] > data.pd.intstate then
 				text = "-%"
 			elseif col.percent then
 				text = (value * 100 / max) .. "%"
@@ -163,7 +172,7 @@ local function MPR(v, player)
 				text = tostring(value)
 			end
 
-			drawShit(colPositions[i], text, "right")
+			drawShit(colPositions[i], text, "right", data.name == displayplayer.name and "HIGHLIGHT")
 		end
 	end
 end

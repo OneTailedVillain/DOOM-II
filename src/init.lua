@@ -1,6 +1,57 @@
 pcall(function()
 	dofile("Unregister.lua")
 end)
+
+if not doom then
+	rawset(_G, "doom", {})
+end
+
+--#ifdef HERETIC
+--#meta name Heretic
+--#meta forwho Heretic
+--#meta skipwad
+--#ignorefile SOC/SOC_STRF
+--#ignoredir TSoURDt3rd/Strife
+doom.currentGame = "heretic"
+doom.startingMeleeWeapon = "staff"
+doom.noIwadChecks = function(v)
+	return not v.patchExists("INVGEML1") or not v.patchExists("PLAYA1")
+end
+--#elif STRIFE
+--#meta name Strife
+--#meta forwho Strife
+-- Genuinely fuck this piece of shit dude. good lord
+-- I've tried for too long bashing my head on the wall trying to get it to work
+--#ignoredir TSoURDt3rd
+--#meta skipwad
+doom.currentGame = "strife"
+-- Needed for John Ringslinger
+doom.startingMeleeWeapon = "punchdagger"
+doom.startingWeapons = {[doom.startingMeleeWeapon] = true}
+doom.readyWeapon = doom.startingMeleeWeapon
+-- Strifeguy doesn't start with anything iirc
+doom.startingAmmo = {}
+doom.noIwadChecks = function(v)
+	return not v.patchExists("INVBACK") or not v.patchExists("INVTOP")
+end
+--#else
+--#ignorefile SOC/SOC_STRF
+--#ignoredir TSoURDt3rd/Strife
+--#define DOOM = true
+doom.currentGame = "doom"
+-- Needed for John Ringslinger
+doom.startingMeleeWeapon = "brassknuckles"
+doom.startingWeapons = {[doom.startingMeleeWeapon] = true, pistol = true}
+doom.readyWeapon = "pistol"
+doom.startingAmmo = {bullets = 50}
+doom.noIwadChecks = function(v)
+	return not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
+end
+--#endif
+
+--#branchvar doom.currentGame
+--#branchpattern Lua/*Data
+
 dofile("Globals.lua")
 dofile("Freeslots.lua")
 dofile("Specials.lua")
@@ -36,50 +87,6 @@ dofile("Actions.lua")
 
 dofile("Chardefs/Weps-Ringslinger.lua")
 dofile("Chardefs/johnringslinger.lua")
-
---#ifdef HERETIC
---#meta name Heretic
---#meta forwho Heretic
---#meta skipwad
---#ignorefile SOC/SOC_STRF
---#ignoredir TSoURDt3rd/Strife
-doom.currentGame = "heretic"
-doom.startingMeleeWeapon = "staff"
-doom.noIwadChecks = function(v)
-	return not v.patchExists("INVGEML1") or not v.patchExists("PLAYA1")
-end
---#elif STRIFE
---#meta name Strife
---#meta forwho Strife
--- Genuinely fuck this piece of shit dude. good lord
--- I've tried for too long bashing my head on the wall trying to get it to work
---#ignoredir TSoURDt3rd
---#meta skipwad
-doom.currentGame = "strife"
--- Needed for John Ringslinger
-doom.startingMeleeWeapon = "punchdagger"
-doom.startingWeapons = {[doom.startingMeleeWeapon] = true}
--- Strifeguy doesn't start with anything iirc
-doom.startingAmmo = {}
-doom.noIwadChecks = function(v)
-	return not v.patchExists("INVBACK") or not v.patchExists("INVTOP")
-end
---#else
---#ignorefile SOC/SOC_STRF
---#ignoredir TSoURDt3rd/Strife
---#define DOOM = true
-doom.currentGame = "doom"
--- Needed for John Ringslinger
-doom.startingMeleeWeapon = "brassknuckles"
-doom.startingWeapons = {[doom.startingMeleeWeapon] = true}
-doom.startingAmmo = {bullets = 50}
-doom.noIwadChecks = function(v)
-	return not v.patchExists("STFST01") or not v.patchExists("PLAYA1")
-end
---#endif
-
---#branchvar doom.currentGame
---#branchpattern Lua/*Data
 
 dofile("Definitions/States/Player.lua")
 dofile("Definitions/Effects/Bullet Puff.lua")
@@ -304,7 +311,7 @@ dofile("Obituaries.lua")
 ---@field starthealth integer Health the player spawns with
 ---@field maxhealth integer Maximum natural health cap
 ---@field soulspheremax? integer Maximum Soulsphere cap. Defaults to (2*maxhealth) if left unspecified
----@field armormax? integer Absolute armor cap (for bonuses and megaspheres)
+---@field maxarmor? integer Absolute armor cap (for bonuses and megaspheres)
 ---@field armorproperties? doomarmorproperties_t Armor behavior tuning
 ---@field startammo? doomammotable_t Ammo given on spawn (vanilla system only)
 ---@field startweapon? string The weapon given to the player on spawn (vanilla system only)
