@@ -258,7 +258,11 @@ doom.titlemenus = {
 			{label = "quitgame", patch = "M_QUITG", fallbackname = "Quit Game", x = 97, y = 64, goto = "quitgame"}
 		},
 		customFunc = function(v, player)
+			--#ifdef STRIFE
+			v.draw(84, 2, v.cachePatch("M_STRIFE"))
+			--#else
 			v.draw(94, 2, v.cachePatch("M_DOOM"))
+			--#endif
 		end,
 	},
 	optionmenu = {
@@ -601,7 +605,11 @@ local function DrawTitleScreen(v, player)
 
             -- Draw skull cursor
             if not (menuDef.nocursor or menuDef.dontdrawcursor) and k == selIndex then
+				--#ifdef STRIFE
+				local skullframe = "M_CURS" .. ((hudtime / 5) % 8 + 1)
+				--#else
                 local skullframe = (hudtime % 30) > 15 and "M_SKULL2" or "M_SKULL1"
+				--#endif
                 local skullX = override and override.x or (baseX + SKULLXOFF)
                 local skullY = override and override.y or y
                 local skullPatch = override and override.skullpatch or skullframe
@@ -613,11 +621,15 @@ end
 
 hud.add(function(v, player)
 	if IsTitleMode() then
+		--#ifdef STRIFE
+			S_ChangeMusic("logo", false)
+		--#else
 		if doom.isdoom1 then
 			S_ChangeMusic("introa", false)
 		else
 			S_ChangeMusic("dm2ttl", false)
 		end
+		--#endif
 
 		v.drawFill()
 
