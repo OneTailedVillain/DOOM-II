@@ -1899,3 +1899,68 @@ end
 function doom.dontDrawHUDCondits()
 	return DOOM_IsExiting() or (doom.textscreen.active and doom.textscreen.postgraphic) or (doom.intermission and not doom.isdoom1) or doom.showendoom
 end
+
+-- Array mapping of face sprite index to patch name
+local st_faces = {
+	-- Pain offset 0
+	"STFST00",  -- Surveying, looking left
+	"STFST01",  -- Surveying, looking straight
+	"STFST02",  -- Surveying, looking right
+	"STFTL00",  -- Turning toward target on the left
+	"STFTR00",  -- Turning toward target on the right
+	"STFOUCH0", -- Extreme pain
+	"STFEVL0",  -- Evil grin
+	"STFKILL0", -- Rampage/Slight pain
+
+	-- Pain offset 1
+	"STFST10", "STFST11", "STFST12",
+	"STFTL10", "STFTR10",
+	"STFOUCH1",
+	"STFEVL1",
+	"STFKILL1",
+
+	-- Pain offset 2
+	"STFST20", "STFST21", "STFST22",
+	"STFTL20", "STFTR20",
+	"STFOUCH2",
+	"STFEVL2",
+	"STFKILL2",
+
+	-- Pain offset 3
+	"STFST30", "STFST31", "STFST32",
+	"STFTL30", "STFTR30",
+	"STFOUCH3",
+	"STFEVL3",
+	"STFKILL3",
+
+	-- Pain offset 4
+	"STFST40", "STFST41", "STFST42",
+	"STFTL40", "STFTR40",
+	"STFOUCH4",
+	"STFEVL4",
+	"STFKILL4",
+
+	-- God face
+	"STFGOD0",
+
+	-- Dead face
+	"STFDEAD0"
+}
+
+function doom.HUD_drawFace(v, player)
+	local chardef = P_GetSupportsForSkin(player)
+	local index = player.doom.faceindex + 1
+	if index > #st_faces then index = #st_faces end
+	local patch
+	if chardef.st_faces then
+		patch = chardef.st_faces[index]
+	else
+		patch = st_faces[index]
+	end
+	local prefixmaybe = chardef.faceprefix or ""
+	if patch != nil then
+		v.draw(143, 168, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
+	else
+		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
+	end
+end
