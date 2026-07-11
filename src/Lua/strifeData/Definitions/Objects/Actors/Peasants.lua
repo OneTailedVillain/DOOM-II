@@ -57,6 +57,15 @@ local states = {
 		{action = nil,          frame = U, sprite = SPR_GIBS, tics = 5},
 		{action = nil,          frame = V, sprite = SPR_GIBS, tics = 1400},
 	},
+	gib = {
+		{sprite = SPR_GIBS, action = A_DoomTossGib, frame = M, tics = 5},
+		{sprite = SPR_GIBS, action = A_DoomXScream, frame = N, tics = 5},
+		{sprite = SPR_GIBS, action = A_DoomFall,    frame = O, tics = 5},
+		{sprite = SPR_GIBS, action = A_DoomTossGib, frame = P, tics = 4},
+		{sprite = SPR_GIBS, action = A_DoomTossGib, frame = Q, tics = 4},
+		{sprite = SPR_GIBS, action = A_DoomTossGib, frame = R, tics = 4},
+		{sprite = SPR_GIBS, action = A_DoomTossGib, frame = S, tics = 4, next = "die", nextframe = 9},
+	},
 }
 
 DefineDoomActor(name, object, states)
