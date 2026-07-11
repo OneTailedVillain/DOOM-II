@@ -106,14 +106,21 @@ def build_lua_deh_table(mapping: dict) -> bytes:
 	"""
 	Build a Lua lump that populates doom.dehacked.<KEY> = <value string>
 	"""
-	lines = [
-		'if not doom then',
-		'\terror("This WAD is meant for the DOOM SRB2 port and should NOT be loaded first!")',
-		'end',
-		'',
-		'doom.dehacked = doom.dehacked or {}',
-		''
-	]
+	lines = """if not doom then
+	---@param v videolib
+	hud.add(function(v)
+		v.drawString(160, 100, "THE IWAD IS NOT MEANT TO BE LOADED FIRST!\nEXIT THE GAME AND LOAD THE ENGINE BEFORE THE IWAD THIS TIME!\nSOME IMPORTANT FEATURES WILL NOT WORK!", V_PERPLAYER, "center")
+	end)
+
+	---@param v videolib
+	hud.add(function(v)
+		v.drawString(160, 100, "THE IWAD IS NOT MEANT TO BE LOADED FIRST!\nEXIT THE GAME AND LOAD THE ENGINE BEFORE THE IWAD THIS TIME!\nSOME IMPORTANT FEATURES WILL NOT WORK!", V_PERPLAYER, "center")
+	end, "title")
+
+	error("This WAD is meant for the DOOM SRB2 port and should NOT be loaded first!")
+end
+"""
+
 	for key, raw in mapping.items():
 		if re.match(r'^[A-Z_][A-Z0-9_]*$', key):
 			lhs = f"doom.dehacked.{key}"
@@ -121,9 +128,10 @@ def build_lua_deh_table(mapping: dict) -> bytes:
 			lhs = f'doom.dehacked["{key}"]'
 
 		bracket_literal = _make_safe_lua_long_bracket_for_bytes(raw)
-		lines.append(f'{lhs} = {bracket_literal}')
-	lines.append('')
-	return ("\n".join(lines)).encode("utf-8")
+		lines += f'{lhs} = {bracket_literal}\n'
+
+	lines += '\n'
+	return lines.encode("utf-8")
 
 def build_structured_lua_deh(structured_deh: dict) -> bytes:
 	"""Build nested Lua tables from the structured_deh dict."""
