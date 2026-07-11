@@ -10,6 +10,19 @@ local cacheShit = {
 	}
 }
 
+function doom.invalidateCache()
+	cacheShit = {
+		colormaps = {},
+		patches = {},
+		fonts = {},
+		lastwarned = {
+			flag = {
+				typemismatch = {}
+			}
+		}
+	}
+end
+
 -- Either get or create a colormap
 -- Actually remembers what it created, however I don't really think this
 -- Boosts performance like the proprietary cachePatch function does
