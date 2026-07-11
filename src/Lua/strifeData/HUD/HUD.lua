@@ -10,6 +10,7 @@ local function DrawStatusBarNumbers(v, player)
 	local funcs = P_GetMethodsForSkin(player)
 	local myHealth = funcs.getHealth(player) or 0
 	local myMaxHealth = funcs.getMaxHealth(player) or 0
+	myMaxHealth = $ - (player.doom.strife_stamina or 0)
 	local myArmor = funcs.getArmor(player) or 0
 	local myAmmo = funcs.getCurAmmo(player)
 
@@ -100,6 +101,6 @@ local function drawStatusBar(drawer, player)
 end
 
 doom.hudDraw["strife"] = function(v, player)
-	drawWeapon(v, player, 38)
+	drawWeapon(v, player, 0)
 	drawStatusBar(v, player, 1)
 end
