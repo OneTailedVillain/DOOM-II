@@ -254,7 +254,6 @@ doom.obitStrings = {
 			"%o was splattered by a cyberdemon.",
 			"%o shot the cyberdemon until they died.",
 			"%o misunderstood who was meant to die first.",
-			"%o discovered the cyberdemon's counterattack.",
 		},
 		ssguard = "%o met a Nazi.",
 		painelemental = {
