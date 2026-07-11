@@ -439,23 +439,29 @@ doom.lineActions = {
 	-- Raise to next higher (Changes)
 	[20] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, repeatable = false, activationType = "switch"
+		changes = true, changeType = "type",
+		repeatable = false, activationType = "switch"
 	},
 	[68] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, repeatable = true, activationType = "switch"
+		changes = true, changeType = "type",
+		repeatable = true, activationType = "switch"
 	},
 	[22] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, repeatable = false, activationType = "walk"
+		changes = true, changeType = "type",
+		repeatable = false, activationType = "walk"
 	},
 	[95] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, repeatable = true, activationType = "walk"
+		changes = true, changeType = "type",
+		repeatable = true, activationType = "walk"
 	},
+
 	[47] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, repeatable = false, activationType = "gunshot"
+		changes = true, changeType = "type",
+		repeatable = false, activationType = "gunshot"
 	},
 
 	-- Raise to ceiling variants
@@ -502,28 +508,37 @@ doom.lineActions = {
 
 	[15] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, repeatable = false, activationType = "switch"
+		changes = true, changeType = "texture",
+		repeatable = false, activationType = "switch"
 	},
 	[66] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, repeatable = true, activationType = "switch"
+		changes = true, changeType = "texture",
+		repeatable = true, activationType = "switch"
 	},
 	[59] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, repeatable = false, activationType = "walk"
+		changes = true, changeType = "zero",
+		repeatable = false, activationType = "walk"
 	},
 	[93] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, repeatable = true, activationType = "walk"
+		changes = true, changeType = "zero",
+		repeatable = true, activationType = "walk"
 	},
+
 	[14] = {
 		type = "floor", action = "raise", target = 32*FRACUNIT,
-		changes = true, repeatable = false, activationType = "switch"
+		changes = true, changeType = "texture",
+		repeatable = false, activationType = "switch"
 	},
+
 	[67] = {
 		type = "floor", action = "raise", target = 32*FRACUNIT,
-		changes = true, repeatable = true, activationType = "switch"
+		changes = true, changeType = "texture",
+		repeatable = true, activationType = "switch"
 	},
+
 	[140] = {
 		type = "floor", action = "raise", target = 512*FRACUNIT,
 		repeatable = false, activationType = "switch"
@@ -616,7 +631,7 @@ doom.lineActions = {
 
 	-- Donut
 	[9] = {
-		type = "floor", action = "donut", changes = true,
+		type = "floor", action = "donut",
 		repeatable = false, activationType = "switch"
 	},
 
