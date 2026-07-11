@@ -221,6 +221,11 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 ---@diagnostic disable-next-line: inject-field
 	mi.doomname = name
 
+	--#ifdef STRIFE
+	    mobjinfo[MT].translation = objData.translation
+	    mobjinfo[MT].conversationid = objData.conversationid
+	--#endif
+
 	-- Mainly only used by Strife
 	mi.friendly = objData.friendly
 
@@ -289,6 +294,12 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 		if mobj.z < mobj.subsector.sector.floorheight then
 			P_MoveOrigin(mobj, mobj.x, mobj.y, mobj.subsector.sector.floorheight)
 		end
+
+		--#ifdef STRIFE
+        if mobj.info.translation != nil then
+            mobj.translation = "STRIFE" .. mobj.info.translation
+        end
+		--#endif
 
 		local mdoom = mobj.doom
 
