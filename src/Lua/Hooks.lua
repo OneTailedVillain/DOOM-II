@@ -1832,7 +1832,6 @@ local thinkers = {
 				S_StartSound(sector, sfx_stnmov)
 			end
 
-			print(sector, dir)
 			-- check if reached target
 			if dir == "up" then
 				if sector.floorheight >= target then
@@ -1850,8 +1849,11 @@ local thinkers = {
 							sector.floorpic = data.newfloorpic
 
 						elseif data.changeType == "type" then
-							sector.floorpic = data.newfloorpic
-							doom.sectorspecials[sector] = data.newSectorSpecial
+							if data.newfloorpic == nil then
+								print("WARNING: NewFloorPic for this floor was nil!")
+							end
+							sector.floorpic = data.newfloorpic or "REDWALL"
+							doom.sectorspecials[sector] = data.newSectorSpecial or 0
 						end
 					end
 					-- play stop sound
