@@ -1,4 +1,4 @@
-local baseMethods = doom.charSupportBaseMethods
+local baseMethods = doom.characterDefsBaseMethods
 
 local function normalizeAmmoType(aType)
     if type(aType) == "string" then
@@ -233,7 +233,7 @@ local function RandomizeFromSimpleDefs(defs, player, bonusFactor)
     return SimpleDefToStats(picked)
 end
 
-doom.charSupport.kombifreeman = {
+doom.characterDefs.kombifreeman = {
 	noWeapons = true, -- Disable the DOOM port's weapons
 	noHUD = true, -- Get rid of the DOOM port's HUD
 	customDamage = true, -- If this skin also uses MobjDamage

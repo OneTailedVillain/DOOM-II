@@ -80,7 +80,7 @@ void A_Tracer (mobj_t* actor)
 local TRACEANGLE = FixedAngle(FRACUNIT*7/2) -- approximately 3.5 degrees
 
 ---@param actor mobj_t The projectile actor
-local function A_Tracer(actor)
+function A_Tracer(actor)
 	-- Only trace every 4 tics (same as DOOM engine behavior)
 	if leveltime & 3 then return end
 	
@@ -175,3 +175,5 @@ mobjinfo[MT_DOOM_REVENANT_PROJECTILE] = {
 
     flags = MF_NOGRAVITY|MF_MISSILE,
 }
+
+mobjinfo[MT_DOOM_REVENANT_PROJECTILE].doomname = "RevenantFireball"

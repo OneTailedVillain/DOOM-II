@@ -127,7 +127,7 @@ local object = {
 	flags = MF_NOBLOCKMAP|MF_NOGRAVITY|MF_NOCLIPHEIGHT,
 }
 
-local function A_LoopActiveSound(actor)
+function A_LoopActiveSound(actor)
 	if not S_SoundPlaying(actor, actor.info.activesound) then
 		S_StartSound(actor, actor.info.activesound)
 	end

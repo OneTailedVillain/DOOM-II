@@ -492,40 +492,40 @@ doom.lineActions = {
 
 	-- Raise fixed amount
 	[58] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		repeatable = false, activationType = "walk"
 	},
 	[92] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		repeatable = true, activationType = "walk"
 	},
 
 	[15] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		changes = true, repeatable = false, activationType = "switch"
 	},
 	[66] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		changes = true, repeatable = true, activationType = "switch"
 	},
 	[59] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		changes = true, repeatable = false, activationType = "walk"
 	},
 	[93] = {
-		type = "floor", action = "raise", amount = 24,
+		type = "floor", action = "raise", target = 24*FRACUNIT,
 		changes = true, repeatable = true, activationType = "walk"
 	},
 	[14] = {
-		type = "floor", action = "raise", amount = 32,
+		type = "floor", action = "raise", target = 32*FRACUNIT,
 		changes = true, repeatable = false, activationType = "switch"
 	},
 	[67] = {
-		type = "floor", action = "raise", amount = 32,
+		type = "floor", action = "raise", target = 32*FRACUNIT,
 		changes = true, repeatable = true, activationType = "switch"
 	},
 	[140] = {
-		type = "floor", action = "raise", amount = 512,
+		type = "floor", action = "raise", target = 512*FRACUNIT,
 		repeatable = false, activationType = "switch"
 	},
 
@@ -736,10 +736,22 @@ doom.lineActions = {
 		place = "side", repeatable = true, activationType = "always"
 	},
 
+	[252] = {
+		type = "scroll", direction = "line", speed = "line",
+		repeatable = true, activationType = "always",
+		place = "floor", carryobjects = true, target = "tagged",
+		noscroll = true
+	},
+
 	[253] = {
 		type = "scroll", direction = "line", speed = "line",
 		repeatable = true, activationType = "always",
 		place = "floor", carryobjects = true, target = "tagged"
+	},
+
+	[260] = {
+		type = "transparency", activationType = "always",
+		target = "tag"
 	},
 
 	[244] = {
@@ -765,14 +777,6 @@ doom.lineActions = {
 		type = "floor", action = "lower", target = "nextneighbor",
 		repeatable = true, activationType = "switch"
 	},
-/*
-2069	ID24	W1 Exit and Reset Inventory (Normal)
-2070	ID24	S1 Exit and Reset Inventory (Normal)
-2071	ID24	G1 Exit and Reset Inventory (Normal)
-2072	ID24	W1 Exit and Reset Inventory (Secret)
-2073	ID24	S1 Exit and Reset Inventory (Secret)
-2074	ID24	G1 Exit and Reset Inventory (Secret)
-*/
 
 	[2069] = {
 		type = "exit", secret = false, resetInventory = true,
@@ -1038,6 +1042,13 @@ local function applyGroupConfig(groupConfig, baseSpecial, baseEntry)
 				action[key] = value
 			end
 		end
+
+		for _, field in ipairs(groupConfig.fields) do
+			local fieldConfigTable = groupConfig[field.description]
+			if fieldConfigTable.condit then
+				fieldConfigTable.condit(action)
+			end
+		end
 		doom.lineActions[baseSpecial + i] = action
 	end
 end
@@ -1300,6 +1311,109 @@ local generalizedDoorConfig = {
 }
 
 applyGroupConfig(generalizedDoorConfig, 0x3c00)
+
+/*
+Texture change designations:
+
+c0n - change texture, change sector type to 0, numeric model change
+c0t - change texture, change sector type to 0, trigger model change
+cTn - change texture only, numeric model change
+cTt - change texture only, trigger model change
+cSn - change texture and sector type to model's, numeric model change
+cSt - change texture and sector type to model's, trigger model change
+A trigger model change uses the sector on the first side of the trigger for its model. A numeric model change looks at the sectors adjoining the tagged sector at the target height, and chooses the one across the lowest numbered two sided line for its model. If no model exists, no change occurs. Note that in DOOM II v1.9, no model meant an illegal sector type was generated.
+
+field	description	NBits	Mask	Shift 
+trigger	W1/WR/S1/SR/G1/GR/P1/PR	3	0x0007	0
+speed	slow/normal/fast/turbo	2	0x0018	3
+model	trig/numeric -or- nomonst/monst	1	0x0020	5
+direct	down/up	1	0x0040	6
+target	HnF/LnF/NnF/LnC/C/sT/24/32	3	0x0380	7
+change	nochg/zero/txtonly/type	2	0x0c00	10
+crush	no/yes	1	0x1000	12
+
+Notes:
+
+When change is nochg, model is 1 when monsters can activate trigger otherwise monsters cannot activate it.
+The change fields mean the following:
+nochg - means no texture change or type change
+zero - means sector type is zeroed, texture copied from model
+txtonly - means sector type unchanged, texture copied from model
+type - means sector type and floor texture are copied from model
+down/up specifies the "normal" direction for moving. If the target specifies motion in the opposite direction, motion is instant. Otherwise it occurs at speed specified by speed field.
+Speed is 1/2/4/8 units per tic
+If change is nonzero then model determines which sector is copied. If model is 0 its the sector on the first side of the trigger. If model is 1 (numeric) then the model sector is the sector at destination height on the opposite side of the lowest numbered two sided linedef around the tagged sector. If it does not exist no change occurs.
+*/
+
+local generalizedFloorConfig = {
+	fields = {
+		{bits = 3, shift = 0, description = "trigger"},
+		{bits = 2, shift = 3, description = "speed"},
+		{bits = 1, shift = 5, description = "model"},
+		{bits = 1, shift = 6, description = "direct"},
+		{bits = 3, shift = 7, description = "target"},
+		{bits = 2, shift = 10, description = "change"},
+		{bits = 1, shift = 12, description = "crush"}
+	},
+	trigger = {
+		[0]={activationType="walk",repeatable=false}, -- W1
+		[1]={activationType="walk",repeatable=true},  -- WR
+		[2]={activationType="switch",repeatable=false}, -- S1
+		[3]={activationType="switch",repeatable=true},  -- SR
+		[4]={activationType="gunshot",repeatable=false}, -- G1
+		[5]={activationType="gunshot",repeatable=true},  -- GR
+		[6]={activationType="push",repeatable=false}, -- P1
+		[7]={activationType="push",repeatable=true},  -- PR
+	},
+	speed = {
+		[0] = {speed = "slow"},
+		[1] = {speed = "normal"},
+		[2] = {speed = "fast"},
+		[3] = {speed = "turbo"}
+	},
+	model = {
+		[0] = {model = "trigger"},
+		[1] = {model = "numeric"},
+		condit = function(self)
+			if self.change == "nochg" then
+				if self.model == "trigger" then
+					self.model = "nomonster"
+				else
+					self.model = "monster"
+				end
+			end
+		end
+	},
+	direct = {
+		[0] = {action = "lower"},
+		[1] = {action = "raise"}
+	},
+	target = {
+		[0] = {target = "highest"},           -- highest adjacent floor
+		[1] = {target = "lowest"},            -- lowest adjacent floor
+		[2] = {target = "nextfloor"},         -- next higher adjacent floor
+		[3] = {target = "lowestceiling"},     -- lowest adjacent ceiling
+		[4] = {target = "ceiling"},           -- current sector ceiling
+		[5] = {target = "shortestlowertex"},  -- shortest lower texture
+		[6] = {target = 24*FRACUNIT},
+		[7] = {target = 32*FRACUNIT},
+	},
+	change = {
+		[0] = {change = "nochg"},
+		[1] = {change = "zero"},
+		[2] = {change = "txtonly"},
+		[3] = {change = "type"}
+	},
+	crush = {
+		[0] = {crush = false},
+		[1] = {crush = true}
+	},
+	baseEntry = {
+		type = "floor"
+	}
+}
+
+applyGroupConfig(generalizedFloorConfig, 0x6000)
 --#endif
 
 -- Now apply potential changes to the line special mapping

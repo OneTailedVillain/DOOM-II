@@ -1,7 +1,7 @@
 ---@type doommethods_t
-local methods = deepcopy(doom.charSupportBaseMethods)
+local methods = deepcopy(doom.characterDefsBaseMethods)
 
-doom.charSupport.dpecmegaman = {
+doom.characterDefs.dpecmegaman = {
 	noHUD = true,
 
 	useDoomMovement = true,

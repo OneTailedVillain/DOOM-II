@@ -133,8 +133,6 @@ doom.obitStrings = {
 		barrel = {
 			"%o went boom.",
 			"%o triggered an explosive surprise.",
-			"%o discovered barrels are volatile.",
-			"%o learned not to stand near explosives.",
 			"%o was eliminated by environmental hazards.",
 			"%o found the wrong container.",
 			"%o had a barrel of bad luck.",
@@ -150,25 +148,17 @@ doom.obitStrings = {
 			"%o learned barrels listen to %k.",
 			"%o was blown apart thanks to %k.",
 			"%o suffered from %k's explosive solution.",
-			"%o was erased by %k's barrel tactics."
+			"%o was erased by %k's barrel tactics.",
 		},
 		barrel_monster = {
 			"%o was blown up by a monster-triggered barrel.",
-			"%o stood too close to a demon's bad idea.",
 			"%o was caught in a monster-made explosion.",
 			"%o learned monsters don't respect explosives.",
 			"%o was collateral damage in a demon firefight.",
 			"%o was undone by a monster's stray attack.",
 			"%o paid for a monster's poor aim.",
 			"%o was eliminated by demonic environmental hazards.",
-			"%o stood between a monster and a barrel.",
-			"%o discovered barrels answer to monsters too."
-		},
-		barrel_self = {
-			"%o set off their own explosive trap.",
-			"%o learned not to play with explosives.",
-			"%o became a victim of their own barrel.",
-			"%o triggered their own demise.",
+			"%o stood between a monster and a barrel."
 		},
 
 		monster_infighting = {
@@ -225,6 +215,7 @@ doom.obitStrings = {
 			"%o decided to stop existing."
 		},
 		voodoo = "%o experienced the power of voodoo.",
+		voodoo_self = "%o destroyed their own voodoo doll.",
 		telefrag_player = {
 			"%o was telefragged by %k.",
 			"%o was obliterated by %k's teleportation.",
@@ -1494,7 +1485,7 @@ function doom.loadStrings(gameType)
 	}
 end
 --#elif DOOM
-function doom.loadStrings(gameType)
+function doom.loadStrings(gameType, gamemode)
 	if gameType == "srb2" then
 		doom.strings = {
 			D_DEVSTR = "Development mode ON.\n",
@@ -2143,6 +2134,38 @@ function doom.loadStrings(gameType)
 			T5TEXT = "What now? Looks totally different. Kind\nof like King Tut's condo. Well,\nwhatever's here can't be any worse\nthan usual. Can it?  Or maybe it's best\nto let sleeping gods lie..",
 			T6TEXT = "Time for a vacation. You've burst the\nbowels of hell and by golly you're ready\nfor a break. You mutter to yourself,\nMaybe someone else can kick Hell's ass\nnext time around. Ahead lies a quiet town,\nwith peaceful flowing water, quaint\nbuildings, and presumably no Hellspawn.\n\nAs you step off the transport, you hear\nthe stomp of a cyberdemon's iron shoe.",
 		}
+
+		if gamemode == "commercial" then
+			doom.strings["GAMENAME"] =
+			"                         " ..
+			"DOOM 2: Hell on Earth v%i.%i" ..
+			"                           "
+		elseif gamemode == "retail" then
+			doom.strings["GAMENAME"] =
+			"                         " ..
+			"The Ultimate DOOM Startup v%i.%i" ..
+			"                           "
+		elseif gamemode == "shareware" then
+			doom.strings["GAMENAME"] =
+			"                            " ..
+			"DOOM Shareware Startup v%i.%i" ..
+			"                           "
+		elseif gamemode == "registered" then
+			doom.strings["GAMENAME"] =
+			"                            " ..
+			"DOOM Registered Startup v%i.%i" ..
+			"                           "
+		--[[ elseif gamemode == "pack_plut" then
+			doom.strings["GAMENAME"] = "                   " .. "DOOM 2: Plutonia Experiment v%i.%i" .. "                           "
+		elseif gamemode == "pack_tnt" then
+			doom.strings["GAMENAME"] = "                     " .. "DOOM 2: TNT - Evilution v%i.%i" .. "                           "
+		]]
+		else
+			doom.strings["GAMENAME"] =
+			"                     " ..
+			"Public DOOM - v%i.%i" ..
+			"                           "
+		end
 	elseif gameType == "chex" then
 		doom.strings = {
 			-- P_inter.C

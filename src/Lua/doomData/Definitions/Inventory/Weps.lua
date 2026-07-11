@@ -125,10 +125,10 @@ doom.addWeapon("pistol", {
 			{frame = A, tics = 1, action = A_DoomWeaponReady},
 		},
 		lower = {
-			{frame = A, tics = 1, action = A_DoomLower}
+			{frame = A, tics = 1, action = A_DoomLower, goto = "lower"}
 		},
 		raise = {
-			{frame = A, tics = 1, action = A_DoomRaise}
+			{frame = A, tics = 1, action = A_DoomRaise, goto = "raise"}
 		},
 		attack = {
 			{frame = A, tics = 4},

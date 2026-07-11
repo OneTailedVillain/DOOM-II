@@ -133,6 +133,9 @@ hud.add(function(v, player)
 		doom.drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	if support.noHUD or (support.properties and support.properties.noHUD) then
+		if support.noHUD then
+			doom.warn("deprecated.noHUD", "doom.characterDefs['" .. player.mo.skin .. "'].noPartialInvisEffect is deprecated and will be removed in a future version. Use properties.overridePartialInvisibilityFX instead.")
+		end
 		if not support.noWeapons then
 			drawWeapon(v, player, 38)
 		end

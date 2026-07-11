@@ -17,7 +17,7 @@ end
 local function rebuildCSSIndex()
 	doom.cssindex = {}
 
-	for skinname, def in pairs(doom.charSupport) do
+	for skinname, def in pairs(doom.characterDefs) do
 		if not skins[skinname] then continue end
 		if def.css and not def.css.hidden then
 			doom.cssindex[#doom.cssindex+1] = normalizeCSS(skinname, def.css)

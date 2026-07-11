@@ -33,20 +33,6 @@ rawset(_G, "printTable", function(data, prefix)
 	end
 end)
 
-local function SafeFreeSlot(...)
-    local ret = {}
-    for _, name in ipairs({...}) do
-        -- If already freed, just use the existing slot
-        if rawget(_G, name) ~= nil then
-            ret[name] = _G[name]
-        else
-            -- Otherwise, safely freeslot it and return the value
-            ret[name] = freeslot(name)
-        end
-    end
-    return ret
-end
-
 ---@param name string The object name (e.g., "Plasma")
 ---@param stateDefs table<string, StateFrame> Table of state definitions
 ---@return nil
@@ -447,6 +433,11 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 		mobj.momz = 0
 	end, MT)
 
+	addHook("MobjLineCollide", function(mobj, line)
+		if not (mobj.flags & MF_SPECIAL) then return end
+		return false
+	end)
+
     -- fill states and make them loop (last -> first)
     for i, frame in ipairs(stateFrames) do
         local thisName = string.format("S_%s_%d", prefix, i)
@@ -588,7 +579,7 @@ rawset(_G, "DOOM_ResolveString", function(text)
         local index = text:sub(2)
         if index:match("^[%w_]+$") then
             -- Prefer dehacked strings if present, otherwise fall back to base doom.strings
-			local def = P_GetSupportsForSkin(displayplayer)
+			local def = P_GetSupportsForSkin(displayplayer or {skin = "sonic"})
 			local van = def.vanillaoverrides
 			if van and van.strings and van.strings[index] then
 				return van.strings[index]
@@ -642,7 +633,7 @@ rawset(_G, "DOOM_SpawnMissile", function(source, dest, type)
 
     local dist = P_AproxDistance(dest.x - source.x,
                                  dest.y - source.y)
-    dist = dist / th.info.speed
+    dist = dist / (th.info.speed or 1)
 
     if dist < 1 then dist = 1 end
 
@@ -654,10 +645,10 @@ end)
 
 -- Awkward name! fuckhead
 ---@param player player_t
----@return doomcharsupport_t
+---@return doomcharacterDefs_t
 rawset(_G, "P_GetSupportsForSkin", function(player)
 	if not player.mo then return {} end
-	return doom.charSupport[skins[player.skin].name] or {}
+	return doom.characterDefs[skins[player.skin].name] or {}
 end)
 
 ---@param player player_t
@@ -1395,9 +1386,14 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
 		if targst != nil and type(targst) == "string" then
 			state = targst
 		end
-		if targfr != nil and type(targst) == "number" then
+		if targfr != nil and type(targfr) == "number" then
 			frame = targfr
 		end
+	end
+
+    local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
+    if not stateDef then
+        return
 	end
 
     psp.state = state
@@ -1408,16 +1404,10 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
 		if targst != nil and type(targst) == "string" then
 			psp.state = targst
 		end
-		if targfr != nil and type(targst) == "number" then
+		if targfr != nil and type(targfr) == "number" then
 			psp.frame = targfr
 		end
 	end
-
-    local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
-    if not stateDef then
-        return
-	end
-
 	psp.tics = stateDef.tics or 0
 	doom.runStateAction(player, stateDef)
 
@@ -1857,14 +1847,18 @@ rawset(_G, "DOOM_LookForPlayers", function(actor, allaround)
     return false
 end)
 
+-- Testing something where instead of doing all that prnd shit,
+-- We just P_RandomByte() instead
 rawset(_G, "DOOM_Random", function()
-    doom.prndindex = (doom.prndindex+1)&0xff;
-    return doom.rndtable[doom.prndindex + 1];
+    --doom.prndindex = (doom.prndindex+1)&0xff;
+    return P_RandomByte() -- doom.rndtable[doom.prndindex + 1];
 end)
 
-rawset(_G, "DOOM_IsSecretLevel", function()
-    doom.prndindex = (doom.prndindex+1)&0xff;
-    return doom.rndtable[doom.prndindex + 1];
+local prndindex = 0
+
+rawset(_G, "DOOM_MRandom", function()
+    prndindex = (prndindex+1)&0xff;
+    return doom.rndtable[prndindex + 1];
 end)
 
 -- Give weapon to the player, respecting the skin property overrides
@@ -1881,8 +1875,6 @@ end
 function doom.getFrags(player)
 	local fragcount = 0
 	for otherplayer in players.iterate() do
-		if otherplayer.spectator then continue end
-
 		local fragdiffs
 		local frags = player.doom.frags[#otherplayer] or 0
 		if #player != #otherplayer then
@@ -1897,7 +1889,7 @@ end
 
 -- conditions for when the HUD shouldn't be drawn
 function doom.dontDrawHUDCondits()
-	return DOOM_IsExiting() or (doom.textscreen.active and doom.textscreen.postgraphic) or (doom.intermission and not doom.isdoom1) or doom.showendoom
+	return DOOM_IsExiting() or DOOM_InAutomap() or (doom.textscreen.active and doom.textscreen.postgraphic) or (doom.intermission and not doom.isdoom1) or doom.showendoom
 end
 
 -- Array mapping of face sprite index to patch name
@@ -1947,7 +1939,9 @@ local st_faces = {
 	"STFDEAD0"
 }
 
-function doom.HUD_drawFace(v, player)
+function doom.HUD_drawFace(v, player, xpos, ypos)
+	if xpos == nil then xpos = 143 end
+	if ypos == nil then ypos = 168 end
 	local chardef = P_GetSupportsForSkin(player)
 	local index = player.doom.faceindex + 1
 	if index > #st_faces then index = #st_faces end
@@ -1959,8 +1953,16 @@ function doom.HUD_drawFace(v, player)
 	end
 	local prefixmaybe = chardef.faceprefix or ""
 	if patch != nil then
-		v.draw(143, 168, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
+		v.draw(xpos, ypos, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
 	else
 		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
 	end
+end
+
+local warnedfor = {}
+
+function doom.warn(key, message)
+	if warnedfor[key] then return end
+	print("WARNING: " .. tostring(message))
+	warnedfor[key] = true
 end

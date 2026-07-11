@@ -21,7 +21,7 @@ local object = {
 	mass = 100,
 	speed = 0,
 	painchance = 255,
-	doomednum = 4000, -- Real stat has this at -1! Remember to change this after verifying behavior and shit
+	doomednum = -1,
 	painsound = sfx_plpain,
 	deathsound = sfx_pldeth,
 	sprite = SPR_PLAY,
@@ -31,12 +31,16 @@ local object = {
 	deathstate = S_DOOM_PLAYER_DIE1,
 	xdeathstate = S_DOOM_PLAYER_GIB1,
 	painstate = S_DOOM_PLAYER_PAIN1,
+	doomflags = 0
 	-- TODO:
 	--doomflags = DF_COUNTKILL
 }
-/*
+
+local states = {}
+
 DefineDoomActor(name, object, states)
 
+/*
 doom.addHook("MobjDamage", function(target, inflictor, source, damage, damagetype, minhealth)
     -- Get first player
     local player = players[0]

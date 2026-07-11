@@ -3,7 +3,7 @@ freeslot("SPR_LINK_SSG", "SPR_LINK_FIREROD", "sfx_lttpbd", "sfx_lttpbb", "sfx_lt
 "sfx_lttplh", "sfx_lttpld")
 
 ---@type doommethods_t
-local methods = deepcopy(doom.charSupportBaseMethods)
+local methods = deepcopy(doom.characterDefsBaseMethods)
 
 -- Except this since we want vanilla behavior for EVERYTHING but berserk pack
 -- Berserk gives a temporary double magic and 2x damage to all weapons
@@ -152,7 +152,6 @@ end
 addHook("PlayerThink", function(player)
 	if not player.doom.zsnes_pieceofpower then return end
 	if player.doom.zsnes_pieceofpower <= 0 then return end
-	print(player.doom.zsnes_pieceofpower)
 	player.doom.zsnes_pieceofpower = $ - 1
 	if player.doom.zsnes_pieceofpower <= TICRATE*2 then
 		P_RestoreMusic(player)
@@ -182,7 +181,7 @@ local function A_DoomFireShotgun2(actor, var1, var2, weapon)
 	A_DoomGunFlash(actor)
 end
 
-doom.charSupport.dpecalttp = {
+doom.characterDefs.dpecalttp = {
 	noHUD = true,
 
 	css = {

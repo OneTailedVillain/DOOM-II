@@ -36,12 +36,12 @@ local object = {
 	doomflags = DF_COUNTKILL
 }
 
-local function A_SkelWhoosh(actor)
+function A_SkelWhoosh(actor)
 	A_DoomFaceTarget(actor)
 	S_StartSound(actor, sfx_skeswg)
 end
 
-local function A_SkelFist(actor)
+function A_SkelFist(actor)
 	if not actor.target then return end
 
 	A_DoomFaceTarget(actor)
@@ -75,7 +75,7 @@ void A_SkelMissile (mobj_t* actor)
 }
 */
 
-local function A_SkelMissile(actor)
+function A_SkelMissile(actor)
 	if not actor.target then return end
 
 	A_DoomFaceTarget(actor)

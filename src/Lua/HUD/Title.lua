@@ -621,16 +621,6 @@ end
 
 hud.add(function(v, player)
 	if IsTitleMode() then
-		--#ifdef STRIFE
-			S_ChangeMusic("logo", false)
-		--#else
-		if doom.isdoom1 then
-			S_ChangeMusic("introa", false)
-		else
-			S_ChangeMusic("dm2ttl", false)
-		end
-		--#endif
-
 		v.drawFill()
 
 		local titlePatch
@@ -647,6 +637,27 @@ hud.add(function(v, player)
 		DrawTitleScreen(v, consoleplayer)
 	end
 end, "title")
+
+function doom.getTitleMusicLump()
+	--#ifdef STRIFE
+		return "logo"
+	--#else
+		if doom.isdoom1 then
+			return "introa"
+		else
+			return "dm2ttl"
+		end
+	--#endif
+end
+
+addHook("MusicChange", function(old, new)
+	if gamestate != GS_TITLESCREEN then return end
+	if old:lower() == "_title" then
+		return doom.getTitleMusicLump()
+	elseif old:lower() == doom.getTitleMusicLump() then
+		return true
+	end
+end)
 
 doom.DrawTitleScreen = DrawTitleScreen
 

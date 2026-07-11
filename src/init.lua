@@ -70,13 +70,13 @@ dofile("Chardefs/other.lua")
 dofile("Chardefs/kombifreeman.lua")
 dofile("Chardefs/sonicdoomtwo.lua")
 
-for charName, charTable in pairs(doom.charSupport) do
+for charName, charTable in pairs(doom.characterDefs) do
 	if charName ~= "other" and charTable.methods then
-		charTable.methods = doom.mergeCharSupportMethods(doom.charSupportBaseMethods, charTable.methods)
+		charTable.methods = doom.mergecharacterDefsMethods(doom.characterDefsBaseMethods, charTable.methods)
 	end
 end
 
-doom.charSupportFinalize()
+doom.characterDefsFinalize()
 
 doom.hudDraw = $ or {}
 
@@ -223,7 +223,7 @@ end
 ---@alias possiblesightmethods
 ---| "sight" When the enemy sees you
 ---| "closeness" When the player gets too close to an enemy
----| "sight" When the enemy gets alerted due to sound
+---| "sound" When the enemy gets alerted due to sound
 
 ---@class doommethods_t List of Doom-specific methods for handling between different weapon/health/ammo systems.
 ---@field getHealth fun(player: player_t): integer|nil Returns the player's current health as an integer or nil if unavailable
@@ -348,7 +348,7 @@ end
 ---@field weapons? table<vanillaweps, doomvanillaweaponoverride_t> Weapon behavior overrides
 ---@field strings doomstrings? String replacements. Overrides both DeHackEd and vanilla.
 
----@class doomcharsupport_t Character support definition
+---@class doomcharacterDefs_t Character support definition
 ---@field faceprefix? string Prefix used for HUD face graphics (status bar / automap)
 ---@field css doomcharcss_t Character select screen data
 ---@field properties? doomcharproperties_t Gameplay/stat tuning
@@ -421,7 +421,7 @@ end
 ---@field defaultgravity fixed_t The default gravity value for the map
 ---@field lineActions table<integer, table> A table of line special actions, indexed by their line special number
 ---@field linebackups table<line_t, table> A table of line special backups, indexed by their line_t
----@field charSupport table<string, doomcharsupport_t> A table of character support definitions, indexed by skin name
+---@field characterDefs table<string, doomcharacterDefs_t> A table of character support definitions, indexed by skin name
 ---@field midGameTitlescreen boolean (MULTIPLAYER UNSAFE!) If true, enables access to the titlescreen in singleplayer mid-game.
 ---@field titlemenus table<string, table> The title menu definitions.
 ---@field intermission boolean True if in intermission.
@@ -488,7 +488,7 @@ end
 ---@field hookResolvers table<integer, doomhookresolver_t> Resolver implementations indexed by hook type
 ---@field addHook fun(name: string, func: fun(...): boolean|nil, objecttype: mobjtype_t?): nil Registers a hook function for a given hook name and optional object type filter
 ---@field callHook fun(name: string, returnmode: integer, target: mobj_t, ...): any Calls all hooks for a given name using the specified resolver mode and returns the resolved value
----@field charSupportBaseMethods doommethods_t A table of base character methods. Used for John Doom.
+---@field characterDefsBaseMethods doommethods_t A table of base character methods. Used for John Doom.
 
 ---@class doomspread_t
 ---@field horiz fixed_t

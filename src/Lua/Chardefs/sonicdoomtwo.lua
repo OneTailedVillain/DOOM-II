@@ -1,5 +1,5 @@
 ---@type doommethods_t
-local methods = deepcopy(doom.charSupportBaseMethods)
+local methods = deepcopy(doom.characterDefsBaseMethods)
 
 freeslot("SPR_SD2_SONICBFG",
 "SPR_SD2_SONICFISTS",
@@ -22,7 +22,7 @@ freeslot(
 ---@class doomcharproperties_t
 ---@field sounds table<integer, integer>? The sound properties for this charDef.
 
----@class doomcharsupport_t
+---@class doomcharacterDefs_t
 ---@field properties doomcharproperties_t?
 
 local function ClipSys_OnTryFire(player, wepdef, curammo)
@@ -219,7 +219,7 @@ doom.addAmmo("clip_plasma", {
 	bigpickupName = "rp"
 })
 
-doom.charSupport.sonic = {
+doom.characterDefs.sonic = {
 	-- Prefix used for the status bar (automap and otherwise)
 	faceprefix = "SONIC",
 
@@ -361,7 +361,7 @@ doom.charSupport.sonic = {
 						{tics = 2},
 					},
 					flash = {
-						{tics = 1},
+						{tics = 4},
 					}
 				},
 
@@ -526,7 +526,7 @@ freeslot("SPR_SD2_TAILSFISTS",
 "SPR_SD2_TAILSSAW",
 "SPR_SD2_TAILSSHOTGUN")
 
-doom.charSupport.tails = {
+doom.characterDefs.tails = {
 	-- Prefix used for the status bar (automap and otherwise)
 	faceprefix = "TAILS",
 
@@ -610,7 +610,7 @@ freeslot("SPR_SD2_KNUXFISTS",
 "SPR_SD2_KNUXSAW",
 "SPR_SD2_KNUXSHOTGUN")
 
-doom.charSupport.knuckles = {
+doom.characterDefs.knuckles = {
 	-- Prefix used for the status bar (automap and otherwise)
 	faceprefix = "KNUX",
 
@@ -692,7 +692,7 @@ doom.charSupport.knuckles = {
 freeslot("SPR_SD2_MECHACHAINGUN",
 "SPR_SD2_MECHAPLASMARIFLE", "SPR_SD2_MECHAPLASMARIFLEFLASH")
 
-doom.charSupport.metalsonic = {
+doom.characterDefs.metalsonic = {
 	-- Prefix used for the status bar (automap and otherwise)
 	faceprefix = "MECHA",
 

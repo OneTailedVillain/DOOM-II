@@ -34,3 +34,4 @@ mobjinfo[MT_DOOM_BARONFIREBALL] = {
 }
 
 mobjinfo[MT_DOOM_BARONFIREBALL].fastspeed = 20*FRACUNIT
+mobjinfo[MT_DOOM_BARONFIREBALL].doomname = "BaronFireball"

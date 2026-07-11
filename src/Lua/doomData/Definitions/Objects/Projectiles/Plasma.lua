@@ -37,6 +37,8 @@ mobjinfo[MT_DOOM_PLASMASHOT] = {
     flags = MF_NOGRAVITY|MF_MISSILE,
 }
 
+mobjinfo[MT_DOOM_PLASMASHOT].doomname = "PlasmaShot"
+
 mobjinfo[MT_DOOM_SD2PLASMASHOT] = {
     spawnstate = S_DOOM_PLASMA_SHOT1,
     seesound   = sfx_sd2pls,

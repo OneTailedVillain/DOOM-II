@@ -1,6 +1,6 @@
 #ifdef DOOM
 Flat    NUKAGE1   Range NUKAGE3   Tics 8
-Flat    FWATER1   Range FWATER16  Tics 8
+Flat    FWATER1   Range FWATER4   Tics 8
 Flat    SWATER1   Range SWATER4   Tics 8
 Flat    LAVA1     Range LAVA4     Tics 8
 Flat    BLOOD1    Range BLOOD3    Tics 8

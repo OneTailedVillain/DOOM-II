@@ -1,7 +1,5 @@
 SafeFreeSlot(
     "SPR_BAL1",
-    "S_DOOM_IMPFIRE1", "S_DOOM_IMPFIRE2",
-    "S_DOOM_IMPFIREEXPLODE1", "S_DOOM_IMPFIREEXPLODE2", "S_DOOM_IMPFIREEXPLODE3",
     "sfx_firsht", "sfx_firxpl",
     "MT_TROOPSHOT"
 )
@@ -22,10 +20,10 @@ local plasmastates = {
 FreeDoomStates("ImpFireball", plasmastates)
 
 mobjinfo[MT_TROOPSHOT] = {
-    spawnstate = S_DOOM_IMPFIRE1,
+    spawnstate = plasmastates.shot[1],
     seesound   = sfx_firsht,
     deathsound = sfx_firxpl,
-    deathstate = S_DOOM_IMPFIREEXPLODE1,
+    deathstate = plasmastates.shot[2],
     speed      = 10*FRACUNIT,
     radius     = 6*FRACUNIT,
     height     = 8*FRACUNIT,
@@ -33,9 +31,4 @@ mobjinfo[MT_TROOPSHOT] = {
     flags      = MF_MISSILE|MF_NOGRAVITY,
 }
 
-states[S_DOOM_IMPFIRE1] = { sprite=SPR_BAL1, frame=A|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_IMPFIRE2 }
-states[S_DOOM_IMPFIRE2] = { sprite=SPR_BAL1, frame=B|FF_FULLBRIGHT, tics=4, nextstate=S_DOOM_IMPFIRE1 }
-
-states[S_DOOM_IMPFIREEXPLODE1] = { sprite=SPR_BAL1, frame=C|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE2 }
-states[S_DOOM_IMPFIREEXPLODE2] = { sprite=SPR_BAL1, frame=D|FF_FULLBRIGHT, tics=6, nextstate=S_DOOM_IMPFIREEXPLODE3 }
-states[S_DOOM_IMPFIREEXPLODE3] = { sprite=SPR_BAL1, frame=E|FF_FULLBRIGHT, tics=6, nextstate=S_NULL }
+mobjinfo[MT_TROOPSHOT].doomname = "ImpFireball"

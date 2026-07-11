@@ -162,6 +162,25 @@ hud.add(function(drawer, player)
 		v.draw(24, 104, v.cachePatch(patch), hudflags)
 	end
 	inbetween = 1
-	v.draw(72, 112, v.cachePatch("BILL-RAPIDFIRE" .. inbetween), hudflags)
-	v.draw(0, 0, v.cachePatch("BILL-HUDREFERENCE"), hudflags|V_SUBTRACT)
+	v.draw(40, 112, v.cachePatch("BILL-RAPIDFIRE" .. inbetween), hudflags)
+
+	-- Previous weapon
+	def = DOOM_GetWeaponDef(player)
+	inbetween = def.bill_icon or ""
+	upgrade = def.bill_upgradetype or "BASE"
+	patch = "BILL-WEAPON" .. inbetween .. upgrade .. "MINI"
+	if not v.patchExists(patch) then
+		if not warnedfor[patch] then
+			warnedfor[patch] = true
+			print("WARNING: No patch named '" .. tostring(patch) .. "'")
+		end
+	else
+		v.draw(80, 104, v.cachePatch(patch), hudflags)
+	end
+	inbetween = 1
+	v.draw(96, 112, v.cachePatch("BILL-RAPIDFIRE" .. inbetween), hudflags)
+
+	doom.HUD_drawFace(v, player, 280, 152)
+
+	-- v.draw(0, 0, v.cachePatch("BILL-HUDREFERENCE"), hudflags|V_SUBTRACT)
 end)

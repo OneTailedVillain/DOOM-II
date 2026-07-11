@@ -12,7 +12,6 @@ local RADIATIONPAL = 13
 local ST_FACEPROBABILITY = 96
 
 // Number of status faces.
-local ST_NUMPAINFACES = 5
 local ST_NUMSTRAIGHTFACES = 3
 local ST_NUMTURNFACES = 2
 local ST_NUMSPECIALFACES = 3
@@ -32,10 +31,11 @@ local ST_TURNOFFSET = (ST_NUMSTRAIGHTFACES)
 local ST_OUCHOFFSET = (ST_TURNOFFSET + ST_NUMTURNFACES)
 local ST_EVILGRINOFFSET = (ST_OUCHOFFSET + 1)
 local ST_RAMPAGEOFFSET = (ST_EVILGRINOFFSET + 1)
-local ST_GODFACE = (ST_NUMPAINFACES*ST_FACESTRIDE)
-local ST_DEADFACE = (ST_GODFACE+1)
 
 local function ST_calcPainOffset(plyr)
+	local properties = P_GetSupportsForSkin(plyr)
+	local ST_NUMPAINFACES = properties.st_damagesteps or 5
+
 	local funcs = P_GetMethodsForSkin(plyr)
 	local myHealth = funcs.getHealth(plyr) or 0
 	local myMaxHealth = funcs.getMaxHealth(plyr) or 0
@@ -53,11 +53,15 @@ end
 //  dead > evil grin > turned head > straight ahead
 //
 local function ST_updateFaceWidget(plyr)
-	-- methods for the player's skin (health is provided here)
 	local funcs = P_GetMethodsForSkin(plyr)
 	local myHealth = funcs.getHealth(plyr) or 0
 
-	-- shortcut to player's doom subtable; create if missing
+	local properties = P_GetSupportsForSkin(plyr)
+	local ST_NUMPAINFACES = properties.st_damagesteps or 5
+
+	local ST_GODFACE = ST_NUMPAINFACES * ST_FACESTRIDE
+	local ST_DEADFACE = ST_GODFACE + 1
+
 	plyr.doom = plyr.doom or {}
 	local pd = plyr.doom
 
@@ -68,8 +72,9 @@ local function ST_updateFaceWidget(plyr)
 	pd.oldweapons = pd.oldweapons or {}
 	pd.lastattackdown = (pd.lastattackdown == nil) and -1 or pd.lastattackdown
 	pd.priority = pd.priority or 0
+	pd.attacker = pd.attacker or nil
 
-	-- 10: death check (highest precedence)
+	-- 10: death
 	if pd.priority < 10 then
 		if myHealth == 0 then
 			pd.priority = 9
@@ -80,16 +85,14 @@ local function ST_updateFaceWidget(plyr)
 
 	-- 9: evil grin on weapon pickup
 	if pd.priority < 9 then
-		if pd.bonuscount and pd.bonuscount ~= 0 then
+		if pd.bonuscount ~= 0 then
 			local doevilgrin = false
 			for wkey, _ in pairs(doom.weapons) do
-				-- ensure weapons table exists
 				if pd.oldweapons[wkey] ~= pd.weapons[wkey] then
 					doevilgrin = true
 					pd.oldweapons[wkey] = pd.weapons[wkey]
 				end
 			end
-
 			if doevilgrin then
 				pd.priority = 8
 				pd.facecount = ST_EVILGRINCOUNT
@@ -98,24 +101,20 @@ local function ST_updateFaceWidget(plyr)
 		end
 	end
 
-	-- 8: being attacked by another mobj
+	-- 8: attacked by another mobj
 	if pd.priority < 8 then
-		if pd.damagecount and pd.damagecount ~= 0
-		   and pd.attacker
-		   and pd.attacker ~= plyr.mo then
-
+		if pd.damagecount ~= 0 and pd.attacker and pd.attacker ~= plyr.mo then
 			pd.priority = 7
 
-			-- ouchface bug except i'm evil and it's intentional
 			if myHealth - pd.oldhealth > ST_MUCHPAIN then
 				pd.facecount = ST_TURNCOUNT
 				pd.faceindex = ST_calcPainOffset(plyr) + ST_OUCHOFFSET
 			else
-				local badguyangle = pd.attacker and R_PointToAngle2(
+				if pd.attacker == nil then pd.attacker = {} end
+				local badguyangle = R_PointToAngle2(
 					plyr.mo.x, plyr.mo.y,
-					pd.attacker and pd.attacker.x or 0, pd.attacker and pd.attacker.y or 0
-				) or 0
-
+					pd.attacker.x, pd.attacker.y
+				)
 				local diffang, turnedRight
 				if badguyangle > plyr.mo.angle then
 					diffang = badguyangle - plyr.mo.angle
@@ -129,22 +128,19 @@ local function ST_updateFaceWidget(plyr)
 				pd.faceindex = ST_calcPainOffset(plyr)
 
 				if diffang < ANGLE_45 then
-					-- head-on
 					pd.faceindex = pd.faceindex + ST_RAMPAGEOFFSET
 				elseif turnedRight then
-					-- turn right
 					pd.faceindex = pd.faceindex + ST_TURNOFFSET
 				else
-					-- turn left
-					pd.faceindex = pd.faceindex + (ST_TURNOFFSET + 1)
+					pd.faceindex = pd.faceindex + ST_TURNOFFSET + 1
 				end
 			end
 		end
 	end
 
-	-- 7 & 6: hurting yourself (damagecount without attacker or same mobj)
+	-- 7 & 6: hurting yourself (no attacker or attacker == self)
 	if pd.priority < 7 then
-		if pd.damagecount and pd.damagecount ~= 0 then
+		if pd.damagecount ~= 0 then
 			if myHealth - pd.oldhealth > ST_MUCHPAIN then
 				pd.priority = 7
 				pd.facecount = ST_TURNCOUNT
@@ -157,13 +153,12 @@ local function ST_updateFaceWidget(plyr)
 		end
 	end
 
-	-- 6 & 5: rapid firing -> rampage face
+	-- 5: rapid firing (rampage face)
 	if pd.priority < 6 then
 		if pd.attackdown and pd.attackdown ~= 0 then
 			if pd.lastattackdown == -1 then
 				pd.lastattackdown = ST_RAMPAGEDELAY
 			else
-				-- decrement and check for zero (equiv to C's --lastattackdown == 0)
 				if pd.lastattackdown > 0 then
 					pd.lastattackdown = pd.lastattackdown - 1
 				end
@@ -179,25 +174,26 @@ local function ST_updateFaceWidget(plyr)
 		end
 	end
 
-	-- 5 & 4: invulnerability / godface
+	-- 4: invulnerability / god mode
 	if pd.priority < 5 then
-		if ((pd.cheats and (pd.cheats & CF_GODMODE) ~= 0) or (pd.powers and pd.powers[pw_invulnerability])) then
+		if (pd.cheats and (pd.cheats & CF_GODMODE) ~= 0)
+			or (pd.powers and pd.powers[pw_invulnerability]) then
 			pd.priority = 4
 			pd.faceindex = ST_GODFACE
 			pd.facecount = 1
 		end
 	end
 
-	-- when facecount times out, pick a straight/neutral face (left/mid/right)
-	if (not pd.facecount) or pd.facecount == 0 then
+	-- when facecount times out, pick a straight/neutral face
+	if not pd.facecount or pd.facecount == 0 then
 		local rnd = DOOM_Random()
 		pd.faceindex = ST_calcPainOffset(plyr) + (rnd % 3)
 		pd.facecount = ST_STRAIGHTFACECOUNT
 		pd.priority = 0
 	end
 
-	-- decrement the facecount for next tick and store oldhealth for comparisons next frame
-	pd.facecount = (pd.facecount or 0) - 1
+	-- decrement facecount and store health for next comparison
+	pd.facecount = pd.facecount - 1
 	pd.oldhealth = myHealth
 end
 
@@ -263,6 +259,34 @@ local nameMapping = {
 	[A_DoomRaise] = "WeaponRaise"
 }
 
+local function DOOM_WeaponPreStateChange(player, wepDef, psp, oldState, oldFrame, newState, newFrame, slot)
+	if wepDef and wepDef.prestatechange then
+		local targst, targfr = wepDef.prestatechange(player, oldState, oldFrame, newState, newFrame, slot, wepDef)
+
+		if targst ~= nil and type(targst) == "string" then
+			newState = targst
+		end
+		if targfr ~= nil and type(targfr) == "number" then
+			newFrame = targfr
+		end
+	end
+
+	return newState, newFrame
+end
+
+local function DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
+	if wepDef and wepDef.poststatechange then
+		local targst, targfr = wepDef.poststatechange(player, psp.state, psp.frame, slot, wepDef)
+
+		if targst ~= nil and type(targst) == "string" then
+			psp.state = targst
+		end
+		if targfr ~= nil and type(targfr) == "number" then
+			psp.frame = targfr
+		end
+	end
+end
+
 local function DOOM_RunStateAction(player, stateDef)
 	/*
 	local actionName = stateDef and stateDef.action
@@ -292,44 +316,52 @@ doom.runStateAction = DOOM_RunStateAction
 
 local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
     local psp = DOOM_GetPSprite(player, slot)
-	--print("ApplyStateJump", targetState, targetFrame)
 	if targetFrame == nil then targetFrame = 1 end
 
-    -- Allow jumping to arbitrary real states or fakestates
     if targetState == nil then
         targetState = DOOM_GetPSpriteDefaultState(slot)
     end
-
-    psp.state = targetState
-    psp.frame = targetFrame
 
     local wepDef = DOOM_GetWeaponDef(player)
     if not wepDef then
         error("Invalid weapon " .. tostring(player.doom.curwep) .. "!")
     end
 
-    local stateDef, realSlot = DOOM_ResolveStateDef(wepDef, targetState, psp.frame)
-	if realSlot != nil then
-		-- Real state: collapse into engine state system
-		psp.state = realSlot
-		psp.frame = nil
-	else
-		-- Fakestate: keep string + frame
-		psp.state = targetState
-		psp.frame = targetFrame
-	end
+    local oldState = psp.state
+    local oldFrame = psp.frame
 
-	if targetState != S_NULL then
-	    if not stateDef then
-	        error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(psp.frame) .. "!")
-	    end
-	else
-		stateDef = {tics = INT32_MAX}
-	end
+    local stateDef, realSlot = DOOM_ResolveStateDef(wepDef, targetState, targetFrame)
 
-	psp.tics = stateDef.tics or 0
+    if realSlot != nil then
+        targetState = realSlot
+        targetFrame = nil
+    else
+        targetState = targetState
+        targetFrame = targetFrame
+    end
 
-	DOOM_RunStateAction(player, stateDef)
+    if targetState != S_NULL then
+        if not stateDef then
+            error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(targetFrame) .. "!")
+        end
+    else
+        stateDef = {tics = INT32_MAX}
+    end
+
+    targetState, targetFrame = DOOM_WeaponPreStateChange(
+        player, wepDef, psp,
+        oldState, oldFrame,
+        targetState, targetFrame,
+        slot
+    )
+
+    psp.state = targetState
+    psp.frame = targetFrame
+
+    DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
+
+    psp.tics = stateDef.tics or 0
+    DOOM_RunStateAction(player, stateDef)
 end
 
 local HOLD_STATES = {
@@ -385,14 +417,31 @@ local function DOOM_AdvancePSprite(player, slot, fallbackState)
     local nextDef = DOOM_ResolveStateDef(wepDef, psp.state, nextFrame)
 
     if nextDef then
-        psp.frame = nextFrame
-        psp.tics = nextDef.tics or 0
+		local oldState = psp.state
+		local oldFrame = psp.frame
+
+		local newState = psp.state
+		local newFrame = nextFrame
+
+		newState, newFrame = DOOM_WeaponPreStateChange(
+			player, wepDef, psp,
+			oldState, oldFrame,
+			newState, newFrame,
+			slot
+		)
+
+		psp.frame = newFrame
+
+		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
+
+		psp.tics = nextDef.tics or 0
 		DOOM_RunStateAction(player, nextDef)
         return
     end
 
     if HOLD_STATES[psp.state] then
         psp.tics = 1
+		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
 		DOOM_RunStateAction(player, frameDef)
         return
     end
@@ -407,6 +456,10 @@ local function updateWeaponState(player, isFlashState)
         DOOM_AdvancePSprite(player, PSP_WEAPON, "idle")
     end
 end
+
+local warnedfor = {
+	deprecated = {}
+}
 
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
@@ -444,7 +497,11 @@ addHook("PlayerThink", function(player)
 	player.doom.messageclock = ($ or 1) - 1
 
 	local support = P_GetSupportsForSkin(player)
-	if support.noWeapons then return end
+	if support.noWeapons then
+		doom.warn("deprecated.noWeapons", "doom.characterDefs['" .. player.mo.skin .. "'].noWeapons is deprecated and will be removed in a future version. Use properties.overrideWeapons instead.")
+		return
+	end
+	if support.properties.overrideWeapons then return end
 
 	-- attacker ##MIGHT be important for killcam logic
 	if player.mo.doom.health > 0 then
@@ -1072,9 +1129,6 @@ end
 local typeHandlers = {
 	---@param usedLine line_t
 	teleport = function(usedLine, whatIs, plyrmo)
-		local player = plyrmo.player
-		local line = usedLine
-
 		if whatIs.linetoline then
 			local lineTag
 
@@ -1129,10 +1183,12 @@ local typeHandlers = {
 		local fog = P_SpawnMobj(oldx, oldy, oldz, MT_DOOM_TELEFOG)
 	end,
 	message = function(usedLine, whatIs, plyrmo)
+		if not plyrmo.player then return end
 		whatIs.triggerer = plyrmo.player
 		doom.addThinker(usedLine, whatIs)
 	end,
 	commmessage = function(usedLine, whatIs, plyrmo)
+		if not plyrmo.player then return end
 		whatIs.triggerer = plyrmo.player
 		doom.addThinker(usedLine, whatIs)
 	end,
@@ -1147,9 +1203,7 @@ addHook("MobjLineCollide", function(mobj, hit)
 	-- pos + momentum = the direction the player intended to go
 	-- TODO: Add checks for if the movement is available to the player!
 	if P_PointOnLineSide(mobj.x, mobj.y, hit) == P_PointOnLineSide(mobj.x + mobj.momx, mobj.y + mobj.momy, hit) then return end
-	if not (mobj and mobj.player) then return end
-	-- TODO: is this actually required?
-	if mobj.player.doom.notrigger then return end
+	if not mobj then return end
     local usedLine = hit
     local lineSpecial = doom.linespecials[usedLine]
     if not lineSpecial then
@@ -1171,24 +1225,16 @@ addHook("MobjLineCollide", function(mobj, hit)
 	if not doom.lineActions[lineSpecial].repeatable then
 		doom.linespecials[usedLine] = 0
 	end
-end, MT_PLAYER)
+end)
 
 addHook("ShouldDamage", function(mobj, inf, src, dmg, dt)
 	if dt == DMG_CRUSHED and not (inf or src) then return false end
 end)
 
-addHook("PlayerThink", function(player)
-	local mobj = player.mo
+addHook("MobjThinker", function(mobj)
 	if not mobj then return end
 
 	local curSector = mobj.subsector.sector
-
-	if mobj.z > curSector.floorheight then
-		player.doom.conveyorhandled = false
-		player.cmomx = 0
-		player.cmomy = 0
-		return
-	end
 
 	local carryx, carryy = 0, 0
 
@@ -1199,31 +1245,27 @@ addHook("PlayerThink", function(player)
 		carryy = $ + data.carryy
 	end
 
-	--player.cmomx = carryx
-	--player.cmomy = carryy
+	if not carryx and not carryy then return end
 
-	if (carryx or carryy) then
-		player.onconveyor = 1
-
-		-- Only apply any change in conveyor speed
-		local oldx = player.doom.lastcarryx or 0
-		local oldy = player.doom.lastcarryy or 0
-
-		local addx = carryx - oldx
-		local addy = carryy - oldy
-
-		if addx or addy then
-			--mobj.momx = $ + addx
-			--mobj.momy = $ + addy
-		end
-
-		player.doom.lastcarryx = carryx
-		player.doom.lastcarryy = carryy
-	else
-		player.doom.lastcarryx = 0
-		player.doom.lastcarryy = 0
+	local ogmom = {x = mobj.momx, y = mobj.momy}
+	local ogpmom
+	if mobj.player then
+		local player = mobj.player
+		ogpmom = {x = player.rmomx, y = player.rmomy}
+		player.rmomx = carryx
+		player.rmomy = carryy
 	end
 
-	P_MovePlayer(player)
-	P_MoveOrigin(mobj, mobj.x + carryx, mobj.y + carryy, mobj.z)
+	mobj.momx = carryx
+	mobj.momy = carryy
+	P_XYMovement(mobj)
+
+	mobj.momx = ogmom.x
+	mobj.momy = ogmom.y
+
+	if mobj.player then
+		local player = mobj.player
+		player.rmomx = ogpmom.x
+		player.rmomy = ogpmom.y
+	end
 end)

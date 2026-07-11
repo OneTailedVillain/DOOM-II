@@ -57,6 +57,8 @@ rawset(_G, "A_None", "none")
 ---@type doomglobal_t
 doom = doom or {}
 
+doom.version = 100
+
 doom.mapString = "HUSTR_"
 doom.gameskill = 3
 doom.killcount = 0
@@ -74,7 +76,7 @@ doom.thinkers = {}
 doom.subthinkers = {}
 doom.texturesByNum = {}
 doom.torespawn = {}
-doom.charSupport = $ or {}
+doom.characterDefs = $ or {}
 doom.weaponnames = {
 	[1] = {},
 	[2] = {},

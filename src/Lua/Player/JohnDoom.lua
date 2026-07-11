@@ -352,6 +352,9 @@ addHook("PlayerThink", function(player)
 ---@diagnostic disable-next-line: missing-fields
 	if not support.properties then support.properties = {} end
 	local doesDoomMovement = support.useDoomMovement or support.properties.useDoomMovement
+	if support.useDoomMovement then
+		doom.warn("deprecated.useDoomMovement", "doom.characterDefs['" .. player.mo.skin .. "'].useDoomMovement is deprecated and will be removed in a future version. Use properties.useDoomMovement instead.")
+	end
 	if doesDoomMovement then
 		player.thrustfactor = 0
 		player.charability = CA_NONE

@@ -31,3 +31,5 @@ mobjinfo[MT_DOOM_CACODEMONSHOT] = {
 
     flags = MF_NOGRAVITY|MF_MISSILE,
 }
+
+mobjinfo[MT_DOOM_CACODEMONSHOT].doomname = "CacodemonShot"

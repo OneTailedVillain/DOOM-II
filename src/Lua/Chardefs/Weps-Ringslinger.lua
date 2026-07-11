@@ -111,7 +111,7 @@ doom.addWeapon("scatterring", {
 	shotcost = 1,
 	user_johnringslingericon = "SCATINDA",
     order = 2,
-    damage = {19, 19},
+    damage = {14, 14},
     noinitfirespread = true,
     pellets = 1,
 	shootmobj = MT_THROWNSCATTER,
@@ -284,7 +284,7 @@ doom.addWeapon("railring", {
     weaponslot = 7,
 	user_johnringslingericon = "RAILINDA",
     order = 2,
-    damage = {400, 400},
+    damage = {150, 150},
 	shotcost = 20,
     noinitfirespread = true,
     pellets = 1,
@@ -294,13 +294,15 @@ doom.addWeapon("railring", {
 		S_StartSound(player.mo, sfx_rail1)
 		if bullet then
 			bullet.doom = $ or {}
-			bullet.doom.damage = 400
-			for i = 0, 255 do
-				if i & 1 then
-					P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_SPARK)
-				end
-				if P_RailThinker(bullet) then
-					break
+			bullet.doom.damage = 150
+			for i = 0, 100 do
+				for i = 0, 255 do
+					if i & 1 then
+						P_SpawnMobjFromMobj(bullet, 0, 0, 0, MT_SPARK)
+					end
+					if P_RailThinker(bullet) then
+						break
+					end
 				end
 			end
 
@@ -308,7 +310,7 @@ doom.addWeapon("railring", {
 		end
 	end,
 	carouselicon = "SMRAIL",
-    states = setupWeaponDelay(TICRATE*3/2, C),
+    states = setupWeaponDelay((TICRATE*3/2)*2, C),
     ammotype = "cells",
 })
 
@@ -750,7 +752,7 @@ doom.addWeapon("homingring", {
     weaponslot = 3,
 	user_johnringslingericon = "HOMGINDA",
     order = 4,
-    damage = {19, 19},
+    damage = {10, 10},
 	shotcost = 2,
     noinitfirespread = true,
     pellets = 1,

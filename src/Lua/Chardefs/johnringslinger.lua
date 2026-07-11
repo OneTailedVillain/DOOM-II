@@ -1,5 +1,5 @@
 ---@type doommethods_t
-local methods = deepcopy(doom.charSupportBaseMethods)
+local methods = deepcopy(doom.characterDefsBaseMethods)
 
 doom.addHook("GetHudDraw", function(player)
 	if player.mo.skin == "johnringslinger" then
@@ -7,7 +7,7 @@ doom.addHook("GetHudDraw", function(player)
 	end
 end)
 
-doom.charSupport.johnringslinger = {
+doom.characterDefs.johnringslinger = {
 	-- Custom CSS bullshit
 	css = {
 		name = "John Ringslinger",
@@ -64,10 +64,10 @@ doom.charSupport.johnringslinger = {
 		},
 
 		maxammo = {
-			bullets = 320 + 400, -- Basic + Automatic
+			bullets = 400,--320 + 400, -- Basic + Automatic
 			shells = 50 + 160, -- Scatter + Bounce
-			cells = 50 + 50, -- Rail + Homing
-			rockets = 50 + 50, -- Explosion + Grenade
+			cells = 50,--50 + 50, -- Rail + Homing
+			rockets = 50,--50 + 50, -- Explosion + Grenade
 		},
 
 		-- Multipliers of what pick-ups will give to the player
@@ -136,4 +136,4 @@ doom.charSupport.johnringslinger = {
     methods = methods
 }
 
-doom.charSupport.johnringslinger.properties.startweapons[doom.startingMeleeWeapon or "brassknuckles"] = true
+doom.characterDefs.johnringslinger.properties.startweapons[doom.startingMeleeWeapon or "brassknuckles"] = true

@@ -28,3 +28,5 @@ mobjinfo[MT_DOOM_ARCHNOTRONPLASMA] = {
 
     flags = MF_NOGRAVITY|MF_MISSILE,
 }
+
+mobjinfo[MT_DOOM_ARCHNOTRONPLASMA].doomname = "ArachnotronPlasma"

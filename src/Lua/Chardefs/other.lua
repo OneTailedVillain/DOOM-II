@@ -1,8 +1,8 @@
 -- Generic fallback character support ("other")
 -- just uses the base methods directly.
 
-local baseMethods = doom.charSupportBaseMethods
+local baseMethods = doom.characterDefsBaseMethods
 
-doom.charSupport.other = {
+doom.characterDefs.other = {
     methods = baseMethods
 }

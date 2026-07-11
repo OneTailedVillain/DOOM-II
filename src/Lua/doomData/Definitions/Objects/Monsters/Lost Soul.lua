@@ -31,7 +31,7 @@ local object = {
 	attacksound = sfx_sklatk,
 	sprite = SPR_SKUL,
 	flags = MF_ENEMY|MF_SOLID|MF_SHOOTABLE|MF_FLOAT|MF_NOGRAVITY,
-	doomflags = DF_NOBLOOD,
+	doomflags = DF_NOBLOOD|DF_COUNTKILL,
 }
 
 local states = {

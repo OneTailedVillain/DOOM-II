@@ -306,7 +306,7 @@ local baseMethods = {
 		}
 		local duration = durationMap[powername]
 		local ptype = ptypeMap[powername]
-		if not duration or not ptype then print("FAIL! on base doPowerup method", powername, duration, ptype) return false end
+		if duration == nil or ptype == nil then print("FAIL! on base doPowerup method", powername, duration, ptype) return false end
 
 		if powername == "berserk" then
 			DOOM_SwitchWeapon(player, "brassknuckles")
@@ -318,10 +318,10 @@ local baseMethods = {
 }
 
 -- make them available on doom table for other files
-doom.charSupportBaseMethods = baseMethods
+doom.characterDefsBaseMethods = baseMethods
 
 -- helper to shallow-merge override table onto base
-function doom.mergeCharSupportMethods(base, overrides)
+function doom.mergecharacterDefsMethods(base, overrides)
     local out = {}
     for k,v in pairs(base) do out[k] = v end
     if overrides then
@@ -381,19 +381,19 @@ doom.baseCharProperties = {
 }
 
 -- public finalize routine to merge custom methods and set fallback.
-function doom.charSupportFinalize()
-    for charName, charTable in pairs(doom.charSupport) do
+function doom.characterDefsFinalize()
+    for charName, charTable in pairs(doom.characterDefs) do
         if charName ~= "other" and charTable.methods then
-            charTable.methods = doom.mergeCharSupportMethods(doom.charSupportBaseMethods, charTable.methods)
-			charTable.properties = doom.mergeCharSupportMethods(doom.baseCharProperties, charTable.properties)
+            charTable.methods = doom.mergecharacterDefsMethods(doom.characterDefsBaseMethods, charTable.methods)
+			charTable.properties = doom.mergecharacterDefsMethods(doom.baseCharProperties, charTable.properties)
         end
     end
 
     -- duplicate "other" for johndoom and apply metatable fallback
-    doom.charSupport["johndoom"] = deepcopy(doom.charSupport.other)
-	doom.charSupport["johndoom"].properties = {useDoomMovement = true}
-	doom.charSupport["johndoom"].useDoomMovement = true
-	doom.charSupport["johndoom"].css = {
+    doom.characterDefs["johndoom"] = deepcopy(doom.characterDefs.other)
+	doom.characterDefs["johndoom"].properties = {useDoomMovement = true}
+	doom.characterDefs["johndoom"].useDoomMovement = true
+	doom.characterDefs["johndoom"].css = {
 		name = "John " .. doom.currentGame,
 		sequence = {A, 4},
 		sprite = SPR2_WALK,
@@ -404,7 +404,7 @@ function doom.charSupportFinalize()
 		"But has no defining advantages"
 		}
 	}
-    setmetatable(doom.charSupport, {
+    setmetatable(doom.characterDefs, {
         __index = function(t, key) return t.other end
     })
 end

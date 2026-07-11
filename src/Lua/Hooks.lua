@@ -96,6 +96,20 @@ doom.onMaploadHandlers = {
 			data.carryy = FixedMul(data.scry, CARRYFACTOR)
 		end
 	end,
+
+	---@param line line_t
+	transparency = function(line, data)
+		-- yeah nice FUCKING gate for no reason SRB2
+		/*
+		if line.tag == 0 then
+			line.alpha = FRACUNIT/2
+		else
+			for line in lines.tagged(line.tag) do
+				line.alpha = FRACUNIT/2
+			end
+		end
+		*/
+	end
 }
 
 local function P_SpawnGlowingLight(sector)
@@ -148,7 +162,20 @@ addHook("MapLoad", function(mapid)
 		if not mthing then
 			continue
 		end
-		if (mthing.z & 1) and not multiplayer then
+
+		-- If true, then we silently tuck this object under our boot
+		local multiplayerhide = not multiplayer
+
+		-- Who wants if statements purely dependent on other variables for dinner!!
+		if not multiplayerhide then
+			-- We only really care about non-deathmatch gametypes...
+			-- Monsters will kill themselves on their own
+			if not G_RingSlingerGametype() then
+				multiplayerhide = not (mobj.doom.flags & DF_COUNTKILL)
+			end
+		end
+
+		if (mthing.z & 1) and multiplayerhide then
 			P_RemoveMobj(mobj)
 			continue
 		end
@@ -481,6 +508,30 @@ addHook("MapLoad", function(mapid)
 			end
 		end
 	end
+
+	-- Spawn voodoo dolls at player starts that won't ever be used.
+	for slot = 1, coopspawns do
+		local list = doom.spawnpoints.player[slot]
+
+		if list and #list > 1 then
+			-- We always use the last spawn in the list.
+			-- Every earlier one gets a voodoo doll.
+			for i = 1, #list - 1 do
+				local spawn = list[i]
+
+				local doll = P_SpawnMobj(
+					spawn.x,
+					spawn.y,
+					spawn.z,
+					MT_DOOM_VOODOODOLL
+				)
+
+				if doll then
+					doll.angle = spawn.angle
+				end
+			end
+		end
+	end
 end)
 
 /*
@@ -655,9 +706,7 @@ local function BuildStairs(startsec, stairsize, speed)
 	local created = 0
 	local created_list = {}
 
-	local base_height = startsec.floorheight or 0
-
-	local MAX_ENQUEUED = 20000 -- safety cap (tweak or remove if you want)
+	local MAX_ENQUEUED = 20000 -- safety cap
 	while head <= tail do
 		if (tail - head) > MAX_ENQUEUED then
 			break -- safety bail-out
@@ -666,7 +715,7 @@ local function BuildStairs(startsec, stairsize, speed)
 		local entry = queue[head]; head = head + 1
 		local sec = entry.sec
 		local step = entry.step
-		local dest = base_height + (step * stairsize)
+		local dest = step * stairsize
 
 		-- create floor thinker for this sector
 		local floorTemplate = {
@@ -1280,12 +1329,15 @@ local thinkers = {
 			print("Scroll thinker has no scry!")
 			doom.stopThinker(line)
 		end
+
+		if data.noscroll then return end
 		side.textureoffset = $ + data.scrx
 		side.rowoffset = $ + data.scry
 	end,
 
 	sectorscroll = function(sector, data)
 		if data.place == "floor" then
+			if data.noscroll then return end
 			sector.floorxoffset = $ - data.scrx
 			sector.flooryoffset = $ + data.scry
 		end
@@ -1403,10 +1455,10 @@ local thinkers = {
 		-- Infer action if caller didn't provide one
 		if not data.action then
 			if type(data.target) == "number" then
-				-- Floor height target, but how do we deal with it?
-				if data.target > sector.floorheight then
+				-- Raw target, but how do we deal with it?
+				if data.target > 0 then
 					data.action = "raise"
-				elseif data.target < sector.floorheight then
+				elseif data.target < 0 then
 					data.action = "lower"
 				else
 					doom.stopThinker(sector)
@@ -1643,7 +1695,10 @@ local thinkers = {
 			local dir = (data.action == "raise") and "up" or "down"
 
 			if type(data.target) == "number" then
-				target = data.target
+				if data._oldfloorheight == nil then
+					data._oldfloorheight = sector.floorheight
+				end
+				target = data._oldfloorheight + data.target
 			elseif data.target == "nextfloor" then
 				target = FindNextHighestFromBackups(sector, sector.floorheight)
 			elseif data.target == "highest" then
@@ -1777,6 +1832,7 @@ local thinkers = {
 				S_StartSound(sector, sfx_stnmov)
 			end
 
+			print(sector, dir)
 			-- check if reached target
 			if dir == "up" then
 				if sector.floorheight >= target then
@@ -1962,16 +2018,22 @@ local function thinkFrameIterator(any, data, thinkertable)
 		local actual = userdataType(any)
 
 		if not expected then
-			error("Unknown thinker type '" .. tostring(data.type) .. "'!")
+			print("Unknown thinker type '" .. tostring(data.type) .. "'!")
+			doom.stopThinker(any, data)
+			return
 		end
 
 		if actual ~= expected then
-			error("Incorrect userdata type for '" .. data.type .. "'! (" .. expected .. " expected, got " .. actual .. ")")
+			print("Incorrect userdata type for '" .. data.type .. "'! (" .. expected .. " expected, got " .. actual .. ")")
+			doom.stopThinker(any, data)
+			return
 		end
 
 		local fn = thinkers[data.type]
 		if not fn then
-			error("No thinker function defined for '" .. data.type .. "'!")
+			print("No thinker function defined for '" .. data.type .. "'!")
+			doom.stopThinker(any, data)
+			return
 		end
 
 		fn(any, data)
@@ -2140,6 +2202,8 @@ addHook("PostThinkFrame", function()
 		if player.mo.doom.flags & DF_SHADOW then
 			if not P_GetSupportsForSkin(player).noPartialInvisEffect then
 				player.mo.frame = $ | FF_TRANS80
+			else
+				doom.warn("deprecated.noPartialInvisEffect", "doom.characterDefs['" .. player.mo.skin .. "'].noPartialInvisEffect is deprecated and will be removed in a future version. Use properties.overridePartialInvisibilityFX instead.")
 			end
 		end
 	end

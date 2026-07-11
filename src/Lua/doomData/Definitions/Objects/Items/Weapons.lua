@@ -58,7 +58,8 @@ local object = {
 	doomednum = 2005,
 	deathsound = sfx_wpnup,
 	sprite = SPR_CSAW,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -81,7 +82,8 @@ local object = {
 	doomednum = 2001,
 	deathsound = sfx_wpnup,
 	sprite = SPR_SHOT,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -104,7 +106,8 @@ local object = {
 	doomednum = 82,
 	deathsound = sfx_wpnup,
 	sprite = SPR_SGN2,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -127,7 +130,8 @@ local object = {
 	doomednum = 2003,
 	deathsound = sfx_wpnup,
 	sprite = SPR_LAUN,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -150,7 +154,8 @@ local object = {
 	doomednum = 2002,
 	deathsound = sfx_wpnup,
 	sprite = SPR_MGUN,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -173,7 +178,8 @@ local object = {
 	doomednum = 2004,
 	deathsound = sfx_wpnup,
 	sprite = SPR_PLAS,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -196,7 +202,8 @@ local object = {
 	doomednum = 2006,
 	deathsound = sfx_wpnup,
 	sprite = SPR_BFUG,
-	doomflags = DF_DMRESPAWN
+	doomflags = DF_DMRESPAWN,
+	preferspritelookup = true
 }
 
 local states = {
@@ -209,3 +216,47 @@ DefineDoomItem(name, object, states,
 		message = "$GOTBFG9000",
 	}
 )
+
+-- Important for DeHackEd
+
+doom.registerSpriteLookup(SPR_CSAW,
+	MakeWeaponPickup{
+		weapon = "chainsaw",
+		message = "$GOTCHAINSAW",
+	})
+
+doom.registerSpriteLookup(SPR_SHOT,
+	MakeWeaponPickup{
+		weapon = "shotgun",
+		message = "$GOTSHOTGUN"
+	})
+
+doom.registerSpriteLookup(SPR_SGN2,
+	MakeWeaponPickup{
+		weapon = "shotgun",
+		message = "$GOTSHOTGUN"
+	})
+
+doom.registerSpriteLookup(SPR_LAUN,
+	MakeWeaponPickup{
+		weapon = "rocketlauncher",
+		message = "$GOTLAUNCHER",
+	})
+
+doom.registerSpriteLookup(SPR_MGUN,
+	MakeWeaponPickup{
+		weapon = "chaingun",
+		message = "$GOTCHAINGUN",
+	})
+
+doom.registerSpriteLookup(SPR_PLAS,
+	MakeWeaponPickup{
+		weapon = "plasmarifle",
+		message = "$GOTPLASMA",
+	})
+
+doom.registerSpriteLookup(SPR_BFUG,
+	MakeWeaponPickup{
+		weapon = "bfg9000",
+		message = "$GOTBFG9000",
+	})

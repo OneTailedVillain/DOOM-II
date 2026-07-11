@@ -278,7 +278,6 @@ def parse_dehacked_structured(blob: bytes) -> dict:
 		if m:
 			push_entry()
 			mode_word = m.group(1).strip()
-			print(mode_word.upper())
 			
 			# SPECIAL CASE: TEXT
 			if mode_word.upper() == "TEXT":

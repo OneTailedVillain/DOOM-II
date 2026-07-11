@@ -346,7 +346,7 @@ end, MT_DOOM_USERAYCAST)
 addHook("MobjLineCollide", function(ray, usedLine)
     if not (ray and ray.valid) then return end
     -- I'm like 99% sure the gunshot use type doesn't cancel the "raycast" if it ever executes a line action
-	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "gunshot", true, true) then return true else return end
+	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "gunshot", true, true) then return else return end
 end, MT_DOOM_BULLETRAYCAST)
 
 local function MaybeHitFloor_Simple(bullet)

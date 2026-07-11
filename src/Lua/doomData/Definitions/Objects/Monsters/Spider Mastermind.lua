@@ -32,11 +32,6 @@ local object = {
 	doomflags = DF_COUNTKILL
 }
 
-local function A_Metal(actor)
-	S_StartSound(actor, sfx_metal)
-	A_DoomChase(actor)
-end
-
 local states = {
 	stand = {
 		{action = A_DoomLook, frame = A, tics = 10},
@@ -82,16 +77,6 @@ local states = {
 		{action = nil,             frame = R, tics = 10},
 		{action = nil,             frame = S, tics = 30},
 		{action = A_DoomBossDeath, frame = S, tics = -1},
-	},
-
-	raise = {
-		{action = nil, frame = P, tics = 5},
-		{action = nil, frame = O, tics = 5},
-		{action = nil, frame = N, tics = 5},
-		{action = nil, frame = M, tics = 5},
-		{action = nil, frame = L, tics = 5},
-		{action = nil, frame = K, tics = 5},
-		{action = nil, frame = J, tics = 5, next = "chase", nextframe = 2},
 	},
 }
 

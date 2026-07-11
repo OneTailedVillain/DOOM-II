@@ -29,6 +29,8 @@ mobjinfo[MT_DOOM_ROCKETPROJ] = {
 	flags        = MF_MISSILE|MF_NOGRAVITY,
 }
 
+mobjinfo[MT_DOOM_ROCKETPROJ].doomname = "Rocket"
+
 states[S_ROCKET_SPAWN] = {
     sprite = SPR_MISL,
     frame = A|FF_FULLBRIGHT,

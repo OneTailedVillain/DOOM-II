@@ -85,6 +85,41 @@ setmetatable(doom, {
     end
 })
 
+local doomMeta = getmetatable(doom) or {}
+local oldIndex = doomMeta.__index
+local oldNewIndex = doomMeta.__newindex
+
+doomMeta.__index = function(t, k)
+	if k == "charSupport" then
+		print("WARNING: doom.charSupport is deprecated. Use doom.characterDefs instead.")
+		return rawget(t, "characterDefs")
+	end
+
+	if type(oldIndex) == "function" then
+		return oldIndex(t, k)
+	elseif oldIndex then
+		return oldIndex[k]
+	end
+end
+
+doomMeta.__newindex = function(t, k, v)
+	if k == "charSupport" then
+		print("WARNING: doom.charSupport is deprecated. Use doom.characterDefs instead.")
+		rawset(t, "characterDefs", v)
+		return
+	end
+
+	if type(oldNewIndex) == "function" then
+		return oldNewIndex(t, k, v)
+	elseif oldNewIndex then
+		oldNewIndex[k] = v
+	else
+		rawset(t, k, v)
+	end
+end
+
+setmetatable(doom, doomMeta)
+
 hud.add(function(v, player)
 	local cs = doom.curcutscene and doom.cutscenes[doom.curcutscene]
 	if cs and cs.draw then

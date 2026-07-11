@@ -32,3 +32,5 @@ mobjinfo[MT_DOOM_MANCUBUSFIREBALL] = {
 
     flags = MF_NOGRAVITY|MF_MISSILE,
 }
+
+mobjinfo[MT_DOOM_MANCUBUSFIREBALL].doomname = "MancubusFireball"

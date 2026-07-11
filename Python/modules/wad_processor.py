@@ -1192,142 +1192,399 @@ def parse_pnames(lump_bytes: bytes) -> list:
 
 	return names
 
+def parse_animated_lump(animated_data):
+    """
+    Parse an ANIMATED lump and return a list of animation records.
+    
+    Each record is 23 bytes:
+    - 1 byte: type (0=flat, 1=texture, 255=terminator)
+    - 9 bytes: last texture/flat name (null-terminated)
+    - 9 bytes: first texture/flat name (null-terminated)
+    - 4 bytes: speed (little-endian)
+    
+    Returns:
+        list of dict: Each dict contains 'type', 'last', 'first', 'speed'
+    """
+    animations = []
+    pos = 0
+    record_size = 23
+    
+    while pos + 1 <= len(animated_data):
+        # Read type byte
+        anim_type = animated_data[pos]
+        pos += 1
+        
+        # Terminator record
+        if anim_type == 255:
+            break
+        
+        # Ensure we have enough data for a full record
+        if pos + 20 > len(animated_data):
+            print(f"Warning: Incomplete ANIMATED record at offset {pos-1}, skipping")
+            break
+        
+        # Read 9 bytes for last name
+        last_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+        pos += 9
+        
+        # Read 9 bytes for first name
+        first_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+        pos += 9
+        
+        # Read 4 bytes for speed
+        speed = int.from_bytes(animated_data[pos:pos+4], 'little')
+        pos += 4
+        
+        # Clean up names (remove trailing spaces)
+        last_name = last_name.rstrip()
+        first_name = first_name.rstrip()
+        
+        animations.append({
+            'type': anim_type,
+            'last': last_name,
+            'first': first_name,
+            'speed': speed
+        })
+    
+    return animations
+
+def generate_animdefs_from_animated(animations):
+    """
+    Generate ANIMDEFS content from parsed ANIMATED records.
+    
+    Args:
+        animations: List of animation records from parse_animated_lump()
+    
+    Returns:
+        str: ANIMDEFS lump content
+    """
+    lines = []
+    lines.append("// ANIMDEFS generated from ANIMATED lump")
+    lines.append("// Converted from binary ANIMATED format")
+    lines.append("")
+    
+    for anim in animations:
+        anim_type = "Flat" if anim['type'] == 0 else "Texture"
+        first = anim['first']
+        last = anim['last']
+        speed = anim['speed']
+        
+        # Speed of 0 or 1 doesn't make sense, default to 8
+        if speed <= 1:
+            speed = 8
+            print(f"Warning: Animation {first}->{last} had speed {anim['speed']}, using default 8")
+        
+        lines.append(f'{anim_type}\tOptional\t{first}\tRange\t{last}\tTics {speed}')
+    
+    return "\n".join(lines)
+
+def process_animated_lump(src_wadio, out_wad):
+    """
+    Process ANIMATED lump from source WAD and convert to ANIMDEFS.
+    
+    Args:
+        src_wadio: WadIO object to read lumps from
+        out_wad: Output WAD object to write ANIMDEFS to
+    
+    Returns:
+        bool: True if ANIMATED was found and processed, False otherwise
+    """
+    try:
+        # Find ANIMATED lump
+        animated_lump_name = None
+        for entry in src_wadio.entries:
+            lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+            if lname == "ANIMATED":
+                animated_lump_name = lname
+                break
+        
+        if animated_lump_name is None:
+            return False
+        
+        print(f"Found ANIMATED lump, converting to ANIMDEFS...")
+        
+        # Read ANIMATED data
+        animated_data = src_wadio.read(animated_lump_name)
+        
+        # Parse animations
+        animations = parse_animated_lump(animated_data)
+        
+        if not animations:
+            print("Warning: ANIMATED lump contains no valid animation records")
+            return False
+        
+        print(f"Parsed {len(animations)} animation records")
+        
+        # Generate ANIMDEFS content
+        animdefs_content = generate_animdefs_from_animated(animations)
+        
+        # Add ANIMDEFS lump to output WAD
+        out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
+        print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing ANIMATED lump: {e}")
+        return False
+
+def process_animated_in_wad(src_wad, out_wad):
+    """
+    Process ANIMATED lump from a WAD object directly.
+    This is a convenience wrapper for use in existing functions.
+    
+    Args:
+        src_wad: Source WAD object (must have data attribute)
+        out_wad: Output WAD object
+    
+    Returns:
+        bool: True if ANIMATED was found and processed, False otherwise
+    """
+    # Check if src_wad has data and contains ANIMATED
+    if not hasattr(src_wad, 'data'):
+        return False
+    
+    if "ANIMATED" not in src_wad.data:
+        return False
+    
+    try:
+        animated_data = src_wad.data["ANIMATED"].data
+        
+        # Parse animations
+        animations = parse_animated_lump(animated_data)
+        
+        if not animations:
+            print("Warning: ANIMATED lump contains no valid animation records")
+            return False
+        
+        print(f"Parsed {len(animations)} animation records from ANIMATED")
+        
+        # Generate ANIMDEFS content
+        animdefs_content = generate_animdefs_from_animated(animations)
+        
+        # Add ANIMDEFS lump to output WAD
+        out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
+        print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing ANIMATED from WAD data: {e}")
+        return False
+
+# Add to process_special_lumps function:
 def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None):
+    """
+    Iterate source lumps and produce additional helper lumps for the PWAD.
+    """
+    deh_mapping = {}
+    src_data = getattr(src_wad, "data", {})
+
+    demo_lumps = [
+        name for name in list(out_wad.data.keys())
+        if re.match(r"^DEMO\d+$", name.upper())
+    ]
+
+    for name in demo_lumps:
+        del out_wad.data[name]
+
+    if demo_lumps:
+        print(f"Cleaned out {len(demo_lumps)} demo lumps: {', '.join(demo_lumps)}")
+
+    pnames_bytes = None
+    if "PNAMES" in src_data:
+        pnames_bytes = src_data["PNAMES"].data
+    
+    textures_bytes = []
+    if "TEXTURE1" in src_data:
+        textures_bytes.append(src_data["TEXTURE1"].data)
+    if "TEXTURE2" in src_data:
+        textures_bytes.append(src_data["TEXTURE2"].data)
+
+    all_external_deh = []
+    if external_deh_data:
+        print(f"Processing {len(external_deh_data)} external DEH/BEX files")
+        for name, data in external_deh_data:
+            all_external_deh.append((name, data))
+
+    for entry in getattr(src_wadio, "entries", []):
+        name = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii", errors="ignore")).upper().rstrip("\x00")
+        try:
+            lump_bytes = src_wadio.read(name)
+        except Exception:
+            continue
+
+        if name == "ENDOOM" or name == "ENDBOOM":
+            try:
+                lua_bytes = parse_endoom_and_build_lua(lump_bytes)
+                out_name = "LUA_ENDM"
+                safe_add_lump_to_data(out_wad, out_name, WadIO._LumpFromBytes(lua_bytes) if hasattr(WadIO, '_LumpFromBytes') else Lump(lua_bytes))
+                print(f"Inserted {out_name} (ENDOOM -> Lua endoom)")
+            except Exception as e:
+                print(f"Failed to process ENDOOM: {e}")
+
+        elif name in ("DEHACKED", "DEHACK", "DEH", "PATCH", "BEX"):
+            all_external_deh.append((f"internal_{name}", lump_bytes))
+            print(f"Found internal DEHACKED lump: {name}")
+
+        elif name.startswith("LANGUAGE") or name.startswith("LANG") or name == "LANGUAGE":
+            try:
+                m = parse_key_value_pairs_from_text(lump_bytes)
+                deh_mapping.update(m)
+                print(f"Collected LANGUAGE strings from {name}")
+            except Exception as e:
+                print(f"Failed to parse LANGUAGE {name}: {e}")
+
+        elif name == "PNAMES" and pnames_bytes is None:
+            pnames_bytes = lump_bytes
+            print("PNAMES found")
+
+        elif name in ("TEXTURE1", "TEXTURE2"):
+            textures_bytes.append(lump_bytes)
+            print(f"{name} queued for TEXTURES conversion")
+
+        elif name == "COLORMAP":
+            try:
+                translate_lump = create_translate_lump_from_colormap(lump_bytes)
+                if len(translate_lump.data) > 0:
+                    out_wad.data["TRNSLATE"] = translate_lump
+                    print("Created TRNSLATE lump from COLORMAP rows")
+
+                fixed = force_colormap_size(lump_bytes)
+                out_wad.data["COLORMAP"] = Lump(fixed)
+                print("Replaced/inserted fixed COLORMAP (256x32)")
+            except Exception as e:
+                print(f"COLORMAP processing failed: {e}")
+        
+        elif name == "SWITCHES":
+            try:
+                switch_lua = parse_switches_lump(lump_bytes)
+                out_wad.data["LUA_SWCH"] = Lump(switch_lua.encode('utf-8'))
+                print("Created LUA_SWCH lump from SWITCHES")
+            except Exception as e:
+                print(f"SWITCHES processing failed: {e}")
+
+        elif name == "ANIMATED":
+            try:
+                animations = parse_animated_lump(lump_bytes)
+                if animations:
+                    animdefs_content = generate_animdefs_from_animated(animations)
+                    out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
+                    print(f"Created ANIMDEFS lump from ANIMATED with {len(animations)} animation definitions")
+                else:
+                    print("Warning: ANIMATED lump contains no valid animation records")
+            except Exception as e:
+                print(f"ANIMATED processing failed: {e}")
+
+    if all_external_deh:
+        combined_structured_deh = {}
+        for name, data in all_external_deh:
+            try:
+                structured_deh = parse_dehacked_structured(data)
+                if structured_deh:
+                    for mode, entries in structured_deh.items():
+                        if mode not in combined_structured_deh:
+                            combined_structured_deh[mode] = []
+                        existing_ids = {entry['id'] for entry in combined_structured_deh[mode] if entry['id'] is not None}
+                        for entry in entries:
+                            if entry['id'] is not None and entry['id'] in existing_ids:
+                                combined_structured_deh[mode] = [e for e in combined_structured_deh[mode] if e['id'] != entry['id']]
+                            combined_structured_deh[mode].append(entry)
+                    print(f"Parsed structured DEHACKED from {name}")
+                else:
+                    print(f"No structured DEHACKED data found in {name}")
+            except Exception as e:
+                print(f"Failed to parse {name} as structured DEHACKED: {e}")
+        
+        if combined_structured_deh:
+            lua_deh = build_structured_lua_deh(combined_structured_deh)
+            out_wad.data["LUA_DEH"] = Lump(lua_deh)
+            print(f"Wrote combined LUA_DEH from {len(all_external_deh)} DEH/BEX sources")
+
+    if deh_mapping and "LUA_DEH" not in out_wad.data:
+        try:
+            lua_deh = build_lua_deh_table(deh_mapping)
+            out_wad.data["LUA_DEH"] = Lump(lua_deh)
+            print("Wrote LUA_DEH from aggregated LANGUAGE entries")
+        except Exception as e:
+            print(f"Failed to write LUA_DEH: {e}")
+
+    if pnames_bytes and textures_bytes:
+        try:
+            pnames = parse_pnames(pnames_bytes)
+            combined_text = []
+            for tb in textures_bytes:
+                txt = parse_texture_lump_to_text(pnames, tb)
+                if txt:
+                    combined_text.append(txt)
+            if combined_text:
+                text_blob = ("\n\n".join(combined_text)).encode("utf-8")
+                out_wad.data["TEXTURES"] = Lump(text_blob)
+                try:
+                    del out_wad.data["TEXTURE1"]
+                    del out_wad.data["TEXTURE2"]
+                    del out_wad.data["PNAMES"]
+                except Exception:
+                    pass
+                print("Wrote TEXTURES from TEXTURE1/TEXTURE2 + PNAMES")
+        except Exception as e:
+            print(f"TEXTURE -> TEXTURES conversion failed: {e}")
+
+def parse_switches_lump(switches_data):
 	"""
-	Iterate source lumps and produce additional helper lumps for the PWAD.
-	"""
-	deh_mapping = {}
-	src_data = getattr(src_wad, "data", {})
-
-	demo_lumps = [
-		name for name in list(out_wad.data.keys())
-		if re.match(r"^DEMO\d+$", name.upper())
-	]
-
-	for name in demo_lumps:
-		del out_wad.data[name]
-
-	if demo_lumps:
-		print(f"Cleaned out {len(demo_lumps)} demo lumps: {', '.join(demo_lumps)}")
-
-	pnames_bytes = None
-	if "PNAMES" in src_data:
-		pnames_bytes = src_data["PNAMES"].data
+	Parse a SWITCHES lump and generate a Lua table.
 	
-	textures_bytes = []
-	if "TEXTURE1" in src_data:
-		textures_bytes.append(src_data["TEXTURE1"].data)
-	if "TEXTURE2" in src_data:
-		textures_bytes.append(src_data["TEXTURE2"].data)
-
-	all_external_deh = []
-	if external_deh_data:
-		print(f"Processing {len(external_deh_data)} external DEH/BEX files")
-		for name, data in external_deh_data:
-			all_external_deh.append((name, data))
-
-	for entry in getattr(src_wadio, "entries", []):
-		name = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii", errors="ignore")).upper().rstrip("\x00")
-		try:
-			lump_bytes = src_wadio.read(name)
-		except Exception:
-			continue
-
-		if name == "ENDOOM" or name == "ENDBOOM":
-			try:
-				lua_bytes = parse_endoom_and_build_lua(lump_bytes)
-				out_name = "LUA_ENDM"
-				safe_add_lump_to_data(out_wad, out_name, WadIO._LumpFromBytes(lua_bytes) if hasattr(WadIO, '_LumpFromBytes') else Lump(lua_bytes))
-				print(f"Inserted {out_name} (ENDOOM -> Lua endoom)")
-			except Exception as e:
-				print(f"Failed to process ENDOOM: {e}")
-
-		elif name in ("DEHACKED", "DEHACK", "DEH", "PATCH", "BEX"):
-			all_external_deh.append((f"internal_{name}", lump_bytes))
-			print(f"Found internal DEHACKED lump: {name}")
-
-		elif name.startswith("LANGUAGE") or name.startswith("LANG") or name == "LANGUAGE":
-			try:
-				m = parse_key_value_pairs_from_text(lump_bytes)
-				deh_mapping.update(m)
-				print(f"Collected LANGUAGE strings from {name}")
-			except Exception as e:
-				print(f"Failed to parse LANGUAGE {name}: {e}")
-
-		elif name == "PNAMES" and pnames_bytes is None:
-			pnames_bytes = lump_bytes
-			print("PNAMES found")
-
-		elif name in ("TEXTURE1", "TEXTURE2"):
-			textures_bytes.append(lump_bytes)
-			print(f"{name} queued for TEXTURES conversion")
-
-		elif name == "COLORMAP":
-			try:
-				translate_lump = create_translate_lump_from_colormap(lump_bytes)
-				if len(translate_lump.data) > 0:
-					out_wad.data["TRNSLATE"] = translate_lump
-					print("Created TRNSLATE lump from COLORMAP rows")
-
-				fixed = force_colormap_size(lump_bytes)
-				out_wad.data["COLORMAP"] = Lump(fixed)
-				print("Replaced/inserted fixed COLORMAP (256x32)")
-			except Exception as e:
-				print(f"COLORMAP processing failed: {e}")
-
-	if all_external_deh:
-		combined_structured_deh = {}
-		for name, data in all_external_deh:
-			try:
-				structured_deh = parse_dehacked_structured(data)
-				if structured_deh:
-					for mode, entries in structured_deh.items():
-						if mode not in combined_structured_deh:
-							combined_structured_deh[mode] = []
-						existing_ids = {entry['id'] for entry in combined_structured_deh[mode] if entry['id'] is not None}
-						for entry in entries:
-							if entry['id'] is not None and entry['id'] in existing_ids:
-								combined_structured_deh[mode] = [e for e in combined_structured_deh[mode] if e['id'] != entry['id']]
-							combined_structured_deh[mode].append(entry)
-					print(f"Parsed structured DEHACKED from {name}")
-				else:
-					print(f"No structured DEHACKED data found in {name}")
-			except Exception as e:
-				print(f"Failed to parse {name} as structured DEHACKED: {e}")
+	SWITCHES format:
+	- 9 bytes: Null-terminated name of the "off" texture
+	- 9 bytes: Null-terminated name of the "on" texture
+	- 2 bytes: 16-bit int specifying which IWADs this switch works with:
+	  0: terminate SWITCHES list
+	  1: Shareware
+	  2: Shareware, Doom
+	  3: Shareware, Doom, Doom II
+	
+	Returns a Lua table string.
+	"""
+	switches = []
+	pos = 0
+	
+	while pos + 20 <= len(switches_data):
+		# Read 9 bytes for off texture name
+		off_name = switches_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+		pos += 9
 		
-		if combined_structured_deh:
-			lua_deh = build_structured_lua_deh(combined_structured_deh)
-			out_wad.data["LUA_DEH"] = Lump(lua_deh)
-			print(f"Wrote combined LUA_DEH from {len(all_external_deh)} DEH/BEX sources")
-
-	if deh_mapping and "LUA_DEH" not in out_wad.data:
-		try:
-			lua_deh = build_lua_deh_table(deh_mapping)
-			out_wad.data["LUA_DEH"] = Lump(lua_deh)
-			print("Wrote LUA_DEH from aggregated LANGUAGE entries")
-		except Exception as e:
-			print(f"Failed to write LUA_DEH: {e}")
-
-	if pnames_bytes and textures_bytes:
-		try:
-			pnames = parse_pnames(pnames_bytes)
-			combined_text = []
-			for tb in textures_bytes:
-				txt = parse_texture_lump_to_text(pnames, tb)
-				if txt:
-					combined_text.append(txt)
-			if combined_text:
-				text_blob = ("\n\n".join(combined_text)).encode("utf-8")
-				out_wad.data["TEXTURES"] = Lump(text_blob)
-				try:
-					del out_wad.data["TEXTURE1"]
-					del out_wad.data["TEXTURE2"]
-					del out_wad.data["PNAMES"]
-				except Exception:
-					pass
-				print("Wrote TEXTURES from TEXTURE1/TEXTURE2 + PNAMES")
-		except Exception as e:
-			print(f"TEXTURE -> TEXTURES conversion failed: {e}")
+		# Read 9 bytes for on texture name
+		on_name = switches_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+		pos += 9
+		
+		# Read 2 bytes for IWAD type
+		iwad_type = int.from_bytes(switches_data[pos:pos+2], 'little')
+		pos += 2
+		
+		# Terminating entry
+		if iwad_type == 0:
+			break
+		
+		switches.append({
+			'off': off_name,
+			'on': on_name,
+			'iwad': iwad_type
+		})
+	
+	# Generate Lua table
+	lua_lines = ["doom.switchTexNames = {"]
+	
+	for sw in switches:
+		# Escape strings for Lua
+		off_escaped = lua_string(sw['off'])
+		on_escaped = lua_string(sw['on'])
+		lua_lines.append(f'    {{{off_escaped}, {on_escaped}, {sw["iwad"]}}},')
+	
+	# Add terminating entry
+	lua_lines.append('    {"\\0", "\\0", 0}')
+	lua_lines.append("}")
+	
+	return "\n".join(lua_lines)
 
 def force_colormap_size(blob: bytes) -> bytes:
 	cur = len(blob)

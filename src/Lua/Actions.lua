@@ -85,6 +85,7 @@ local function DOOM_EnterSeeState(actor)
 end
 
 function A_DoomLook(actor)
+	if not doom then return end
 	local secdata = doom.sectordata and doom.sectordata[actor.subsector.sector]
 	local targ = secdata and secdata.soundtarget
 	actor.threshold = 0 // any shot will wake up
@@ -1810,4 +1811,75 @@ end
 function A_DoomSentinelRefire(actor)
 	-- TODO
 	A_CPosRefire(actor)
+end
+
+function A_Hoof(actor)
+	S_StartSound(actor, sfx_hoof)
+	A_DoomChase(actor)
+end
+
+function A_Metal(actor)
+	S_StartSound(actor, sfx_metal)
+	A_DoomChase(actor)
+end
+
+function A_MBFDetonate()
+
+end
+
+function A_MBFMushroom()
+
+end
+
+function A_MBFSpawn()
+
+end
+
+function A_MBFTurn()
+
+end
+
+function A_MBFFace()
+
+end
+
+function A_MBFScratch()
+
+end
+
+function A_MBFPlaySound()
+
+end
+
+function A_MBFRandomJump()
+
+end
+
+function A_MBFLineEffect()
+
+end
+
+---@param actor mobj_t
+function A_MBFDie(actor)
+	actor.doom.health = 1
+	actor.doom.armor = 0
+	DOOM_DamageMobj(actor, nil, nil, 1, nil, 0)
+end
+
+function doom.getVars(actor)
+	local state = doom.extradata[states[actor.state]]
+	local daArray = {}
+	for i = 1, 8 do
+		daArray[i] = state["var" .. i]
+	end
+	return daArray
+end
+
+function A_MBFWeaponProjectile(actor)
+	local vars = doom.getVars(actor)
+	local thingId = vars[1]
+	local angle = vars[2]
+	local pitch = vars[3]
+	local hoffset = vars[4]
+	local voffset = vars[5]
 end
