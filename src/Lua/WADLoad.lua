@@ -951,13 +951,23 @@ local function normalizegamename(str)
 end
 
 local lastgamename = normalizegamename("$GAMENAME")
+local shouldreprintgamename = false
 
 local function aaa()
 	doLoadingShit()
 	doDehacked()
+	shouldreprintgamename = true
+end
+
+addHook("AddonLoaded", aaa)
+aaa()
+
+addHook("ThinkFrame", function()
+	if not shouldreprintgamename then return end
 
 	local startupstring = normalizegamename(DOOM_ResolveString("$GAMENAME"))
 
+	shouldreprintgamename = true
 	if startupstring == lastgamename then return end
 
 	local startuplen = #startupstring
@@ -966,7 +976,4 @@ local function aaa()
 	print(string.rep("=", startuplen))
 
 	lastgamename = startupstring
-end
-
-addHook("AddonLoaded", aaa)
-aaa()
+end)
