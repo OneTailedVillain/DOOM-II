@@ -957,7 +957,10 @@ local function aaa()
 	doLoadingShit()
 	doDehacked()
 	shouldreprintgamename = true
-	doom.invalidateCache()
+
+	if doom.invalidateCache then
+		doom.invalidateCache()
+	end
 end
 
 addHook("AddonLoaded", aaa)
