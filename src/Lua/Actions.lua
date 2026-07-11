@@ -1125,6 +1125,8 @@ function A_DoomFire(actor, var1, weaponDef, weapon)
 
         DOOM_Fire(player, weapon.maxdist or MISSILERANGE, spread and spread.horiz or 0, spread and spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     else
+		A_DoomFaceTarget(actor)
+
 		local weapon = doom.predefinedWeapons[weaponDef or 1]
         -- Enemy logic
 		if weapon.firesound then
