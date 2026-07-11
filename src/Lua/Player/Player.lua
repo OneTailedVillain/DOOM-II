@@ -1201,6 +1201,7 @@ local typeHandlers = {
 addHook("MobjLineCollide", function(mobj, hit)
 	if mobj.flags & MF_MISSILE then return end
 	if mobj.doom.handlingtele then return end
+
 	-- pos + momentum = the direction the player intended to go
 	-- TODO: Add checks for if the movement is available to the player!
 	if P_PointOnLineSide(mobj.x, mobj.y, hit) == P_PointOnLineSide(mobj.x + mobj.momx, mobj.y + mobj.momy, hit) then return end
@@ -1214,6 +1215,14 @@ addHook("MobjLineCollide", function(mobj, hit)
     if not whatIs or whatIs.activationType ~= "walk" then
 		return
 	end
+
+    local targSide = usedLine.sidenum[0]
+    if sides[targSide] then
+        local sector = sides[targSide].sector
+        whatIs.newfloorpic = sector.floorpic
+        whatIs.newceilpic  = sector.ceilpic
+        whatIs.newSectorSpecial = sector.special
+    end
 
 	if typeHandlers[whatIs.type] then
 		typeHandlers[whatIs.type](usedLine, whatIs, mobj)
