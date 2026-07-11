@@ -50,7 +50,7 @@ local function drawWeaponState(v, player, slot, bobx, boby, offset)
     end
 
     local sector = R_PointInSubsector(player.mo.x, player.mo.y).sector
-    local extraflag = (player.mo.doom.flags & DF_SHADOW) and (V_ADD|V_10TRANS) or 0
+    local extraflag = (player.mo.doom.flags & DF_SHADOW) and V_80TRANS or 0
     local lightlevel = sector.lightlevel
 
     if spriteflags & FF_FULLBRIGHT then
