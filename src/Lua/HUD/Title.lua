@@ -651,8 +651,9 @@ function doom.getTitleMusicLump()
 end
 
 addHook("MusicChange", function(old, new)
+	--print(gamestate, 0, "old", old, "new", new, new:lower())
 	if gamestate != GS_TITLESCREEN then return end
-	if old:lower() == "_title" then
+	if new:lower() == "_title" then
 		return doom.getTitleMusicLump()
 	elseif old:lower() == doom.getTitleMusicLump() then
 		return true
