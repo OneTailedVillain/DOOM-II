@@ -932,6 +932,10 @@ local function doLoadingShit()
 	doom.matchedGame = matchedGame or $
 end
 
+local function trim(s)
+	return s:match("^%s*(.-)%s*$")
+end
+
 local function normalizegamename(str)
 	str = trim(str)
 
