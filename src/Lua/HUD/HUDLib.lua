@@ -262,7 +262,7 @@ local function cacheFont(v, font, force)
 	return cacheShit.fonts[font]
 end
 
-function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight)
+function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxChars, lineHeight, maxLength)
 	str = tostring(str)
 
 	-- Validate flags
@@ -298,7 +298,7 @@ function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxC
 
 	lineHeight = lineHeight and (lineHeight * scale) or cacheShit.fontHeights[font]
 
-	local maxWidth = 320*FRACUNIT
+	local maxWidth = maxLength or (320*FRACUNIT)
 
 	-- Precompute glyph advances
 	if not cacheShit.fontAdvance then cacheShit.fontAdvance = {} end
@@ -421,6 +421,8 @@ function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxC
 			xpos = xpos - totalWidth
 		end
 
+		local startX = xpos
+
 		-- Draw words/characters
 		for wi = 1, #words do
 			local word = words[wi]
@@ -433,8 +435,11 @@ function doom.drawInFont(v, x, y, scale, font, str, flags, alignment, cmap, maxC
 					v.drawScaled(xpos, y, scale, info.patch, flags, cmap)
 					xpos = xpos + FixedMul(advance[code], scale)
 				end
-
-				if xpos > maxWidth then break end
+				if maxLength then
+					if xpos - startX > maxWidth then break end
+				else
+					if xpos > maxWidth then break end
+				end
 			end
 
 			-- Space between words

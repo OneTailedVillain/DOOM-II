@@ -154,6 +154,10 @@ hud.add(function(v, player)
 		print("Invalid target '" .. tostring(target) .. "'")
 	end
 
+	for _, dafunc in ipairs(doom.hud_postdraw) do
+		dafunc(v, player)
+	end
+
 	DrawFlashes(v, player)
 end)
 
