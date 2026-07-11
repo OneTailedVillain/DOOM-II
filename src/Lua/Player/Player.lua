@@ -1199,6 +1199,7 @@ local typeHandlers = {
 }
 
 addHook("MobjLineCollide", function(mobj, hit)
+	if mobj.flags & MF_MISSILE then return end
 	if mobj.doom.handlingtele then return end
 	-- pos + momentum = the direction the player intended to go
 	-- TODO: Add checks for if the movement is available to the player!
