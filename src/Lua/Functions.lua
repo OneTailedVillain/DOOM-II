@@ -227,6 +227,10 @@ rawset(_G, "DefineDoomActor", function(name, objData, stateData)
 	--#endif
 
 	-- Mainly only used by Strife
+	if slots["S_"..prefix.."_WOUND1"] then
+		mobjinfo[MT].woundstate = slots["S_"..prefix.."_WOUND1"]
+		mobjinfo[MT].woundhealth = objData.woundhealth or 6
+	end
 	mi.friendly = objData.friendly
 
 	-- Set user_idleanim# to the first frame of the associated idleanim# if it exists
@@ -1310,6 +1314,10 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 					target.state = target.info.painstate
                 end
             end
+
+			if target.info.woundhealth and target.doom.health < target.info.woundhealth then
+				target.state = target.info.woundstate
+			end
         end
     end
 end)
