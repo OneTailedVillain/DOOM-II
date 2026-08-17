@@ -33,7 +33,7 @@ local ST_EVILGRINOFFSET = (ST_OUCHOFFSET + 1)
 local ST_RAMPAGEOFFSET = (ST_EVILGRINOFFSET + 1)
 
 local function ST_calcPainOffset(plyr)
-	local properties = P_GetSupportsForSkin(plyr)
+	local properties = P_GetPlayerCharDef(plyr)
 	local ST_NUMPAINFACES = properties.st_damagesteps or 5
 
 	local funcs = P_GetMethodsForSkin(plyr)
@@ -56,7 +56,7 @@ local function ST_updateFaceWidget(plyr)
 	local funcs = P_GetMethodsForSkin(plyr)
 	local myHealth = funcs.getHealth(plyr) or 0
 
-	local properties = P_GetSupportsForSkin(plyr)
+	local properties = P_GetPlayerCharDef(plyr)
 	local ST_NUMPAINFACES = properties.st_damagesteps or 5
 
 	local ST_GODFACE = ST_NUMPAINFACES * ST_FACESTRIDE
@@ -461,6 +461,19 @@ local warnedfor = {
 	deprecated = {}
 }
 
+--#ifdef STRIFE
+COM_AddCommand("strife_setstamina", function(player, stamina)
+	stamina = tonumber(stamina) or 0
+	player.doom.strife_stamina = stamina
+end)
+
+COM_AddCommand("strife_setaccuracy", function(player, stamina)
+	stamina = tonumber(stamina) or 0
+	player.doom.strife_accuracy = stamina
+end)
+--#endif
+
+---@param player player_t
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
@@ -496,7 +509,7 @@ addHook("PlayerThink", function(player)
 	player.doom.damagecount = ($ or 1) - 1
 	player.doom.messageclock = ($ or 1) - 1
 
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	if support.noWeapons then
 		doom.warn("deprecated.noWeapons", "doom.characterDefs['" .. player.mo.skin .. "'].noWeapons is deprecated and will be removed in a future version. Use properties.overrideWeapons instead.")
 		return
@@ -512,10 +525,38 @@ addHook("PlayerThink", function(player)
 	updateWeaponState(player, true)   -- Flash state
 end)
 
+local ICONSTEP = 64*FRACUNIT
+
+local function WeaponDelta(player, fromSlot, fromOrder, toSlot, toOrder)
+	if fromSlot == toSlot and fromOrder == toOrder then
+		return 0
+	end
+
+	local slot, order = fromSlot, fromOrder
+	local forward = 0
+	repeat
+		slot, order = doom.findNextWeapon(player, 1, slot, order)
+		forward = $ + 1
+	until slot == toSlot and order == toOrder
+
+	slot, order = fromSlot, fromOrder
+	local backward = 0
+	repeat
+		slot, order = doom.findNextWeapon(player, -1, slot, order)
+		backward = $ + 1
+	until slot == toSlot and order == toOrder
+
+	if forward <= backward then
+		return forward
+	end
+
+	return -backward
+end
+
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 
 	if support.noWeapons then return end
 	if not player.doom then return end
@@ -535,13 +576,17 @@ addHook("PlayerThink", function(player)
 			wepconfirmationtimer = 0,
 			showtimer = 0,
 			active = false,
-			cooldown = 0
+			cooldown = 0,
+			animoffset = 0
 		}
 	end
 
 	local carousel = player.doom.wepcarousel
 
-	local function commitWeapon(player, weapon, slot, order, feedbackTime)
+	local function commitWeapon(player, weapon, slot, order, feedbackTime, animDelta)
+		local oldSlot = player.doom.curwepcat
+		local oldOrder = player.doom.curwepslot
+
 		player.doom.curwepcat = slot
 		player.doom.curwepslot = order
 		player.doom.wishwep = weapon
@@ -553,6 +598,13 @@ addHook("PlayerThink", function(player)
 		carousel.active = false
 		carousel.wepconfirmationtimer = 0
 		carousel.showtimer = feedbackTime or 0
+
+		local steps = animDelta
+		if steps == nil then
+			steps = WeaponDelta(player, oldSlot, oldOrder, slot, order)
+		end
+
+		carousel.animoffset = $ + (steps * ICONSTEP)
 	end
 
 	-- Update cooldown timer
@@ -572,12 +624,13 @@ addHook("PlayerThink", function(player)
 		if player.cmd.buttons & BT_WEAPONNEXT ~= 0 and player.doom.lastbuttons & BT_WEAPONNEXT == 0 then
 			local targetSlot, targetOrder = doom.findNextWeapon(player, 1, baseSlot, baseOrder)
 			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
-			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2)
+			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2, 1)
 			carousel.cooldown = 3
+
 		elseif player.cmd.buttons & BT_WEAPONPREV ~= 0 and player.doom.lastbuttons & BT_WEAPONPREV == 0 then
 			local targetSlot, targetOrder = doom.findNextWeapon(player, -1, baseSlot, baseOrder)
 			local targetWeapon = doom.weaponnames[targetSlot][targetOrder]
-			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2)
+			commitWeapon(player, targetWeapon, targetSlot, targetOrder, TICRATE/2, -1)
 			carousel.cooldown = 3
 		end
 	end
@@ -916,6 +969,7 @@ addHook("PlayerSpawn",function(player)
 		else
 			player.doom.laststate = {}
 		end
+		player.doom.oldskin = player.mo.skin
 		player.doom.pendingSkinChange = nil
 	end
 	player.doom = $ or {}
@@ -1097,7 +1151,7 @@ local function lineToLinePos(mo, src, dst, reversed)
 	// Fraction along the source line: 0 = v1, FRACUNIT = v2
 	local along = FixedDiv(
 		FixedMul(dx, sdx) + FixedMul(dy, sdy),
-		FixedMul(slen, slen)
+		FixedMul(slen, slen) or 1
 	)
 
 	if reversed then

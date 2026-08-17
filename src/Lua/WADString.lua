@@ -306,17 +306,12 @@ doom.obitStrings = {
 		},
 
 		revenant_melee_brassknuckles = {
-			"%o got into a boxing fight with a revenant and lost.",
-			"%o tried to settle it with a revenant the gentleman's way.",
-			"%o chose fisticuffs with a creature whose fists break bones as a hobby.",
-			"%o thought 'stand and deliver' applied to the undead.",
-			"%o proposed a pugilistic solution to an arcane problem.",
-			"%o's brass knuckles were proven decorative against a true professional.",
-			"%o was dispatched by a revenant's one-two.",
-			"%o tried to outbox a revenant.",
-			"%o tried to fight a revenant with dignity.",
-			"%o learned why you don't fistfight the undead.",
-			"%o found out revenants have a mean right hook."
+			"%o was outboxed by a revenant.",
+			"%o insisted on settling it with their fists.",
+			"%o tried solving magic with muscle.",
+			"%o's brass knuckles couldn't impress a revenant.",
+			"%o couldn't knock the dead back down.",
+			"%o tried punching above their grave.",
 		},
 
 		shotgunner_shotgun = {
@@ -363,19 +358,21 @@ doom.obitStrings = {
 			"%o learned chainguns are the spider mastermind's specialty.",
 		},
 
-		chaingunner_chaingun = "%o tried to beat a chaingunner in their own turf.",
+		chaingunner_chaingun = {
+			"%o tried to out-chaingun a chaingunner.",
+			"%o challenged a chaingunner to a bullet contest.",
+			"%o brought a chaingun to a chaingunner fight.",
+		},
 
 		brassknuckles = {
 			"%o chewed on %k's fist.",
 			"%o was punched to death by %k's brass knuckles.",
 			"%o underestimated %k's knuckle duster skills.",
 			"%o got a knuckle sandwich from %k.",
-			"%o learned not to mess with %k's brass knuckles.",
 			"%o was knocked out cold by %k's fists of fury.",
 			"%o found out %k packs a punch with brass knuckles.",
 			"%o was on the receiving end of %k's brass knuckle justice.",
 			"%o got their lights knocked out by %k.",
-			"%o discovered %k's brass knuckles are more than just for show.",
 			"%o was flattened by %k's brass knuckle barrage."
 		},
 
@@ -398,11 +395,8 @@ doom.obitStrings = {
 		brassknuckles_chainsaw = {
 			"%o tried to block %k's chainsaw with brass knuckles.",
 			"%o learned brass knuckles don't stop chainsaws.",
-			"%o found out the hard way that brass knuckles can't defend against a chainsaw.",
-			"%o discovered brass knuckles are useless against %k's chainsaw.",
-			"%o brought brass knuckles to a chainsaw fight.",
+			"%o brought brass knuckles to %k's chainsaw fight.",
 			"%o tried to box with a chainsaw-wielding %k.",
-			"%o brought knuckles to a chainsaw fight.",
 		},
 
 		-- When the opposite of the above happens :kappa:
@@ -414,6 +408,13 @@ doom.obitStrings = {
 			"%o was outboxed despite wielding a chainsaw.",
 			"%o underestimated %k's brass knuckles while revving a chainsaw.",
 			"%o found out that even a chainsaw can't save you from a good punch.",
+		},
+
+		brassknuckles_brassknuckles = {
+			"%o couldn't outpunch %k.",
+			"%o was beaten at %k's own game.",
+			"%o lost a fistfight against %k.",
+			"%o was outboxed by %k.",
 		},
 
 		brassknuckles_pistol = {
@@ -462,17 +463,12 @@ doom.obitStrings = {
 		},
 
 		brassknuckles_bfg9000 = {
-			"%o brought a knuckle fight to a BFG and lost spectacularly to %k.",
-			"%o tried to box %k's BFG and became a statistic.",
-			"%o discovered brass knuckles don't stop BFG splinters from %k.",
-			"%o was obliterated by %k after a hopeful punch.",
-			"%o aimed for a punch and hit the wrong end of %k's BFG.",
-			"%o went to trade blows with %k's BFG and got obliterated.",
+			"%o brought a knuckle fight to %k's BFG.",
+			"%o tried to box %k's BFG.",
 		},
 
 		chainsaw_pistol = {
 			"%o revved their chainsaw at %k but got a bullet instead.",
-			"%o thought shredding was the answer — %k had other plans.",
 			"%o tried to close the gap on %k's pistol and failed.",
 			"%o got put down by %k's steady hand while revving.",
 			"%o discovered a toe-to-trigger mismatch with %k.",
@@ -1482,6 +1478,8 @@ function doom.loadStrings(gameType)
 		STSTR_CHOPPERS = "... doesn't suck - GM",
 		STSTR_CLEV = "Changing Level..."
 	}
+
+	doom.strings["GAMENAME"] = "Strife: Quest for the Sigil"
 end
 --#elif DOOM
 function doom.loadStrings(gameType, gamemode)

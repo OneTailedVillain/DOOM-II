@@ -1,4 +1,4 @@
-freeslot("SPR_WRNG")
+freeslot("SPR_WRNG", "sfx_jritmu")
 
 local function setupWeaponDelay(weapondelayTics, frameChar)
     local states = {
@@ -66,7 +66,7 @@ doom.addWeapon("matchring", {
     ammotype = "bullets",
 })
 
-mobjinfo[MT_REDRING].deathsound = sfx_s3k33
+mobjinfo[MT_REDRING].deathsound = sfx_jritmu
 
 doom.addWeapon("automaticring", {
     sprite = SPR_WRNG,
@@ -84,7 +84,7 @@ doom.addWeapon("automaticring", {
     ammotype = "bullets",
 })
 
-mobjinfo[MT_THROWNAUTOMATIC].deathsound = sfx_s3k33
+mobjinfo[MT_THROWNAUTOMATIC].deathsound = sfx_jritmu
 
 doom.addWeapon("bouncering", {
     sprite = SPR_WRNG,
@@ -103,7 +103,7 @@ doom.addWeapon("bouncering", {
     ammotype = "shells",
 })
 
-mobjinfo[MT_THROWNBOUNCE].deathsound = sfx_s3k33
+mobjinfo[MT_THROWNBOUNCE].deathsound = sfx_jritmu
 
 doom.addWeapon("scatterring", {
     sprite = SPR_WRNG,
@@ -244,7 +244,7 @@ doom.addWeapon("scatterring", {
     ammotype = "shells",
 })
 
-mobjinfo[MT_THROWNSCATTER].deathsound = sfx_s3k33
+mobjinfo[MT_THROWNSCATTER].deathsound = sfx_jritmu
 
 doom.addWeapon("grenadering", {
     sprite = SPR_WRNG,
@@ -460,7 +460,7 @@ mobjinfo[MT_DOOM_THROWNHOMING] = {
 	spawnstate = mtSt.active[1],
 	seesound = sfx_homifr,
 	deathstate = mobjinfo[MT_THROWNSCATTER].deathstate,
-	deathsound = sfx_s3k33,
+	deathsound = sfx_jritmu,
 	speed = 90*FRACUNIT,
 	radius = 19*FRACUNIT,
 	height = 19*FRACUNIT,

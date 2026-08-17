@@ -17,18 +17,34 @@ class post_t:
     __slots__ = ("topdelta", "length", "data")
 
     def __init__(self, topdelta: int, data: bytes):
-        if not (0 <= topdelta <= 255):
-            raise ValueError("topdelta must be 0..255")
+        if topdelta < 0:
+            raise ValueError("topdelta must be non-negative")
         if len(data) > 255:
             raise ValueError("post length must be <= 255")
-        self.topdelta = topdelta
+        self.topdelta = int(topdelta)
         self.length = len(data)
         self.data = bytes(data)
 
-    def toBytes(self) -> bytes:
+    def toBytes(self, previous_topdelta: Optional[int] = None) -> bytes:
+        if previous_topdelta is None:
+            if self.topdelta > 254:
+                raise ValueError("first post topdelta must fit in a single byte")
+            encoded_topdelta = self.topdelta
+        elif self.topdelta <= 254:
+            encoded_topdelta = self.topdelta
+        else:
+            encoded_topdelta = self.topdelta - previous_topdelta
+            if encoded_topdelta < 0 or encoded_topdelta > 254:
+                raise ValueError(
+                    "topdelta cannot be encoded as a tall patch relative to the previous post"
+                )
+
+        if encoded_topdelta > 254:
+            raise ValueError("topdelta must fit in a single byte")
+
         return struct.pack(
             f"<BBB{self.length}sB",
-            self.topdelta,
+            encoded_topdelta,
             self.length,
             0,
             self.data,
@@ -36,7 +52,7 @@ class post_t:
         )
 
     @staticmethod
-    def fromBytes(data: bytes, offset: int):
+    def fromBytes(data: bytes, offset: int, previous_topdelta: Optional[int] = None):
         """
         Returns (post_or_none, next_offset).
         If the column terminator 0xFF is found, returns (None, offset + 1).
@@ -48,6 +64,10 @@ class post_t:
         length = data[offset + 1]
         pixel_data = data[offset + 3 : offset + 3 + length]
         next_offset = offset + 3 + length + 1
+
+        if previous_topdelta is not None and topdelta <= previous_topdelta:
+            topdelta = previous_topdelta + topdelta
+
         return post_t(topdelta, pixel_data), next_offset
 
 
@@ -75,6 +95,21 @@ class patch_t:
         self.topoffset = int(topoffset)
         self.columns: List[List[post_t]] = [[] for _ in range(self.width)]
 
+    def _split_post(self, topdelta: int, data: bytes) -> List[post_t]:
+        if len(data) <= 255:
+            return [post_t(topdelta, data)]
+
+        posts: List[post_t] = []
+        offset = topdelta
+        remaining = bytes(data)
+        while remaining:
+            chunk = remaining[:254]
+            posts.append(post_t(offset, chunk))
+            remaining = remaining[254:]
+            if remaining:
+                offset += len(chunk)
+        return posts
+
     def addPost(self, column: int, topdelta: int, data: bytes):
         """
         Add one post to a column.
@@ -84,7 +119,7 @@ class patch_t:
         """
         if not (0 <= column < self.width):
             raise IndexError("column out of range")
-        self.columns[column].append(post_t(topdelta, data))
+        self.columns[column].extend(self._split_post(topdelta, data))
 
     def setColumn(self, column: int, pixels: Sequence[Optional[int]]):
         """
@@ -115,7 +150,7 @@ class patch_t:
             run_data.append(px)
 
         if run_start is not None:
-            posts.append(post_t(run_start, bytes(run_data)))
+            posts.extend(self._split_post(run_start, bytes(run_data)))
 
         self.columns[column] = posts
 
@@ -169,8 +204,10 @@ class patch_t:
 
         for col in self.columns:
             columnofs.append(len(blob))
+            previous_topdelta: Optional[int] = None
             for post in col:
-                blob.extend(post.toBytes())
+                blob.extend(post.toBytes(previous_topdelta))
+                previous_topdelta = post.topdelta
             blob.append(0xFF)  # end of column
 
         return columnofs, bytes(blob)
@@ -209,12 +246,14 @@ def toPatchClass(data: bytes) -> patch_t:
 
     for col_idx, col_ofs in enumerate(columnofs):
         offset = col_ofs
+        previous_topdelta: Optional[int] = None
         while True:
             topdelta = data[offset]
             if topdelta == 0xFF:
                 break
-            post, offset = post_t.fromBytes(data, offset)
+            post, offset = post_t.fromBytes(data, offset, previous_topdelta)
             if post is not None:
                 patch.columns[col_idx].append(post)
+                previous_topdelta = post.topdelta
 
     return patch

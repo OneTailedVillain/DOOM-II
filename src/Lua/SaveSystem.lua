@@ -78,6 +78,8 @@ doom.configents = {
 	t_armor_red = {commandname = "doom_hudthresholds_armor_red", default = "25", helpdescription = "Armor HUD Red Threshold", possiblevalues = CV_Percent, flags = CV_JDONLY},
 	t_armor_yellow = {commandname = "doom_hudthresholds_armor_yellow", default = "50", helpdescription = "Armor HUD Yellow Threshold", possiblevalues = CV_Percent, flags = CV_JDONLY},
 	t_armor_green = {commandname = "doom_hudthresholds_armor_green", default = "100", helpdescription = "Armor HUD Green Threshold", possiblevalues = CV_Percent, flags = CV_JDONLY},
+	thinmessages = {commandname = "doom_thinmessages", default = "Off", helpdescription = "Thin messages", possiblevalues = CV_OnOff, flags = CV_JDONLY},
+	allcapsmessages = {commandname = "doom_allcapsmessages", default = "On", helpdescription = "Messages Are All Uppercase", possiblevalues = CV_OnOff, flags = CV_JDONLY},
 	-- Port of con_textsize
 	textSize = {commandname = "doom_textsize", default = "0", helpdescription = "Text Size", possiblevalues = {Huge = 0, Large = 768, Medium = 512, Small = 256}},
 	textRows = {commandname = "doom_textrows", default = "1", helpdescription = "Text Rows", possiblevalues = CV_Range(1, 20)},

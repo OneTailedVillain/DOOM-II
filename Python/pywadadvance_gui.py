@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QTextEdit, QProgressBar, QCheckBox, QGroupBox,
                              QFileDialog, QMessageBox, QTabWidget, QListWidget,
-                             QListWidgetItem, QSplitter, QFrame, QScrollArea)
+                             QListWidgetItem, QSplitter, QFrame, QScrollArea,
+                             QComboBox)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QPalette, QColor
 
@@ -389,6 +390,27 @@ class WadAdvanceGUI(QMainWindow):
         self.use_pcspeaker_cb = QCheckBox("Replace sounds with PC Speaker variants")
         self.use_pcspeaker_cb.setChecked(False)
         optional_layout.addWidget(self.use_pcspeaker_cb)
+
+        engine_group = QGroupBox("Engine Mode")
+        engine_layout = QVBoxLayout(engine_group)
+        self.engine_mode_combo = QComboBox()
+        self.engine_mode_combo.addItem("Auto", "auto")
+        self.engine_mode_combo.addItem("Doom", "doom")
+        self.engine_mode_combo.addItem("Strife", "strife")
+        self.engine_mode_combo.setCurrentIndex(0)
+        engine_layout.addWidget(self.engine_mode_combo)
+        optional_layout.addWidget(engine_group)
+
+        srb2_ver_group = QGroupBox("(SRB2 Modes) SRB2 Version")
+        engine_layout = QVBoxLayout(srb2_ver_group)
+        self.srb2_ver_combo = QComboBox()
+        self.srb2_ver_combo.addItem("Auto", "auto")
+        self.srb2_ver_combo.addItem("Halloween", "halloween")
+        self.srb2_ver_combo.addItem("XMAS", "xmas")
+        self.srb2_ver_combo.addItem("March 2000", "march2000")
+        self.srb2_ver_combo.setCurrentIndex(0)
+        engine_layout.addWidget(self.srb2_ver_combo)
+        optional_layout.addWidget(srb2_ver_group)
         
         layout.addWidget(optional_group)
         
@@ -652,6 +674,8 @@ class WadAdvanceGUI(QMainWindow):
             'normalize_pegging': self.normalize_pegging_cb.isChecked(),
             'player_sprites': self.player_sprites_cb.isChecked(),
             'use_pcspeaker': self.use_pcspeaker_cb.isChecked(),
+            'engine': self.engine_mode_combo.currentData() or 'auto',
+            'srb2ver': self.srb2_ver_combo.currentData() or 'auto',
             'auto_pk3': self.auto_pk3_cb.isChecked(),
             'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked(),
             'suppress_pskin_errors': self.suppress_pskin_errors_cb.isChecked(),
@@ -666,6 +690,8 @@ class WadAdvanceGUI(QMainWindow):
         self.normalize_pegging_cb.setChecked(True)
         self.player_sprites_cb.setChecked(True)
         self.use_pcspeaker_cb.setChecked(False)
+        self.engine_mode_combo.setCurrentIndex(0)
+        self.srb2_ver_combo.setCurrentIndex(0)
         self.auto_pk3_cb.setChecked(True)
         self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
         self.suppress_pskin_errors_cb.setChecked(False)

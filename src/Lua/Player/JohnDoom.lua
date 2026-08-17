@@ -94,6 +94,7 @@ addHook("MobjDeath", function(mobj, inflictor, source, damageType)
 		corpse.angle = mobj.angle
 		corpse.doom = $ or {}
 		corpse.doom.health = mobj.doom.health
+		corpse.doom.playerref = mobj.player
 		-- corpse.z = $ - (mobj.height - 15 * FRACUNIT)
 		corpse.skin = "johndoom"
 		if mobj.doom.health <= -100 then
@@ -348,7 +349,7 @@ end
 ---@param player player_t
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
-	local support = P_GetSupportsForSkin(player) or {}
+	local support = P_GetPlayerCharDef(player) or {}
 ---@diagnostic disable-next-line: missing-fields
 	if not support.properties then support.properties = {} end
 	local doesDoomMovement = support.useDoomMovement or support.properties.useDoomMovement
@@ -382,7 +383,7 @@ addHook("MobjDamage", function(target, inflictor, source, damage, damagetype)
 		return
 	end
 
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 
 	local prefersselfdamageinfo = false
 

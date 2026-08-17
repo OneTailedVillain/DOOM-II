@@ -33,7 +33,42 @@ local toDeclare = {
     CF_GODMODE = 1,
     CF_NOMOMENTUM = 2,
 	PSP_WEAPON = 1,
-	PSP_FLASH = 2
+	PSP_FLASH = 2,
+
+	--#ifdef STRIFE
+	QF_QUEST1  = 1 << 0,
+	QF_QUEST2  = 1 << 1,
+	QF_QUEST3  = 1 << 2,
+	QF_QUEST4  = 1 << 3,
+	QF_QUEST5  = 1 << 4,
+	QF_QUEST6  = 1 << 5,
+	QF_QUEST7  = 1 << 6,
+	QF_QUEST8  = 1 << 7,
+	QF_QUEST9  = 1 << 8,
+	QF_QUEST10 = 1 << 9,
+	QF_QUEST11 = 1 << 10,
+	QF_QUEST12 = 1 << 11,
+	QF_QUEST13 = 1 << 12,
+	QF_QUEST14 = 1 << 13,
+	QF_QUEST15 = 1 << 14,
+	QF_QUEST16 = 1 << 15,
+	QF_QUEST17 = 1 << 16,
+	QF_QUEST18 = 1 << 17,
+	QF_QUEST19 = 1 << 18,
+	QF_QUEST20 = 1 << 19,
+	QF_QUEST21 = 1 << 20,
+	QF_QUEST22 = 1 << 21,
+	QF_QUEST23 = 1 << 22,
+	QF_QUEST24 = 1 << 23,
+	QF_QUEST25 = 1 << 24,
+	QF_QUEST26 = 1 << 25,
+	QF_QUEST27 = 1 << 26,
+	QF_QUEST28 = 1 << 27,
+	QF_QUEST29 = 1 << 28,
+	QF_QUEST30 = 1 << 29,
+	QF_QUEST31 = 1 << 30,
+	QF_QUEST32 = 1 << 31,
+	--#endif
 }
 
 for k, v in pairs(toDeclare) do
@@ -58,6 +93,7 @@ rawset(_G, "A_None", "none")
 doom = doom or {}
 
 doom.version = 100
+doom.hud_postdraw = {}
 
 doom.mapString = "HUSTR_"
 doom.gameskill = 3
@@ -66,12 +102,12 @@ doom.kills = 0
 doom.respawnmonsters = false
 doom.defaultgravity = FRACUNIT
 doom.weapons = {}
-doom.KEY_RED = 1
-doom.KEY_BLUE = 2
-doom.KEY_YELLOW = 4
-doom.KEY_SKULLRED = 8
-doom.KEY_SKULLBLUE = 16
-doom.KEY_SKULLYELLOW = 32
+doom.KEY_BLUE = 1
+doom.KEY_YELLOW = 2
+doom.KEY_RED = 4
+doom.KEY_SKULLBLUE = 8
+doom.KEY_SKULLYELLOW = 16
+doom.KEY_SKULLRED = 32
 doom.thinkers = {}
 doom.subthinkers = {}
 doom.texturesByNum = {}
@@ -473,6 +509,10 @@ doom.pistolstartstate = {
 	curwepslot = 1,
 	curwepcat = 2,
 	armorefficiency = FRACUNIT/3,
+	--#ifdef STRIFE
+	strife_accuracy = 0,
+	strife_stamina = 0,
+	--#endif
 }
 
 print(doom.pistolstartstate.ammo and doom.pistolstartstate.ammo["bullets"] or "no ammo table")

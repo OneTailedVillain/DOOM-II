@@ -227,11 +227,11 @@ doom.characterDefs.sonic = {
 	css = {
 		name = "Sonic the Hedgehog",
 		description = {
-			"Able to fire weapons faster",
-			"than everyone else",
-			"However getting caught",
-			"Off-guard when it matters",
-			"Can get him killed"
+			"Fires weapons faster",
+			"than any other fighter",
+			"but his clip-based arsenal",
+			"requires careful management",
+			"or he'll be caught defenseless"
 		},
 		sprite = SPR2_WALK,
 		sequence = {A, 8}

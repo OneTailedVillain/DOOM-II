@@ -1,12 +1,16 @@
 freeslot("sfx_plpain", "sfx_pldeth", "sfx_pdiehi")
 
--- helper exposed for use by other modules (previously local)
-function doom.resolvePlayerAndMobj(target)
-    if not target then return nil, nil end
-    if target.player then -- it's an mobj
-        return target.player, target
-    end
-    return target, target.mo
+local function P_GetMappedAmmoType(player, ammoType)
+	if not player or not ammoType then
+		return ammoType
+	end
+
+	local properties = P_GetPlayerCharDef(player)
+	local overrides = properties
+		and properties.vanillaoverrides
+		and properties.vanillaoverrides.ammotypes
+
+	return (overrides and overrides[ammoType]) or ammoType
 end
 
 -- base methods that most characters will inherit
@@ -31,6 +35,9 @@ local baseMethods = {
 		if not player or not player.mo then return nil end
 		local curHealth = player.mo.doom and player.mo.doom.maxhealth
 		if curHealth == nil then return nil end
+		--#ifdef STRIFE
+			curHealth = $ + (player.doom.strife_stamina or 0)
+		--#endif
 		return curHealth
 	end,
 
@@ -82,6 +89,9 @@ local baseMethods = {
 			local wpnStats = DOOM_GetWeaponDef(player)
 			local ammoType = wpnStats.ammotype
 			if not ammoType then return nil end
+
+			ammoType = P_GetMappedAmmoType(player, ammoType)
+
 			local ammoCount = player.doom.ammo[ammoType]
 			local count = (ammoCount ~= nil) and ammoCount or 0
 			if count <= -1 then
@@ -96,25 +106,27 @@ local baseMethods = {
 		if not player then return nil end
 		if player.doom then
 			local wpnStats = DOOM_GetWeaponDef(player)
-			local ammoType = wpnStats.ammotype
-			return ammoType
+			return P_GetMappedAmmoType(player, wpnStats.ammotype)
 		end
 		return nil
 	end,
 
 	getAmmoFor = function(player, aType)
 		if not player or not player.doom or not aType then return false end
+		aType = P_GetMappedAmmoType(player, aType)
 		return player.doom.ammo and player.doom.ammo[aType] or 0
 	end,
 
 	setAmmoFor = function(player, aType, amount)
 		if not player or not player.doom or not aType then return false end
+		aType = P_GetMappedAmmoType(player, aType)
 		player.doom.ammo[aType] = amount
 		return true
 	end,
 
 	getMaxFor = function(player, aType)
 		if not player or not aType then return nil end
+		aType = P_GetMappedAmmoType(player, aType)
 		local properties = P_GetPlayerSkinProperties(player)
 		if properties and properties.maxammo != nil then
 			if player.doom.backpack then
@@ -204,6 +216,7 @@ local baseMethods = {
 			isSingle   = weaponPickupDef[3]
 		end
 
+		aType = P_GetMappedAmmoType(player, aType)
 		local ammoDef = doom.ammos[aType]
 		if not ammoDef or ammoDef.pickupamount == nil then return false end
 
@@ -391,7 +404,12 @@ function doom.characterDefsFinalize()
 
     -- duplicate "other" for johndoom and apply metatable fallback
     doom.characterDefs["johndoom"] = deepcopy(doom.characterDefs.other)
-	doom.characterDefs["johndoom"].properties = {useDoomMovement = true}
+	doom.characterDefs["johndoom"].properties = {
+		--#ifdef STRIFE
+		sounds = {pdiehi = freeslot("sfx_plxdth")},
+		--#endif
+		useDoomMovement = true
+	}
 	doom.characterDefs["johndoom"].useDoomMovement = true
 	doom.characterDefs["johndoom"].css = {
 		name = "John " .. doom.currentGame,

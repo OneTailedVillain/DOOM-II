@@ -74,7 +74,9 @@ hud.add(function(v, player)
 	drawNumber(v, 128 - 48, 24, bombAmmo, 2, V_SNAPTOTOP|V_SNAPTOLEFT)
 	drawNumber(v, 128 + 24 - 48, 24, arrowAmmo, 2, V_SNAPTOTOP|V_SNAPTOLEFT)
 	v.draw(64 - 8, 0, rightpiece, V_SNAPTOTOP|V_SNAPTORIGHT)
-	drawHearts(v, 64 + 128 + 32 - 8, 24, player.mo.doom.health, player.mo.doom.maxhealth, player.mo.doom.maxhealth / 10, 10, V_SNAPTOTOP|V_SNAPTORIGHT)
+
+	local funcs = P_GetMethodsForSkin(player)
+	drawHearts(v, 64 + 128 + 32 - 8, 24, player.mo.doom.health, funcs.getMaxHealth(player), funcs.getMaxHealth(player) / 10, 10, V_SNAPTOTOP|V_SNAPTORIGHT)
 	v.draw(64 + 128 + 16 + (12 * 8), 3 * 8, v.cachePatch("ZSNESHUDMAGICMETER1"), V_SNAPTOTOP|V_SNAPTORIGHT)
 
 	local skincolor = doom.FindSkinColorIndex("GREEN")

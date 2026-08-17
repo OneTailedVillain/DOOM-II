@@ -71,5 +71,6 @@
         "duplicate-doc-field",
         "duplicate-set-field"
 	],
-	"python.REPL.enableREPLSmartSend": false
+	"python.REPL.enableREPLSmartSend": false,
+	"python-envs.defaultEnvManager": "ms-python.python:system"
 }

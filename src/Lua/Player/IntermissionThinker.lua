@@ -62,7 +62,7 @@ doom.secretExits = $ or {
 -- calls intermissionPlaySound internally to get a retargetting, passing the same parameters as it gets
 local function tryPlaySound(player, soundname, phasename, curPhaseVal, maxVal)
 	if player != displayplayer then return end
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	if support.silenceVanillaIntermission then
 		return
 	end
@@ -91,7 +91,7 @@ local function AllPlayersReadyForExit()
 end
 
 addHook("PlayerThink", function(player)
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 
 	local silent = support.silenceVanillaIntermission
 

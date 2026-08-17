@@ -5,216 +5,283 @@ __all__ = ["post_t", "patch_t", "toPatchClass"]
 
 
 class post_t:
-    """
-    Doom patch post:
-        topdelta: uint8
-        length:   uint8
-        unused:   uint8   (always 0)
-        data:     uint8[length]
-        unused:   uint8   (always 0)
-    """
+	"""
+	Doom patch post:
+		topdelta: uint8
+		length:   uint8
+		unused:   uint8   (always 0)
+		data:	 uint8[length]
+		unused:   uint8   (always 0)
+	"""
 
-    __slots__ = ("topdelta", "length", "data")
+	__slots__ = ("topdelta", "length", "data")
 
-    def __init__(self, topdelta: int, data: bytes):
-        if not (0 <= topdelta <= 255):
-            raise ValueError("topdelta must be 0..255")
-        if len(data) > 255:
-            raise ValueError("post length must be <= 255")
-        self.topdelta = topdelta
-        self.length = len(data)
-        self.data = bytes(data)
+	def __init__(self, topdelta: int, data: bytes):
+		if topdelta < 0:
+			raise ValueError("topdelta must be non-negative")
+		if len(data) > 255:
+			raise ValueError("post length must be <= 255")
+		self.topdelta = int(topdelta)
+		self.length = len(data)
+		self.data = data if isinstance(data, bytes) else bytes(data)
 
-    def toBytes(self) -> bytes:
-        return struct.pack(
-            f"<BBB{self.length}sB",
-            self.topdelta,
-            self.length,
-            0,
-            self.data,
-            0,
-        )
+	def toBytes(self, previous_topdelta: Optional[int] = None) -> bytes:
+		if previous_topdelta is None:
+			if self.topdelta > 254:
+				raise ValueError("first post topdelta must fit in a single byte")
+			encoded_topdelta = self.topdelta
+		elif self.topdelta <= 254:
+			encoded_topdelta = self.topdelta
+		else:
+			encoded_topdelta = self.topdelta - previous_topdelta
+			if encoded_topdelta < 0 or encoded_topdelta > 254:
+				raise ValueError(
+					"topdelta cannot be encoded as a tall patch relative to the previous post"
+				)
 
-    @staticmethod
-    def fromBytes(data: bytes, offset: int):
-        """
-        Returns (post_or_none, next_offset).
-        If the column terminator 0xFF is found, returns (None, offset + 1).
-        """
-        topdelta = data[offset]
-        if topdelta == 0xFF:
-            return None, offset + 1
+		if encoded_topdelta > 254:
+			raise ValueError("topdelta must fit in a single byte")
 
-        length = data[offset + 1]
-        pixel_data = data[offset + 3 : offset + 3 + length]
-        next_offset = offset + 3 + length + 1
-        return post_t(topdelta, pixel_data), next_offset
+		return struct.pack(
+			f"<BBB{self.length}sB",
+			encoded_topdelta,
+			self.length,
+			0,
+			self.data,
+			0,
+		)
+
+	@staticmethod
+	def fromBytes(data: bytes, offset: int, previous_topdelta: Optional[int] = None):
+		"""
+		Returns (post_or_none, next_offset).
+		If the column terminator 0xFF is found, returns (None, offset + 1).
+		"""
+		topdelta = data[offset]
+		if topdelta == 0xFF:
+			return None, offset + 1
+
+		length = data[offset + 1]
+		pixel_data = data[offset + 3 : offset + 3 + length]
+		next_offset = offset + 3 + length + 1
+
+		if previous_topdelta is not None and topdelta <= previous_topdelta:
+			topdelta = previous_topdelta + topdelta
+
+		return post_t(topdelta, pixel_data), next_offset
 
 
 class patch_t:
-    """
-    In-memory Doom patch.
+	"""
+	In-memory Doom patch.
 
-    columns[x] is a list of post_t objects for that column.
-    """
+	columns[x] is a list of post_t objects for that column.
+	"""
 
-    __slots__ = ("width", "height", "leftoffset", "topoffset", "columns")
+	__slots__ = ("width", "height", "leftoffset", "topoffset", "columns")
 
-    def __init__(
-        self,
-        width: int,
-        height: int,
-        leftoffset: int = 0,
-        topoffset: int = 0,
-    ):
-        if width < 0 or height < 0:
-            raise ValueError("width/height must be non-negative")
-        self.width = int(width)
-        self.height = int(height)
-        self.leftoffset = int(leftoffset)
-        self.topoffset = int(topoffset)
-        self.columns: List[List[post_t]] = [[] for _ in range(self.width)]
+	def __init__(
+		self,
+		width: int,
+		height: int,
+		leftoffset: int = 0,
+		topoffset: int = 0,
+	):
+		if width < 0 or height < 0:
+			raise ValueError("width/height must be non-negative")
+		self.width = int(width)
+		self.height = int(height)
+		self.leftoffset = int(leftoffset)
+		self.topoffset = int(topoffset)
+		self.columns: List[List[post_t]] = [[] for _ in range(self.width)]
 
-    def addPost(self, column: int, topdelta: int, data: bytes):
-        """
-        Add one post to a column.
+	def _split_post(self, topdelta: int, data: bytes) -> List[post_t]:
+		if len(data) <= 255:
+			return [post_t(topdelta, data)]
 
-        This is the low-level form. The caller is responsible for not
-        producing overlapping posts if they do not want them.
-        """
-        if not (0 <= column < self.width):
-            raise IndexError("column out of range")
-        self.columns[column].append(post_t(topdelta, data))
+		posts = []
+		for offset in range(0, len(data), 254):
+			posts.append(post_t(topdelta, data[offset:offset + 254]))
+			topdelta += 254
+		return posts
 
-    def setColumn(self, column: int, pixels: Sequence[Optional[int]]):
-        """
-        Replace a whole column from a vertical list of pixel indices.
+	def addPost(self, column: int, topdelta: int, data: bytes):
+		"""
+		Add one post to a column.
 
-        Transparent pixels are skipped when forming posts.
-        """
-        if not (0 <= column < self.width):
-            raise IndexError("column out of range")
+		This is the low-level form. The caller is responsible for not
+		producing overlapping posts if they do not want them.
+		"""
+		if not (0 <= column < self.width):
+			raise IndexError("column out of range")
+		self.columns[column].extend(self._split_post(topdelta, data))
 
-        posts: List[post_t] = []
-        run_start: Optional[int] = None
-        run_data: List[int] = []
+	def setColumn(self, column: int, pixels: Sequence[Optional[int]]):
+		"""
+		Replace a whole column from a vertical list of pixel indices.
 
-        for y, px in enumerate(pixels):
-            if px is None:
-                if run_start is not None:
-                    posts.append(post_t(run_start, bytes(run_data)))
-                    run_start = None
-                    run_data = []
-                continue
+		Transparent pixels are skipped when forming posts.
+		"""
+		if not (0 <= column < self.width):
+			raise IndexError("column out of range")
 
-            if not (0 <= px <= 255):
-                raise ValueError("pixel must be 0..255 or None")
+		posts: List[post_t] = []
+		run_start: Optional[int] = None
+		run_data: List[int] = []
 
-            if run_start is None:
-                run_start = y
-            run_data.append(px)
+		for y, px in enumerate(pixels):
+			if px is None:
+				if run_start is not None:
+					posts.append(post_t(run_start, bytes(run_data)))
+					run_start = None
+					run_data = []
+				continue
 
-        if run_start is not None:
-            posts.append(post_t(run_start, bytes(run_data)))
+			if not (0 <= px <= 255):
+				raise ValueError("pixel must be 0..255 or None")
 
-        self.columns[column] = posts
+			if run_start is None:
+				run_start = y
+			run_data.append(px)
 
-    def fromPixelGrid(
-        self,
-        grid: Sequence[Sequence[int]],
-        transparent: Optional[int] = None,
-    ):
-        """
-        Fill the patch from a 2D pixel grid: grid[y][x].
+		if run_start is not None:
+			posts.extend(self._split_post(run_start, bytes(run_data)))
 
-        This is the easiest path for a texture script:
-        render the texture into a flat image first, then call this.
-        
-        Args:
-            grid: 2D list of pixel indices (0-255)
-            transparent: If provided, treat this palette index as transparent.
-                         If None, all pixels are considered opaque.
-        """
-        if not grid:
-            self.width = 0
-            self.height = 0
-            self.columns = []
-            return self
+		self.columns[column] = posts
 
-        h = len(grid)
-        w = len(grid[0])
-        if any(len(row) != w for row in grid):
-            raise ValueError("all rows in grid must have the same length")
+	def fromPixelGrid(
+		self,
+		grid: Sequence[Sequence[int]],
+		transparent: Optional[int] = None,
+	):
+		"""
+		Fill the patch from a 2D pixel grid: grid[y][x].
 
-        self.width = w
-        self.height = h
-        self.columns = [[] for _ in range(w)]
+		This is the easiest path for a texture script:
+		render the texture into a flat image first, then call this.
+		
+		Args:
+			grid: 2D list of pixel indices (0-255)
+			transparent: If provided, treat this palette index as transparent.
+						 If None, all pixels are considered opaque.
+		"""
+		if not grid:
+			self.width = 0
+			self.height = 0
+			self.columns = []
+			return self
 
-        for x in range(w):
-            # Convert column to list with None for transparent pixels
-            col = []
-            for y in range(h):
-                px = grid[y][x]
-                if transparent is not None and px == transparent:
-                    col.append(None)
-                else:
-                    col.append(px)
-            self.setColumn(x, col)  # setColumn now handles None values properly
+		h = len(grid)
+		w = len(grid[0])
+		if any(len(row) != w for row in grid):
+			raise ValueError("all rows in grid must have the same length")
 
-        return self
+		self.width = w
+		self.height = h
+		self.columns = [[] for _ in range(w)]
 
-    def _build_columns_blob(self):
-        columnofs: List[int] = []
-        blob = bytearray()
+		for x in range(w):
+			# Convert column to list with None for transparent pixels
+			col = []
+			for y in range(h):
+				px = grid[y][x]
+				if transparent is not None and px == transparent:
+					col.append(None)
+				else:
+					col.append(px)
+			self.setColumn(x, col)  # setColumn now handles None values properly
 
-        for col in self.columns:
-            columnofs.append(len(blob))
-            for post in col:
-                blob.extend(post.toBytes())
-            blob.append(0xFF)  # end of column
+		return self
 
-        return columnofs, bytes(blob)
+	def fromPixelBuffer(self, pixels, width, height, transparent=None):
+		self.width = width
+		self.height = height
+		self.columns = [[] for _ in range(width)]
 
-    def toBytes(self) -> bytes:
-        """
-        Serialize to Doom patch format.
-        columnofs are absolute offsets from the start of the patch.
-        """
-        columnofs, column_blob = self._build_columns_blob()
+		for x in range(width):
+			run_start = None
+			run = []
 
-        header = struct.pack(
-            f"<HHhh{self.width}I",
-            self.width,
-            self.height,
-            self.leftoffset,
-            self.topoffset,
-            *[ofs + 8 + (4 * self.width) for ofs in columnofs],
-        )
-        return header + column_blob
+			for y in range(height):
+				px = pixels[y*width+x]
 
-    def copy(self):
-        other = patch_t(self.width, self.height, self.leftoffset, self.topoffset)
-        other.columns = [[post_t(p.topdelta, p.data) for p in col] for col in self.columns]
-        return other
+				if transparent is not None and px == transparent:
+					if run_start is not None:
+						self.columns[x].append(
+							post_t(run_start, bytes(run))
+						)
+						run_start = None
+						run.clear()
+					continue
+
+				if run_start is None:
+					run_start = y
+
+				run.append(px)
+
+			if run_start is not None:
+				self.columns[x].append(
+					post_t(run_start, bytes(run))
+				)
+
+		return self
+
+	def _build_columns_blob(self):
+		columnofs: List[int] = []
+		blob = bytearray()
+
+		for col in self.columns:
+			columnofs.append(len(blob))
+			previous_topdelta: Optional[int] = None
+			for post in col:
+				blob.extend(post.toBytes(previous_topdelta))
+				previous_topdelta = post.topdelta
+			blob.append(0xFF)  # end of column
+
+		return columnofs, bytes(blob)
+
+	def toBytes(self) -> bytes:
+		"""
+		Serialize to Doom patch format.
+		columnofs are absolute offsets from the start of the patch.
+		"""
+		columnofs, column_blob = self._build_columns_blob()
+
+		header = struct.pack(
+			f"<HHhh{self.width}I",
+			self.width,
+			self.height,
+			self.leftoffset,
+			self.topoffset,
+			*[ofs + 8 + (4 * self.width) for ofs in columnofs],
+		)
+		return header + column_blob
+
+	def copy(self):
+		other = patch_t(self.width, self.height, self.leftoffset, self.topoffset)
+		other.columns = [[post_t(p.topdelta, p.data) for p in col] for col in self.columns]
+		return other
 
 
 def toPatchClass(data: bytes) -> patch_t:
-    """
-    Parse a raw Doom patch lump into a patch_t.
-    """
-    width, height, leftoffset, topoffset = struct.unpack_from("<HHhh", data, 0)
-    columnofs = struct.unpack_from(f"<{width}I", data, 8)
+	"""
+	Parse a raw Doom patch lump into a patch_t.
+	"""
+	width, height, leftoffset, topoffset = struct.unpack_from("<HHhh", data, 0)
+	columnofs = struct.unpack_from(f"<{width}I", data, 8)
 
-    patch = patch_t(width, height, leftoffset, topoffset)
+	patch = patch_t(width, height, leftoffset, topoffset)
 
-    for col_idx, col_ofs in enumerate(columnofs):
-        offset = col_ofs
-        while True:
-            topdelta = data[offset]
-            if topdelta == 0xFF:
-                break
-            post, offset = post_t.fromBytes(data, offset)
-            if post is not None:
-                patch.columns[col_idx].append(post)
+	for col_idx, col_ofs in enumerate(columnofs):
+		offset = col_ofs
+		previous_topdelta: Optional[int] = None
+		while True:
+			topdelta = data[offset]
+			if topdelta == 0xFF:
+				break
+			post, offset = post_t.fromBytes(data, offset, previous_topdelta)
+			if post is not None:
+				patch.columns[col_idx].append(post)
+				previous_topdelta = post.topdelta
 
-    return patch
+	return patch

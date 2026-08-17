@@ -43,7 +43,7 @@ local states = {
 	wound = {
 		{action = nil,           frame = G, tics = 5},
 		{action = A_DoomGetHurt, frame = H, tics = 10},
-		{action = nil,           frame = I, tics = 6, next = "wound"},
+		{action = nil,           frame = I, tics = 6, next = "wound", nextframe = 2},
 	},
 	die = {
 		{action = nil,          frame = G, tics = 5},

@@ -1,3 +1,5 @@
+dofile(doom.currentGame .. "Data/Definitions/Objects/Projectiles/ElectricBolt.lua")
+
 dofile(doom.currentGame .. "Data/Definitions/Inventory/Ammo.lua")
 dofile(doom.currentGame .. "Data/Definitions/Inventory/Weps.lua")
 dofile(doom.currentGame .. "Data/Definitions/Inventory/Doomweps.lua")
@@ -23,6 +25,11 @@ dofile(doom.currentGame .. "Data/Definitions/Objects/Actors/Alarm.lua")
 dofile(doom.currentGame .. "Data/Definitions/Objects/Actors/Macil.lua")
 
 dofile(doom.currentGame .. "Data/HUD/HUD.lua")
+
+dofile(doom.currentGame .. "Data/Dialogue/The HUD shitttt.lua")
+dofile(doom.currentGame .. "Data/Dialogue/Dialogue.lua")
+dofile(doom.currentGame .. "Data/Dialogue/Dialogue Handler.lua")
+dofile(doom.currentGame .. "Data/Dialogue/MiscellaneousData.lua")
 
 freeslot("sfx_rifle")
 ---@type table<integer, shortweapondef_t>

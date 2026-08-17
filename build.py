@@ -13,6 +13,14 @@ from pathlib import Path
 import argparse
 import re
 
+script_dir = Path(__file__).parent.absolute()
+python_dir = script_dir / "Python"
+if str(python_dir) not in sys.path:
+	sys.path.insert(0, str(python_dir))
+
+from Python.modules.engine_detection import detect_engine_mode
+from modules.pngtopatch import FALLBACK_PALETTE, png_file_to_patch
+
 # File names
 DEFAULT_OUTPUT_WAD_NAME = "freedoom2.pk3"
 DEFAULT_PYTHON_ZIP_NAME = "doompy.zip"
@@ -516,7 +524,36 @@ def build_pk3(
 	}
 
 
-def write_pk3(source_root, output_path, package_info, verbose=True):
+def should_convert_graphics_png(arcname, source):
+	# Prevent ExtraClasses from getting the Patch treatment
+	if Path(source).parts[-1].lower() == "extraclasses":
+		return False
+	"""Return True for PNG files under a top-level Graphics/ directory."""
+	path = Path(arcname)
+	return path.suffix.lower() == ".png" and len(path.parts) >= 2 and path.parts[0].lower() == "graphics"
+
+
+def resolve_palette_bytes(project_root, engine_mode="doom"):
+	"""Load a palette from BasePlaypal before falling back to the embedded palette."""
+	base_playpal_dir = Path(project_root) / "BasePlaypal"
+
+	candidates = []
+	if str(engine_mode).lower() == "strife":
+		candidates = [base_playpal_dir / "strife.pal", base_playpal_dir / "doom.pal"]
+	else:
+		candidates = [base_playpal_dir / "doom.pal", base_playpal_dir / "strife.pal"]
+
+	for palette_path in candidates:
+		if not palette_path.exists():
+			continue
+		data = palette_path.read_bytes()
+		if len(data) >= 768:
+			return data[:768]
+
+	return FALLBACK_PALETTE
+
+
+def write_pk3(source_root, output_path, package_info, verbose=True, palette_bytes=None):
 	"""Write a PK3 zip archive from a source root and package info."""
 	processed_files = package_info["processed_files"]
 	ignored_dirs = package_info["ignored_dirs"]
@@ -527,7 +564,7 @@ def write_pk3(source_root, output_path, package_info, verbose=True):
 	if output_path.exists():
 		output_path.unlink()
 
-	with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
+	with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
 		for root, dirs, files in os.walk(source_root):
 			root_path = Path(root)
 			rel_root = root_path.relative_to(source_root)
@@ -547,11 +584,20 @@ def write_pk3(source_root, output_path, package_info, verbose=True):
 					continue
 				if arcname in ignored_files:
 					continue
+				if file_path.resolve() == output_path.resolve():
+					continue
 
 				if file_path in processed_files:
 					zf.writestr(arcname, processed_files[file_path])
 					if verbose:
 						print(f"  Processed file: {arcname}")
+				elif should_convert_graphics_png(arcname, source_root):
+					active_palette = palette_bytes if palette_bytes is not None else FALLBACK_PALETTE
+					patch = png_file_to_patch(str(file_path), active_palette)
+					output_arcname = Path(arcname).with_suffix("").as_posix()
+					zf.writestr(output_arcname, patch.toBytes())
+					#if verbose:
+					print(f"  Converted PNG to patch: {arcname} -> {output_arcname}")
 				else:
 					zf.write(file_path, arcname)
 
@@ -572,6 +618,36 @@ def build_versioned_pk3_name(prefix, name, version):
 	return f"{prefix}_{name}-v{version}.pk3"
 
 
+def resolve_base_wad_path(base_wad_dir, value):
+	"""Resolve a meta-specified base WAD path relative to BaseWAD if needed."""
+	if not value:
+		return None
+
+	path = Path(value)
+	if path.is_absolute():
+		return path
+
+	return (Path(base_wad_dir) / path).resolve()
+
+
+from pathlib import Path
+
+def resolve_default_output_wad_name(base_wad_path, default_name):
+	"""Derive a default output WAD name from the selected base WAD stem."""
+	if not base_wad_path:
+		return default_name
+
+	path = Path(base_wad_path)
+	stem = path.stem
+	if not stem:
+		return default_name
+
+	if path.suffix.lower() == ".pk3":
+		return f"{stem}-conv.pk3"
+
+	return f"{stem}.pk3"
+
+
 def main():
 	parser = argparse.ArgumentParser(description="Build DOOM-II mod package")
 	parser.add_argument("--output-dir", "-o", default="build", help="Output directory (default: build)")
@@ -589,6 +665,7 @@ def main():
 	parser.add_argument("--define", "-D", action="append", default=[], help="Define build flags (can be used multiple times)")
 	parser.add_argument("--no-preserve-linenums", action="store_true", help="Remove deleted lines instead of replacing them with whitespace")
 	parser.add_argument("--ignore_buildflags", action="store_true", help="Ignore build flags and include all code (for debugging)")
+	parser.add_argument("--engine", choices=["auto", "doom", "strife"], default="auto", help="Force the processing engine for the base WAD. Default: auto")
 	args = parser.parse_args()
 
 	script_dir = Path(__file__).parent.absolute()
@@ -634,6 +711,8 @@ def main():
 	python_dir = script_dir / "Python"
 	src_dir = script_dir / "src"
 	modding_dir = script_dir / "ExtraClasses"
+	base_wad_file = None
+	engine_mode = "auto"
 
 	global_meta = {}
 
@@ -652,6 +731,7 @@ def main():
 
 	output_wad = resolve_output(output_dir / DEFAULT_OUTPUT_WAD_NAME, wad_override, ".pk3")
 	output_pk3_default_name = build_versioned_pk3_name(DEFAULT_PKG_PREFIX, DEFAULT_PKG_NAME, version)
+	default_output_wad_name = DEFAULT_OUTPUT_WAD_NAME
 	output_mod_default_name = build_versioned_pk3_name(DEFAULT_MOD_PREFIX, DEFAULT_MOD_NAME, version)
 
 	output_pk3 = resolve_output(output_dir / output_pk3_default_name, pk3_override, ".pk3")
@@ -680,25 +760,49 @@ def main():
 	if should_skip_meta(global_meta, "skipwad", defined_flags):
 		print("✓ Skipped (--#meta skipwad matched)\n")
 	else:
-		base_wad_file = next(base_wad_dir.glob("*.wad"), None)
+		meta_base_wad = global_meta.get("basewad")
+		if meta_base_wad:
+			base_wad_file = resolve_base_wad_path(base_wad_dir, meta_base_wad)
+			if not base_wad_file.exists():
+				print(f"ERROR: Base WAD from --#meta basewad was not found: {base_wad_file}")
+				return 1
+			print(f"Using base WAD from meta: {base_wad_file}")
+		else:
+			base_wad_file = next(base_wad_dir.glob("*.wad"), None)
 
 		if not base_wad_file:
 			print(f"ERROR: No WAD file found in {base_wad_dir}")
 			return 1
 
+		default_output_wad_name = resolve_default_output_wad_name(base_wad_file, DEFAULT_OUTPUT_WAD_NAME)
+		output_wad = resolve_output(output_dir / default_output_wad_name, wad_override, ".pk3")
 		wad_dependencies = [python_dir, base_wad_file]
 
 		if not args.force and not needs_rebuild(output_wad, wad_dependencies):
 			print("✓ Skipped (output is up-to-date)\n")
 		else:
 			try:
+				force_engine = None if args.engine == "auto" else args.engine
+				engine_mode = detect_engine_mode(str(base_wad_file), force_engine=force_engine)
+				print(f"Detected engine mode: {engine_mode}")
+
+				core_script = python_dir / "pywadadvance_core.py"
+				core_script = python_dir / "pywadadvance_core.py"
+
+				command = [
+					args.python_exe,
+					str(core_script),
+					str(base_wad_file),
+					str(output_wad),
+				]
+
+				if force_engine is not None:
+					command.extend(["--engine", force_engine])
+				elif engine_mode == "strife":
+					command.extend(["--engine", "strife"])
+
 				result = subprocess.run(
-					[
-						args.python_exe,
-						str(python_dir / "pywadadvance_core.py"),
-						str(base_wad_file),
-						str(output_wad),
-					],
+					command,
 					cwd=script_dir,
 					check=True,
 					capture_output=False,
@@ -749,7 +853,13 @@ def main():
 					f"for {package_info['forwho']} ({package_info['forwhat']})"
 				)
 
-				write_pk3(src_dir, output_pk3, package_info, verbose=False)
+				write_pk3(
+					src_dir,
+					output_pk3,
+					package_info,
+					verbose=False,
+					palette_bytes=resolve_palette_bytes(script_dir, engine_mode),
+				)
 				print(f"PK3 package created: {output_pk3.name}\n")
 			except Exception as e:
 				print(f"ERROR: Failed to create PK3: {e}")
@@ -799,7 +909,13 @@ def main():
 						f"for {package_info['forwho']} ({package_info['forwhat']})"
 					)
 
-				write_pk3(modding_dir, modding_pk3, package_info, verbose=False)
+				write_pk3(
+					modding_dir,
+					modding_pk3,
+					package_info,
+					verbose=False,
+					palette_bytes=resolve_palette_bytes(script_dir, engine_mode),
+				)
 				print(f"PK3 package created: {modding_pk3.name}\n")
 			except Exception as e:
 				print(f"ERROR: Failed to create PK3: {e}")

@@ -2,7 +2,11 @@ name = johndoom
 realname = JohnDoom
 hudname = J-DOOM
 flags = SF_NOJUMPSPIN|SF_NOJUMPDAMAGE|SF_NOSHIELDABILITY|SF_NOJUMPDAMAGE|SF_NOSPEEDADJUST
+#ifdef STRIFE
+startcolor = 128
+#else
 startcolor = 112
+#endif
 prefcolor = Green
 ability2 = CA2_NONE
 actionspd = 60

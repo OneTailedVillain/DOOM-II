@@ -101,6 +101,6 @@ local function drawStatusBar(drawer, player)
 end
 
 doom.hudDraw["strife"] = function(v, player)
-	drawWeapon(v, player, 0)
+	drawWeapon(v, player, 16)
 	drawStatusBar(v, player, 1)
 end

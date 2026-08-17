@@ -23,7 +23,7 @@ end
 -- Genuinely fuck this piece of shit dude. good lord
 -- I've tried for too long bashing my head on the wall trying to get it to work
 --#ignoredir TSoURDt3rd
---#meta skipwad
+--#meta basewad strife0.wad
 doom.currentGame = "strife"
 -- Needed for John Ringslinger
 doom.startingMeleeWeapon = "punchdagger"
@@ -124,6 +124,9 @@ doom.fallbackreplacements = {
 function doom.playReplaceableSound(mobj, stringentry, playertarget, playerlistener)
 	if not doom.fallbackreplacements[stringentry] then
 		print("No fallback replacement for string entry '" .. tostring(stringentry) .. "'")
+	end
+	if not playertarget then
+		error("No value for 'playertarget' argument!")
 	end
 	local properties = P_GetPlayerSkinProperties(playertarget)
 	local sreps = properties.sounds or {}

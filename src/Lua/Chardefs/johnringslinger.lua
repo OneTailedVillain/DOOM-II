@@ -66,7 +66,7 @@ doom.characterDefs.johnringslinger = {
 		maxammo = {
 			bullets = 400,--320 + 400, -- Basic + Automatic
 			shells = 50 + 160, -- Scatter + Bounce
-			cells = 50,--50 + 50, -- Rail + Homing
+			cells = 300,--50 + 50, -- Rail + Homing
 			rockets = 50,--50 + 50, -- Explosion + Grenade
 		},
 
@@ -107,7 +107,15 @@ doom.characterDefs.johnringslinger = {
 			chaingun = "automaticring",
 			rocketlauncher = "explosionring",
 			plasmarifle = "homingring",
-			bfg9000 = "railring"
+			bfg9000 = "railring",
+
+			crossbow         = "scatterring",
+			assaultgun       = "automaticring",
+			punchdagger      = "matchring",
+			minimissile      = "explosionring",
+			flamethrower     = "matchring",
+			mauler           = "railring",
+			sigil            = "railring",
 		}
 	},
 

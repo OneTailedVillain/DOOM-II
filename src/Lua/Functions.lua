@@ -434,21 +434,25 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 				end
 			end
 
+			doom.callHook("ItemPickup", doom.hookTypes.ignore, mo, toucher)
 			return res
 		end, MT)
 	end
 
 	---@param mobj mobj_t
 	addHook("MobjThinker", function(mobj)
+		if not (mobj and mobj.valid) then return end
 		if not (mobj.flags & MF_SPECIAL) then return end
 		-- stupid fucking hack
 		mobj.radius = 0
 		mobj.z = mobj.floorz
 		mobj.radius = FixedMul(mobjinfo[mobj.type].radius, mobj.scale)
+		if not (mobj and mobj.valid) then return end
 		mobj.momz = 0
 	end, MT)
 
 	addHook("MobjLineCollide", function(mobj, line)
+		if not (mobj and mobj.valid) then return end
 		if not (mobj.flags & MF_SPECIAL) then return end
 		return false
 	end)
@@ -594,7 +598,7 @@ rawset(_G, "DOOM_ResolveString", function(text)
         local index = text:sub(2)
         if index:match("^[%w_]+$") then
             -- Prefer dehacked strings if present, otherwise fall back to base doom.strings
-			local def = P_GetSupportsForSkin(displayplayer or {skin = "sonic"})
+			local def = P_GetPlayerCharDef(displayplayer or {skin = "sonic"})
 			local van = def.vanillaoverrides
 			if van and van.strings and van.strings[index] then
 				return van.strings[index]
@@ -662,6 +666,14 @@ end)
 ---@param player player_t
 ---@return doomcharacterDefs_t
 rawset(_G, "P_GetSupportsForSkin", function(player)
+	doom.warn("P_GetSupportsForSkin", "Function 'P_GetSupportsForSkin' is deprecated. Use 'P_GetPlayerCharDef' instead.")
+	if not player.mo then return {} end
+	return doom.characterDefs[skins[player.skin].name] or {}
+end)
+
+---@param player player_t
+---@return doomcharacterDefs_t
+rawset(_G, "P_GetPlayerCharDef", function(player)
 	if not player.mo then return {} end
 	return doom.characterDefs[skins[player.skin].name] or {}
 end)
@@ -670,14 +682,15 @@ end)
 rawset(_G, "P_GetMethodsForSkin", function(player)
 	if not player then return {} end
 	if not player.mo then return {} end
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	return support.methods or {}
 end)
 
 ---@param player player_t
 rawset(_G, "P_GetPlayerSkinProperties", function(player)
+	if not player then return {} end
 	if not player.mo then return {} end
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	---@type doomcharproperties_t
 	return player.doom.properties or support.properties or doom.baseCharProperties
 end)
@@ -828,7 +841,7 @@ rawset(_G, "DOOM_GetWeaponDef", function(player)
     if not baseWeapon then return {} end
 
     -- Get character-specific overrides
-    local support = P_GetSupportsForSkin(player)
+    local support = P_GetPlayerCharDef(player)
     local weaponOverrides = support.vanillaoverrides and
                            support.vanillaoverrides.weapons and
                            support.vanillaoverrides.weapons[player.doom.curwep]
@@ -848,12 +861,27 @@ end)
 doom.hooks = doom.hooks or {}
 
 doom.hookTypes = {
+	ignore = 0,
 	lastfunc = 1,
 	anytrue = 2,
 	anyfalse = 3
 }
 
 doom.hookResolvers = {
+    [doom.hookTypes.ignore] = {
+        init = function()
+            return nil
+        end,
+
+        step = function(state, result)
+            return state, false
+        end,
+
+        finish = function(state)
+            return state
+        end
+    },
+
     [doom.hookTypes.lastfunc] = {
         init = function()
             return nil
@@ -1050,7 +1078,16 @@ local function damageNumToType(dt)
 	return "generic"
 end
 
-rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, minhealth)
+rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damagetype, properties)
+	local minhealth = 0
+	if type(properties) == "number" then
+		minhealth = properties
+	elseif type(properties) == "table" then
+		minhealth = properties.minhealth
+	else
+		properties = {}
+	end
+
     if not target or not target.valid then return end
     if damage == nil or (inflictor and inflictor.doom.preferselfdamage) then
 		if inflictor and inflictor.doom.damage != nil then
@@ -1315,7 +1352,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
                 end
             end
 
-			if target.info.woundhealth and target.doom.health < target.info.woundhealth then
+			if target.info.woundhealth and target.doom.health < target.info.woundhealth and not properties.noWoundState then
 				target.state = target.info.woundstate
 			end
         end
@@ -1497,7 +1534,7 @@ rawset(_G, "DOOM_SwitchWeapon", function(player, wepname, force)
 	if not player.doom then return end
 	if not player.doom.weapons[wepname] then return end -- player must own it
 	if player.doom.curwep == wepname then return end -- Ignore if same
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	if support.noWeapons then return end
 
 	-- Find which slot + order this weapon belongs to
@@ -1728,7 +1765,7 @@ rawset(_G, "DOOM_ExitLevel", function()
 			end
 			saveStatus(player)
 			if player == displayplayer then
-				local charDef = P_GetSupportsForSkin(player)
+				local charDef = P_GetPlayerCharDef(player)
 				if charDef.intermusic then
 					S_ChangeMusic(charDef.intermusic)
 				else
@@ -1766,16 +1803,18 @@ rawset(_G, "DOOM_NextLevel", function()
 	G_SetCustomExitVars(nextLev, 1, gametype or GT_DOOM, true)
 
 	-- TODO: Maybe try to get this down to just calling G_ExitLevel() again?
-	if not multiplayer then
+	--if multiplayer then
 		G_ExitLevel()
 		return
-	end
-
+	--end
+/*
 	for player in players.iterate() do
+		if player.doom.intpause > TICRATE*30 then continue end
 		P_DoPlayerFinish(player)
 		player.exiting = 1
 		player.doom.intpause = TICRATE*99
 	end
+*/
 end)
 
 rawset(_G, "DOOM_DoMessage", function(player, text)
@@ -1961,7 +2000,7 @@ local st_faces = {
 function doom.HUD_drawFace(v, player, xpos, ypos)
 	if xpos == nil then xpos = 143 end
 	if ypos == nil then ypos = 168 end
-	local chardef = P_GetSupportsForSkin(player)
+	local chardef = P_GetPlayerCharDef(player)
 	local index = player.doom.faceindex + 1
 	if index > #st_faces then index = #st_faces end
 	local patch
@@ -1984,4 +2023,23 @@ function doom.warn(key, message)
 	if warnedfor[key] then return end
 	print("WARNING: " .. tostring(message))
 	warnedfor[key] = true
+end
+
+function doom.resolvePlayerAndMobj(target)
+    if not target then return nil, nil end
+    if target.player then -- it's an object
+        return target.player, target
+    end
+    return target, target.mo
+end
+
+function doom.getRemappedAmmoType(player, ammoType)
+    if not player or not player.doom or not player.doom.properties then
+        return ammoType
+    end
+    local overrides = player.doom.properties.vanillaoverrides
+    if overrides and overrides.ammotypes and overrides.ammotypes[ammoType] then
+        return overrides.ammotypes[ammoType]
+    end
+    return ammoType
 end

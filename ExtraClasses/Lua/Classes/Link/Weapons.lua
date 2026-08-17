@@ -146,8 +146,10 @@ doom.addWeapon("fighterssword", {
 	ammotype = "none",
 })
 
+freeslot("SPR_LINK_BOW")
+
 doom.addWeapon("bow", {
-	sprite = SPR_LINK_SLINGSHOT_WEP,
+	sprite = SPR_LINK_BOW,
 	weaponslot = 2,
 	order = 10,
 	priority = 1900,
@@ -172,9 +174,9 @@ doom.addWeapon("bow", {
 			{frame = A, tics = 1, action = A_DoomRaise}
 		},
 		attack = {
-			{frame = B, tics = 2, action = A_DoomFireSlingshot},
-			{frame = C, tics = 2},
-			{frame = D, tics = 2},
+			{frame = 3, tics = 4},
+			{frame = 4, tics = 3, action = A_DoomFireSlingshot},
+			{frame = 5, tics = 2},
 			{frame = A, tics = 1, action = A_DoomReFire},
 		}
 	},

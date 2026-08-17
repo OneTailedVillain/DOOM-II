@@ -128,9 +128,9 @@ hud.add(function(v, player)
 		doom.drawInFont(v, 0, 0, FRACUNIT, "STCFN", "YOU PROBABLY DON'T HAVE AN IWAD ACTIVE!\nMAKE SURE YOU LOAD THAT AFTER THE ENGINE!", V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	whatRenderer = v.renderer()
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	if player.doom.message and player.doom.messageclock then
-		doom.drawInFont(v, 0, 0, FRACUNIT, "STCFN", player.doom.message, V_PERPLAYER|V_ALLOWLOWERCASE|V_SNAPTOTOP|V_SNAPTOLEFT)
+		doom.drawInFont(v, 0, 0, FRACUNIT, DOOM_GetConfigStoreValue(player, "thinmessages") and "TNYFN" or "STCFN", player.doom.message, V_PERPLAYER|(DOOM_GetConfigStoreValue(player, "allcapsmessages") and 0 or V_ALLOWLOWERCASE)|V_SNAPTOTOP|V_SNAPTOLEFT)
 	end
 	if support.noHUD or (support.properties and support.properties.noHUD) then
 		if support.noHUD then
@@ -256,13 +256,21 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 	local startXPos = 17
 	local xPos = startXPos
 	local yPos = 11 + 16 + 16
-	for _, patchname in pairs(keys[doom.currentGame]) do
+	local function drawKey(patchname)
 		local patch = v.cachePatch(patchname)
 		v.draw(xPos, yPos, patch, hudflags)
 		xPos = $ + patch.width + 1
 		if xPos >= 99 then
 			xPos = startXPos
 			yPos = $ + 8
+		end
+	end
+	for i, patchname in pairs(keys[doom.currentGame]) do
+		if doom.currentGame == "doom" then
+			local j = 1 << (i - 1)
+			if player.doom.keys & j then
+				drawKey(patchname)
+			end
 		end
 	end
 	local shit = {
@@ -335,7 +343,8 @@ doom.hudDraw["johnringslinger"] = function(v, player, inAutomap)
 
 			local translation = nil
 			if (textflags & V_YELLOWMAP) then
-				translation = "SRB2YELLOWMAP"
+				translation = "JRSFULLAMMO"
+				textflags = $ & ~V_YELLOWMAP
 			end
 			doom.drawInFont(v, (16 + x) * FRACUNIT, (y + 8) * FRACUNIT, FRACUNIT, "TNYFN", tostring(player.doom.ammo[myAmmoType]), textflags, "right", v.getColormap(nil, nil, translation))
 		end

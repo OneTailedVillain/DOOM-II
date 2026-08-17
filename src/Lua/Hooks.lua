@@ -312,13 +312,7 @@ addHook("MapLoad", function(mapid)
 	-- Take out [mthing] and replace it with the MT constant [newType]
 	---@param mthing mapthing_t
 	local function replaceMapthing(mthing, newType)
-		if mthing.mobj then P_RemoveMobj(mthing.mobj) end
-		if not (gametyperules & GTR_SPAWNENEMIES) then
-			local objinfo = mobjinfo[newType]
-			if (objinfo.flags & MF_ENEMY) then
-				return false
-			end
-		end
+		if not newType then return end
 
 		local x = mthing.x*FRACUNIT
 		local y = mthing.y*FRACUNIT
@@ -329,6 +323,21 @@ addHook("MapLoad", function(mapid)
 		else
 			z = P_FloorzAtPos(x, y, 0, 0)
 		end
+
+		local range = #mobjinfo - 1
+		if newType > range then
+			print("NOTICE: mobj type " .. newType .. " out of range (0 - " .. range .. ") at " .. x/FU .. ", " .. y/FU .. ", " .. z/FU)
+			return
+		end
+
+		if mthing.mobj then P_RemoveMobj(mthing.mobj) end
+		if not (gametyperules & GTR_SPAWNENEMIES) then
+			local objinfo = mobjinfo[newType]
+			if (objinfo.flags & MF_ENEMY) then
+				return false
+			end
+		end
+
 		local teleman = P_SpawnMobj(x, y, z, newType)
 		teleman.angle = FixedAngle(mthing.angle*FRACUNIT)
 		if not (teleman and teleman.valid) then
@@ -1120,6 +1129,12 @@ local thinkers = {
 					data.waitClock = data.delay or 150
 				else
 					doom.stopThinker(sector)
+
+					-- DOOM II Bug where blazing doors play the closing sound twice
+					if info.blaze then
+					S_StartSound(sector,
+						sfx_bdcls)
+					end
 					if data.repeatable then
 						data.direction = nil
 						data.waitClock = nil
@@ -1701,6 +1716,7 @@ local thinkers = {
 				target = data._oldfloorheight + data.target
 			elseif data.target == "nextfloor" then
 				target = FindNextHighestFromBackups(sector, sector.floorheight)
+    print("nextfloor target =", target)
 			elseif data.target == "highest" then
 				target = P_FindHighestFloorSurrounding(sector); dir = "down"
 			elseif data.target == "8abovehighest" then
@@ -2009,7 +2025,9 @@ local thinkers = {
 	end,
 
 	alarm = function(sector, data)
-	
+		if not data.triggerer then doom.stopThinker(sector) return end
+		P_NoiseAlert(data.triggerer.mo, data.triggerer.mo)
+		doom.stopThinker(sector)
 	end,
 }
 
@@ -2202,7 +2220,7 @@ addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if not player.mo then return end
 		if player.mo.doom.flags & DF_SHADOW then
-			if not P_GetSupportsForSkin(player).noPartialInvisEffect then
+			if not P_GetPlayerCharDef(player).noPartialInvisEffect then
 				player.mo.frame = $ | FF_TRANS80
 			else
 				doom.warn("deprecated.noPartialInvisEffect", "doom.characterDefs['" .. player.mo.skin .. "'].noPartialInvisEffect is deprecated and will be removed in a future version. Use properties.overridePartialInvisibilityFX instead.")
@@ -2220,9 +2238,11 @@ addHook("MobjSpawn", function(mobj)
 	else
 		if mobj.sprite == SPR_PLAY then
 			mobj.skin = "johndoom"
-			if doom.cvars.techniColorCorpses.value then
+			/*
+			if doom.cvars and doom.cvars.techniColorCorpses and doom.cvars.techniColorCorpses.value then
 				mobj.color = P_RandomKey(#doom.oolors)
 			end
+			*/
 		end
 		mobj.doom.maxhealth = mobj.info.spawnhealth or 10
 		mobj.doom.health = mobj.doom.maxhealth
@@ -2276,7 +2296,7 @@ addHook("PlayerMsg", function(source, type, target, msg)
 	-- Play sound depending on Doom version
 
 	-- Construct base message and force uppercase
-	local baseMessage = (source.name .. ": " .. msg):upper()
+	local baseMessage = (source.name .. ": " .. msg)--:upper()
 
 	if type == 0 then
 		-- Say to all players

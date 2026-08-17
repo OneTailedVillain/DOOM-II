@@ -109,8 +109,22 @@ addHook("MapLoad", function()
 	end
 end)
 
+local function P_GetMappedAmmoType(player, ammoType)
+	if not player or not ammoType then
+		return ammoType
+	end
+
+	local properties = P_GetPlayerCharDef(player)
+	local overrides = properties
+		and properties.vanillaoverrides
+		and properties.vanillaoverrides.ammotypes
+
+	return (overrides and overrides[ammoType]) or ammoType
+end
+
 methods.getMaxFor = function(player, aType)
 	if not player or not aType then return nil end
+	aType = P_GetMappedAmmoType(player, aType)
 	local properties = P_GetPlayerSkinProperties(player)
 	local maxammo
 	if properties and properties.maxammo != nil then
@@ -346,6 +360,12 @@ doom.characterDefs.dpecalttp = {
 			GOTBERSERK = "Piece of Power!",
 			GOTINVIS = "Magic Cape!",
 			GOTINVUL = "Staff of Byrna!",
+		},
+		ammotypes = {
+			bullets = "arrows",
+			shells = "magic",
+			rockets = "bombs",
+			cells = "rupees"
 		}
 	},
 

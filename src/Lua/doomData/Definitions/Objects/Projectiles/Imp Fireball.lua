@@ -17,13 +17,13 @@ local plasmastates = {
     },
 }
 
-FreeDoomStates("ImpFireball", plasmastates)
+plasmastates = FreeDoomStates("ImpFireball", plasmastates)
 
 mobjinfo[MT_TROOPSHOT] = {
     spawnstate = plasmastates.shot[1],
     seesound   = sfx_firsht,
     deathsound = sfx_firxpl,
-    deathstate = plasmastates.shot[2],
+    deathstate = plasmastates.explode[1],
     speed      = 10*FRACUNIT,
     radius     = 6*FRACUNIT,
     height     = 8*FRACUNIT,

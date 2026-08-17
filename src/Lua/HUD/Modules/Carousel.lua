@@ -1,22 +1,5 @@
 local SCREENWIDTH = 320
 
-local distance
-
-local function CalcOffset()
-	if distance then
-		local delta = 1000 / TICRATE
-
-		if delta < 125 then
-			local x = FRACUNIT - delta / 125
-			return (FixedMul(distance, FixedMul(x, x)) + FRACUNIT/2) / FRACUNIT
-		end
-
-		distance = 0
-	end
-
-	return 0
-end
-
 local wpi_none = -1
 local wpi_regular = 0
 local wpi_selected = 1
@@ -118,7 +101,14 @@ local function ST_UpdateCarousel(player)
 end
 
 addHook("PlayerThink", function(player)
+	local carousel = player.doom.wepcarousel
 
+	if not carousel.animoffset then return end
+	carousel.animoffset = FixedMul(carousel.animoffset, 8*FRACUNIT/10)
+
+	if abs(carousel.animoffset) < FRACUNIT then
+		carousel.animoffset = 0
+	end
 end)
 
 local function G_GetWeaponOrder(player, offset)
@@ -159,14 +149,17 @@ local function ST_DrawCarousel(v, player, x, y, elem)
 		return
 	end
 
-	local offset = SCREENWIDTH / 2 + CalcOffset()
+	local pixeloffset = player.doom.wepcarousel.animoffset / FU
+	local slotoffset = (pixeloffset + 32) / 64
+
+	local drawoffset = (SCREENWIDTH / 2) + pixeloffset - slotoffset*64
 
 	for i = -2, 2 do
-		local wepname = G_GetWeaponOrder(player, i)
+		local wepname = G_GetWeaponOrder(player, i + slotoffset)
 		if wepname then
 			local icon = wepToIcondef(player, wepname)
 			if icon then
-				DrawIcon(v, offset + i*64, y, elem, icon)
+				DrawIcon(v, drawoffset + i*64, y, elem, icon)
 			end
 		end
 	end

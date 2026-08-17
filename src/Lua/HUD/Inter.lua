@@ -328,7 +328,7 @@ end
 hud.add(function(v, player)
 	if not doom.intermission then return end
 	if doom.textscreen and doom.textscreen.active then return end
-	local support = P_GetSupportsForSkin(player)
+	local support = P_GetPlayerCharDef(player)
 	if support.dontDrawVanillaIntermission then return end
 	v.drawFill(nil, nil, nil, nil, 0)
 	if doom.isdoom1 then

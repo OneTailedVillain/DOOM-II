@@ -232,12 +232,12 @@ local function DoBOOMHud(v, player)
 
 	hud_ammostr = "AMM "
 	local curwep = DOOM_GetWeaponDef(player)
-	if doom.ammos[curwep.ammotype].max < 0 then
+	local fullammo = funcs.getMaxFor(player, funcs.getCurAmmoType(player))
+	if not fullammo or fullammo < 0 then
 		hud_ammostr = $ .. "\x7f\x7f\x7f\x7f\x7f\x7f\x7f N/A"
 		w_ammo.cr = CR_GRAY
 	else
 		local ammo = funcs.getCurAmmo(player)
-		local fullammo = funcs.getMaxFor(player, curwep.ammotype)
 		local ammopct = (100*ammo)/fullammo
 		local ammobars = ammopct/4
 		local full = ammobars/4
@@ -404,7 +404,7 @@ local function DoBOOMHud(v, player)
 		if ammo == false or ammo == nil or fullammo == false or fullammo == nil then
 			isInfinite = true
 		end
-		local ammopct = not isInfinite and (100*ammo)/fullammo or 0
+		local ammopct = not isInfinite and (100*ammo)/(fullammo or 1) or 0
 
 		hud_weapstr = $ .. "\x1b"
 		if isInfinite or doom.ammos[trueweapon.ammotype].max < 0 then
@@ -434,7 +434,7 @@ local function DoBOOMHud(v, player)
 
 
 	local deathmatch = (gametyperules & GTR_RINGSLINGER)
-	local hud_graph_keys = true
+	local hud_graph_keys = false
 
 	if not deathmatch and hud_graph_keys then
 		for k = 0, 5 do
@@ -509,7 +509,6 @@ local function DoBOOMHud(v, player)
 				hud_keysstr = $ .. numbuf
 			end
 		else
-			local i = 4
 			for k = 0, 5 do
 				if not (player.doom.keys & (1 << k)) then continue end
 				hud_keysstr = $ .. "\x1b"
@@ -541,54 +540,6 @@ local function DoBOOMHud(v, player)
 		hud_monsecstr = $ .. " \x1b\x35S \x1b\x33" .. (player.doom.secrets or "NIL") .. "/" .. (doom.secretcount or "NIL")
 		drawBOOMString(v, w_monsec.x, w_monsec.y, hud_monsecstr, nil, w_monsec.f)
 	end
-/*
-    // display the hud kills/items/secret display if optioned
-    if (!hud_nosecrets)
-    {
-      if (hud_active>1 && doit)
-      {
-        // clear the internal widget text buffer
-        HUlib_clearTextLine(&w_monsec);
-        //jff 3/26/98 use ESC not '\' for paths
-        // build the init string with fixed colors
-        sprintf
-        (
-          hud_monsecstr,
-          "STS \x1b\x36K \x1b\x33%d/%d \x1b\x37I \x1b\x33%d/%d \x1b\x35S \x1b\x33%d/%d",
-          plr->killcount,totalkills,
-          plr->itemcount,totalitems,
-          plr->secretcount,totalsecret
-        );
-        // transfer the init string to the widget
-        s = hud_monsecstr;
-        while (*s)
-          HUlib_addCharToTextLine(&w_monsec, *(s++));
-      }
-      // display the kills/items/secrets each frame, if optioned
-      if (hud_active>1)
-        HUlib_drawTextLine(&w_monsec, false);
-    }
-  }
-
-  //jff 3/4/98 display last to give priority
-  HU_Erase(); // jff 4/24/98 Erase current lines before drawing current
-              // needed when screen not fullsize
-
-  //jff 4/21/98 if setup has disabled message list while active, turn it off
-  if (hud_msg_lines<=1)
-    message_list = false;
-
-  // if the message review not enabled, show the standard message widget
-  if (!message_list)
-    HUlib_drawSText(&w_message);
-
-  // if the message review is enabled show the scrolling message review
-  if (hud_msg_lines>1 && message_list)
-    HUlib_drawMText(&w_rtext);
-
-  // display the interactive buffer for chat entry
-  HUlib_drawIText(&w_chat);
-*/
 end
 
 return DoBOOMHud

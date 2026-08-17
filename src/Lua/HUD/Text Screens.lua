@@ -49,7 +49,7 @@ hud.add(function(v, player)
         FRACUNIT,
         "STCFN",
         doom.textscreen.text,
-        V_SNAPTOLEFT,
+        V_SNAPTOLEFT|V_ALLOWLOWERCASE,
         "left",
         nil,
         doom.textscreen.elapsed / TEXTSPEED,

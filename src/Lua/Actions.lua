@@ -1123,7 +1123,11 @@ function A_DoomFire(actor, var1, weaponDef, weapon)
     	    funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
 		end
 
-        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, spread and spread.horiz or 0, spread and spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
+		local damage = weapon.damage
+		if wepProperties.forceDamage then
+			damage = wepProperties.forceDamage
+		end
+        DOOM_Fire(player, weapon.maxdist or MISSILERANGE, spread and spread.horiz or 0, spread and spread.vert or 0, weapon.pellets or 1, damage[1], damage[2], damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     else
 		A_DoomFaceTarget(actor)
 
@@ -1605,7 +1609,7 @@ function A_DoomPlayerScream(actor)
 		sound = "pdiehi"
 	end
 
-	doom.playReplaceableSound(actor, sound, actor.player)
+	doom.playReplaceableSound(actor, sound, actor.doom.playerref)
 end
 
 local SKULLSPEED = 20 * FRACUNIT
@@ -1884,4 +1888,13 @@ function A_MBFWeaponProjectile(actor)
 	local pitch = vars[3]
 	local hoffset = vars[4]
 	local voffset = vars[5]
+end
+
+function A_DoomGetHurt(actor)
+	if DOOM_Random() > 256*2/10 then return end
+	local lastpainchance = actor.info.painchance
+	actor.info.painchance = 0
+	DOOM_DamageMobj(actor, nil, nil, 1, 0, {noWoundState = true})
+	A_DoomPain(actor)
+	actor.info.painchance = lastpainchance
 end

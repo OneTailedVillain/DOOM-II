@@ -379,6 +379,7 @@ doom.hudWeaponOffsets = {
 	[7] = 38,
 }
 
+-- TODO: Customize the overlays
 local function drawDoomLegacyHud(v, player)
 	local funcs = P_GetMethodsForSkin(player)
 

@@ -7,10 +7,13 @@ Uses modular components for better organization.
 import sys
 import os
 import argparse
+import subprocess
+import tempfile
 from pathlib import Path
 
 # Import modular components
 from modules.utils import *
+from modules.engine_detection import detect_engine_mode
 # Stuff like this is getting messy with pyright, so ignore type issues here
 # It's pretty much guaranteed that the modules exist in our modules/ directory
 from modules.wad_processor import * # pyright: ignore[reportGeneralTypeIssues]
@@ -23,11 +26,10 @@ from modules.umapinfo_processor import *
 from modules.pcspeaker_converter import replace_ds_with_dp
 from modules.carouselspriteshit import createCarouselGraphics
 from modules.prepack_resolver import resolve_prepacked_carousel
-from modules.pngtopatch import png_to_patch
 
 # Attempt to import OMGIFOL
 try:
-	from omg import WAD, WadIO, Lump, Flat, Graphic
+	from omg import WAD, Lump
 except Exception as e:
 	raise SystemExit("Please install omgifol (pip install omgifol). Import error: %s" % e)
 
@@ -146,13 +148,14 @@ def create_deh_only_wad(deh_files, out_path):
 		print("No DEHACKED data found in any external files, creating empty WAD")
 		out_wad.to_file(out_path)
 
-def convert_stcfn_pngs_to_patches(wad):
+def convert_all_pngs_to_patches(wad, project_root=None, engine_mode="doom"):
 	"""
-	Convert all PNG-based STCFN graphics into Doom patch lumps.
+	Convert every PNG lump in the WAD into a Doom patch lump.
 
-	Uses:
+	Uses the same palette selection precedence as the build script:
 	- WAD PLAYPAL if available
-	- fallback palette otherwise
+	- BasePlaypal palette from the project root otherwise
+	- fallback palette as a last resort
 	- preserves grAb offsets
 	"""
 
@@ -160,33 +163,33 @@ def convert_stcfn_pngs_to_patches(wad):
 
 	converted = 0
 
-	# Import locally to avoid circular imports
 	from modules.pngtopatch import (
-		get_palette_from_wad,
+		resolve_palette_bytes,
 		png_to_patch,
 	)
 
-	palette = get_palette_from_wad(wad)
+	palette = resolve_palette_bytes(project_root, wad=wad, engine_mode=engine_mode)
 
-	# STCFN lumps may exist in graphics OR data
+	# Walk every lump collection that may contain graphics.
 	collections = []
 
-	if hasattr(wad, "graphics"):
-		collections.append(wad.graphics)
-
-	if hasattr(wad, "data"):
-		collections.append(wad.data)
+	for attr in (
+		"graphics",
+		"sprites",
+		"patches",
+		"flats",
+		"data",
+	):
+		if hasattr(wad, attr):
+			collections.append(getattr(wad, attr))
 
 	for collection in collections:
 		for lumpname in list(collection.keys()):
-
-			if not lumpname.startswith("STCFN"):
-				if not lumpname.startswith("STTNUM"):
-					continue
-
 			lump = collection[lumpname]
 
-			# Only process PNG lumps
+			if not hasattr(lump, "data"):
+				continue
+
 			if not lump.data.startswith(b"\x89PNG\r\n\x1a\n"):
 				continue
 
@@ -201,13 +204,28 @@ def convert_stcfn_pngs_to_patches(wad):
 				)
 
 				converted += 1
-
-				print(f"Converted STCFN PNG -> patch: {lumpname}")
+				print(f"Converted PNG -> patch: {lumpname}")
 
 			except Exception as e:
 				print(f"Failed converting {lumpname}: {e}")
 
 	return converted
+
+
+def write_output_artifact(wad, out_path, project_root=None, engine_mode="doom"):
+	"""Write the converted WAD to disk as WAD or PK3.
+
+	If the output is a PK3 file, convert PNG graphics first.
+	"""
+	if out_path.lower().endswith('.pk3'):
+		print("Converting all PNG graphics to Doom patches before PK3 write...")
+		converted = convert_all_pngs_to_patches(wad, project_root=project_root, engine_mode=engine_mode)
+		print(f"Converted {converted} PNG graphics")
+		wad_to_pk3(wad, out_path)
+	else:
+		wad.to_file(out_path)
+		print(f"Wrote WAD to {out_path}")
+
 
 def main(src_path: str, out_path: str, deh_files=None, options=None):
 	"""
@@ -222,6 +240,8 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	if options is None:
 		options = {}
 	
+	engine_mode = detect_engine_mode(src_path, force_engine=options.get('engine'))
+	print(f"Detected engine mode: {engine_mode}")
 	print("Loading:", src_path)
 	
 	# Handle DEH-only case (no WAD, just DEH/BEX files)
@@ -265,7 +285,7 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	created = make_cycle_sequence(src_wad, out_wad, "FWATER", 1, 16, 1, 4)
 	print(f"FWATER created: {created}")
 
-	converted = convert_exmx_maps(src_wad, out_wad, src_path, deh_files)
+	converted = convert_exmx_maps(src_wad, out_wad, src_path, deh_files, engine_mode=engine_mode)
 	print(f"Converted {converted} ExMx maps (where present).")
 
 	# Create cutscene graphics from flats
@@ -298,7 +318,7 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 		print("WAD seems to be based on Doom 1, appending level SOC...")
 		out_wad.data["SOC_LVLS"] = Lump(build_soc_levels())
 
-	out_wad.data["LUA_DOOM"] = Lump(build_lua_marker(is_doom1))
+	out_wad.data["LUA_DOOM"] = Lump(build_lua_marker(is_doom1, options.get("srb2ver", 0)))
 
 	# Create player sprites from PLAY lumps
 	if options.get('player_sprites', True):
@@ -308,10 +328,6 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	if options.get('stcfn_uppercase_to_lowercase', True):
 		print("Copying STCFN uppercase graphics to lowercase letter codes...")
 		append_stcfn_uppercase_to_lowercase(out_wad)
-
-	print("Converting STCFN PNG graphics to Doom patches...")
-	stcfn_converted = convert_stcfn_pngs_to_patches(out_wad)
-	print(f"Converted {stcfn_converted} STCFN graphics")
 
 	created = make_cycle_sequence(src_wad, out_wad, "COMP", 4, 6, 4, 4)
 	print(f"COMP created: {created}")
@@ -336,13 +352,8 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 		except Exception as e:
 			print(f"MIDI to OGG conversion failed: {e}")
 
-	if out_path.lower().endswith('.pk3'):
-		# Output as PK3
-		wad_to_pk3(out_wad, out_path)
-	else:
-		# Output as WAD
-		out_wad.to_file(out_path)
-		print(f"Wrote PWAD to {out_path}")
+	project_root = Path(__file__).resolve().parents[1]
+	write_output_artifact(out_wad, out_path, project_root=project_root, engine_mode=engine_mode)
 
 	print("Done.")
 
@@ -375,6 +386,7 @@ def parse_arguments():
 	parser.add_argument('--midi-to-ogg',
 					   action='store_true',
 					   help='Convert MIDI music to OGG format')
+	parser.add_argument('--engine', choices=['auto', 'doom', 'strife'], default='auto', help='Force the processing engine for the input WAD. Default: auto')
 	
 	return parser.parse_args()
 
@@ -388,6 +400,7 @@ if __name__ == "__main__":
 		'normalize_pegging': args.normalize_pegging,
 		'player_sprites': args.player_sprites,
 		'midi_to_ogg': args.midi_to_ogg,
+		'engine': args.engine,
 	}
 	
 	# Load DEH/BEX files if provided

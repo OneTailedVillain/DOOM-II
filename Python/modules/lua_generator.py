@@ -503,7 +503,7 @@ def build_soc_levels() -> bytes:
 	
 	return "\n".join(lines).encode("utf-8")
 
-def build_lua_marker(is_doom1: bool) -> bytes:
+def build_lua_marker(is_doom1: bool, srb2ver: str) -> bytes:
 	"""Builds the LUA_DOOM lump content."""
 	lines = [
 		'if not doom then',
@@ -513,6 +513,8 @@ def build_lua_marker(is_doom1: bool) -> bytes:
 	]
 	if is_doom1:
 		lines.append('doom.isdoom1 = true')
+
+	lines.append('doom.srb2ver = "' + str(srb2ver) + '"')
 	return ("\n".join(lines)).encode("utf-8")
 
 def generate_lua_for_pk3(wad, udmf_namespace="srb2"):
@@ -543,6 +545,13 @@ def generate_lua_for_pk3(wad, udmf_namespace="srb2"):
 		
 		for map_name, umapinfo in wad.umapinfo_data.items():
 			lua_table_lines = []
+			if hasattr(umapinfo, "__dict__"):
+				umapinfo = vars(umapinfo)
+
+			if not hasattr(umapinfo, "items"):
+				print(f"Skipping unsupported UMAPINFO entry {map_name}: {type(umapinfo).__name__}")
+				continue
+
 			for key, value in umapinfo.items():
 				if key == 'mapname':
 					continue

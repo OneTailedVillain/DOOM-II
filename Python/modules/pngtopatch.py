@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import struct
 from io import BytesIO
+from pathlib import Path
 from typing import Optional, Tuple, List
 
 from PIL import Image
@@ -29,27 +30,50 @@ FALLBACK_PALETTE = bytes([
 
 TRANSPARENT_INDEX = 112
 
-def get_palette_from_wad(wad, palettename: str = "PLAYPAL") -> bytes:
+
+def should_convert_graphics_png(arcname, source=None) -> bool:
+	"""Match the build script's PNG-to-patch conversion behavior for file paths."""
+	if source is not None and Path(source).parts and Path(source).parts[-1].lower() == "extraclasses":
+		return False
+
+	path = Path(arcname)
+	return path.suffix.lower() == ".png" and len(path.parts) >= 2 and path.parts[0].lower() == "graphics"
+
+
+def resolve_palette_bytes(project_root, wad=None, engine_mode: str = "doom", palettename: str = "PLAYPAL") -> bytes:
 	"""
-	Extract palette from WAD lump.
-	
-	Args:
-		wad: WAD object with data attribute
-		palettename: Name of the palette lump (default: PLAYPAL)
-	
-	Returns:
-		bytes: 768 bytes of RGB data (256 colors * 3 bytes)
+	Resolve palette bytes using the same precedence as the build script:
+	1. WAD PLAYPAL when available
+	2. BasePlaypal/doom.pal or BasePlaypal/strife.pal
+	3. Built-in fallback palette
 	"""
-	if palettename in wad.data:
+	if wad is not None and hasattr(wad, "data") and palettename in wad.data:
 		palette_data = wad.data[palettename].data
 		if len(palette_data) >= 768:
 			return palette_data[:768]
+		print(f"Warning: {palettename} is too small ({len(palette_data)} bytes), using fallback")
+
+	if project_root is not None:
+		base_playpal_dir = Path(project_root) / "BasePlaypal"
+		candidates = []
+		if str(engine_mode).lower() == "strife":
+			candidates = [base_playpal_dir / "strife.pal", base_playpal_dir / "doom.pal"]
 		else:
-			print(f"Warning: {palettename} is too small ({len(palette_data)} bytes), using fallback")
-	else:
-		print(f"Warning: {palettename} not found, using fallback palette")
-	
+			candidates = [base_playpal_dir / "doom.pal", base_playpal_dir / "strife.pal"]
+
+		for palette_path in candidates:
+			if not palette_path.exists():
+				continue
+			data = palette_path.read_bytes()
+			if len(data) >= 768:
+				return data[:768]
+
 	return FALLBACK_PALETTE
+
+
+def get_palette_from_wad(wad, palettename: str = "PLAYPAL", project_root=None, engine_mode: str = "doom") -> bytes:
+	"""Extract palette from a WAD, falling back to the project BasePlaypal palette when available."""
+	return resolve_palette_bytes(project_root=project_root, wad=wad, engine_mode=engine_mode, palettename=palettename)
 
 def find_closest_palette_color_all(r: int, g: int, b: int, palette: bytes) -> int:
 	"""
@@ -94,90 +118,119 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 # =========================================================
 
 def read_png_grab(data: bytes) -> Tuple[int, int]:
-    """
-    Read a PNG grAb chunk.
+	"""
+	Read a PNG grAb chunk.
 
-    Returns:
-        (x_offset, y_offset)
+	Returns:
+		(x_offset, y_offset)
 
-    Returns (0,0) if no grAb chunk exists.
-    """
-    if not data.startswith(PNG_SIGNATURE):
-        return (0, 0)
+	Returns (0,0) if no grAb chunk exists.
+	"""
+	if not data.startswith(PNG_SIGNATURE):
+		return (0, 0)
 
-    pos = 8  # skip signature
+	pos = 8  # skip signature
 
-    while pos + 8 <= len(data):
-        chunk_len = struct.unpack(">I", data[pos:pos + 4])[0]
-        chunk_type = data[pos + 4:pos + 8]
+	while pos + 8 <= len(data):
+		chunk_len = struct.unpack(">I", data[pos:pos + 4])[0]
+		chunk_type = data[pos + 4:pos + 8]
 
-        chunk_data_start = pos + 8
-        chunk_data_end = chunk_data_start + chunk_len
+		chunk_data_start = pos + 8
+		chunk_data_end = chunk_data_start + chunk_len
 
-        if chunk_type == b"grAb":
-            if chunk_len >= 8:
-                xoff, yoff = struct.unpack(
-                    ">ii",
-                    data[chunk_data_start:chunk_data_start + 8]
-                )
-                return (xoff, yoff)
+		if chunk_type == b"grAb":
+			if chunk_len >= 8:
+				xoff, yoff = struct.unpack(
+					">ii",
+					data[chunk_data_start:chunk_data_start + 8]
+				)
+				return (xoff, yoff)
 
-        pos = chunk_data_end + 4  # skip CRC
+		pos = chunk_data_end + 4  # skip CRC
 
-    return (0, 0)
+	return (0, 0)
 
 
 def write_png_grab(png_data: bytes, xoff: int, yoff: int) -> bytes:
-    """
-    Insert or replace a grAb chunk in PNG data.
-    """
-    import zlib
+	"""
+	Insert or replace a grAb chunk in PNG data.
+	"""
+	import zlib
 
-    if not png_data.startswith(PNG_SIGNATURE):
-        raise ValueError("Not a valid PNG")
+	if not png_data.startswith(PNG_SIGNATURE):
+		raise ValueError("Not a valid PNG")
 
-    # Remove existing grAb
-    chunks = []
-    pos = 8
+	# Remove existing grAb
+	chunks = []
+	pos = 8
 
-    while pos + 8 <= len(png_data):
-        chunk_len = struct.unpack(">I", png_data[pos:pos + 4])[0]
-        chunk_type = png_data[pos + 4:pos + 8]
+	while pos + 8 <= len(png_data):
+		chunk_len = struct.unpack(">I", png_data[pos:pos + 4])[0]
+		chunk_type = png_data[pos + 4:pos + 8]
 
-        chunk_total_end = pos + 12 + chunk_len
+		chunk_total_end = pos + 12 + chunk_len
 
-        if chunk_type != b"grAb":
-            chunks.append(png_data[pos:chunk_total_end])
+		if chunk_type != b"grAb":
+			chunks.append(png_data[pos:chunk_total_end])
 
-        pos = chunk_total_end
+		pos = chunk_total_end
 
-    # Build new grAb chunk
-    grab_payload = struct.pack(">ii", xoff, yoff)
+	# Build new grAb chunk
+	grab_payload = struct.pack(">ii", xoff, yoff)
 
-    crc = zlib.crc32(b"grAb")
-    crc = zlib.crc32(grab_payload, crc)
+	crc = zlib.crc32(b"grAb")
+	crc = zlib.crc32(grab_payload, crc)
 
-    grab_chunk = (
-        struct.pack(">I", len(grab_payload)) +
-        b"grAb" +
-        grab_payload +
-        struct.pack(">I", crc & 0xFFFFFFFF)
-    )
+	grab_chunk = (
+		struct.pack(">I", len(grab_payload)) +
+		b"grAb" +
+		grab_payload +
+		struct.pack(">I", crc & 0xFFFFFFFF)
+	)
 
-    # Insert after IHDR
-    output = bytearray()
-    output.extend(PNG_SIGNATURE)
+	# Insert after IHDR
+	output = bytearray()
+	output.extend(PNG_SIGNATURE)
 
-    inserted = False
+	inserted = False
 
-    for chunk in chunks:
-        output.extend(chunk)
+	for chunk in chunks:
+		output.extend(chunk)
 
-        if not inserted and chunk[4:8] == b"IHDR":
-            output.extend(grab_chunk)
-            inserted = True
+		if not inserted and chunk[4:8] == b"IHDR":
+			output.extend(grab_chunk)
+			inserted = True
 
-    return bytes(output)
+	return bytes(output)
+
+
+def strip_png_grab(png_data: bytes) -> bytes:
+	"""
+	Remove any grAb chunk from a PNG.
+
+	This allows Pillow to open PNGs with malformed grAb CRCs while
+	still letting us preserve the offsets by reading the chunk first.
+	"""
+	if not png_data.startswith(PNG_SIGNATURE):
+		return png_data
+
+	output = bytearray()
+	output.extend(PNG_SIGNATURE)
+
+	pos = 8
+
+	while pos + 8 <= len(png_data):
+		chunk_len = struct.unpack(">I", png_data[pos:pos + 4])[0]
+		chunk_type = png_data[pos + 4:pos + 8]
+
+		chunk_total_end = pos + 12 + chunk_len
+
+		if chunk_type != b"grAb":
+			output.extend(png_data[pos:chunk_total_end])
+
+		pos = chunk_total_end
+
+	return bytes(output)
 
 
 # =========================================================
@@ -185,42 +238,42 @@ def write_png_grab(png_data: bytes, xoff: int, yoff: int) -> bytes:
 # =========================================================
 
 def rgba_to_indexed_grid(
-    image: Image.Image,
-    palette: bytes,
-    transparent_index: int = TRANSPARENT_INDEX,
+	image: Image.Image,
+	palette: bytes,
+	transparent_index: int = TRANSPARENT_INDEX,
 ) -> List[List[int]]:
-    """
-    Convert RGBA image to indexed pixel grid.
-    """
-    if image.mode != "RGBA":
-        image = image.convert("RGBA")
+	"""
+	Convert RGBA image to indexed pixel grid.
+	"""
+	if image.mode != "RGBA":
+		image = image.convert("RGBA")
 
-    width, height = image.size
-    rgba = image.tobytes()
+	width, height = image.size
+	rgba = image.tobytes()
 
-    grid: List[List[int]] = []
+	grid: List[List[int]] = []
 
-    for y in range(height):
-        row = []
+	for y in range(height):
+		row = []
 
-        for x in range(width):
-            i = (y * width + x) * 4
+		for x in range(width):
+			i = (y * width + x) * 4
 
-            r = rgba[i]
-            g = rgba[i + 1]
-            b = rgba[i + 2]
-            a = rgba[i + 3]
+			r = rgba[i]
+			g = rgba[i + 1]
+			b = rgba[i + 2]
+			a = rgba[i + 3]
 
-            if a == 0:
-                row.append(transparent_index)
-            else:
-                row.append(
-                    find_closest_palette_color_all(r, g, b, palette)
-                )
+			if a == 0:
+				row.append(transparent_index)
+			else:
+				row.append(
+					find_closest_palette_color_all(r, g, b, palette)
+				)
 
-        grid.append(row)
+		grid.append(row)
 
-    return grid
+	return grid
 
 
 # =========================================================
@@ -228,48 +281,61 @@ def rgba_to_indexed_grid(
 # =========================================================
 
 def png_to_patch(
-    png_data: bytes,
-    palette: bytes,
-    transparent_index: int = TRANSPARENT_INDEX,
+	png_data: bytes,
+	palette: bytes,
+	transparent_index: int = TRANSPARENT_INDEX,
 ) -> patch_t:
-    """
-    Convert PNG bytes into a Doom patch_t.
+	"""
+	Convert PNG bytes into a Doom patch_t.
 
-    Preserves grAb offsets if present.
-    """
+	Preserves sprite offsets stored in a grAb chunk.
 
-    image = Image.open(BytesIO(png_data)).convert("RGBA")
+	If the PNG contains a malformed grAb CRC (common in some older
+	tools), the chunk is removed before Pillow decodes the image.
+	The offsets are preserved separately.
+	"""
 
-    xoff, yoff = read_png_grab(png_data)
+	# Read offsets before removing the chunk.
+	xoff, yoff = read_png_grab(png_data)
 
-    grid = rgba_to_indexed_grid(
-        image,
-        palette,
-        transparent_index
-    )
+	# Strip grAb so Pillow never sees a bad CRC.
+	png_data = strip_png_grab(png_data)
 
-    patch = patch_t(0, 0).fromPixelGrid(grid, transparent=transparent_index)
+	with Image.open(BytesIO(png_data)) as img:
+		img.load()
+		image = img.convert("RGBA")
 
-    patch.leftoffset = xoff
-    patch.topoffset = yoff
+	grid = rgba_to_indexed_grid(
+		image,
+		palette,
+		transparent_index,
+	)
 
-    return patch
+	patch = patch_t(0, 0).fromPixelGrid(
+		grid,
+		transparent=transparent_index,
+	)
+
+	patch.leftoffset = xoff
+	patch.topoffset = yoff
+
+	return patch
 
 
 def png_file_to_patch(
-    filename: str,
-    palette: bytes,
-    transparent_index: int = TRANSPARENT_INDEX,
+	filename: str,
+	palette: bytes,
+	transparent_index: int = TRANSPARENT_INDEX,
 ) -> patch_t:
-    """
-    Convert PNG file directly into patch_t.
-    """
-    with open(filename, "rb") as f:
-        return png_to_patch(
-            f.read(),
-            palette,
-            transparent_index
-        )
+	"""
+	Convert PNG file directly into patch_t.
+	"""
+	with open(filename, "rb") as f:
+		return png_to_patch(
+			f.read(),
+			palette,
+			transparent_index
+		)
 
 
 # =========================================================
@@ -277,82 +343,82 @@ def png_file_to_patch(
 # =========================================================
 
 def import_png_lump(
-    wad,
-    lumpname: str,
-    png_path: str,
-    palettename: str = "PLAYPAL",
+	wad,
+	lumpname: str,
+	png_path: str,
+	palettename: str = "PLAYPAL",
 ):
-    """
-    Import a PNG into a WAD graphics lump.
-    """
+	"""
+	Import a PNG into a WAD graphics lump.
+	"""
 
-    palette = get_palette_from_wad(wad, palettename)
+	palette = get_palette_from_wad(wad, palettename)
 
-    patch = png_file_to_patch(
-        png_path,
-        palette
-    )
+	patch = png_file_to_patch(
+		png_path,
+		palette
+	)
 
-    lump_class = next(iter(wad.graphics.values())).__class__
+	lump_class = next(iter(wad.graphics.values())).__class__
 
-    wad.graphics[lumpname] = lump_class(
-        patch.toBytes()
-    )
+	wad.graphics[lumpname] = lump_class(
+		patch.toBytes()
+	)
 
-    return patch
+	return patch
 
 
 def import_png_directory(
-    wad,
-    directory: str,
-    palettename: str = "PLAYPAL",
-    recursive: bool = False,
+	wad,
+	directory: str,
+	palettename: str = "PLAYPAL",
+	recursive: bool = False,
 ) -> int:
-    """
-    Import all PNGs in a directory as graphics lumps.
+	"""
+	Import all PNGs in a directory as graphics lumps.
 
-    Lump names are derived from filenames:
-        STIMA0.png -> STIMA0
-    """
+	Lump names are derived from filenames:
+		STIMA0.png -> STIMA0
+	"""
 
-    palette = get_palette_from_wad(wad, palettename)
+	palette = get_palette_from_wad(wad, palettename)
 
-    count = 0
+	count = 0
 
-    if recursive:
-        walker = os.walk(directory)
-    else:
-        walker = [(directory, [], os.listdir(directory))]
+	if recursive:
+		walker = os.walk(directory)
+	else:
+		walker = [(directory, [], os.listdir(directory))]
 
-    lump_class = None
+	lump_class = None
 
-    if wad.graphics:
-        lump_class = next(iter(wad.graphics.values())).__class__
+	if wad.graphics:
+		lump_class = next(iter(wad.graphics.values())).__class__
 
-    for root, _, files in walker:
-        for filename in files:
-            if not filename.lower().endswith(".png"):
-                continue
+	for root, _, files in walker:
+		for filename in files:
+			if not filename.lower().endswith(".png"):
+				continue
 
-            fullpath = os.path.join(root, filename)
+			fullpath = os.path.join(root, filename)
 
-            lumpname = os.path.splitext(filename)[0].upper()
+			lumpname = os.path.splitext(filename)[0].upper()
 
-            try:
-                patch = png_file_to_patch(
-                    fullpath,
-                    palette
-                )
+			try:
+				patch = png_file_to_patch(
+					fullpath,
+					palette
+				)
 
-                wad.graphics[lumpname] = lump_class(
-                    patch.toBytes()
-                )
+				wad.graphics[lumpname] = lump_class(
+					patch.toBytes()
+				)
 
-                print(f"Imported {filename} -> {lumpname}")
+				print(f"Imported {filename} -> {lumpname}")
 
-                count += 1
+				count += 1
 
-            except Exception as e:
-                print(f"Failed {filename}: {e}")
+			except Exception as e:
+				print(f"Failed {filename}: {e}")
 
-    return count
+	return count

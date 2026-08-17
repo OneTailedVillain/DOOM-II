@@ -3,6 +3,7 @@ Core WAD processing functions.
 """
 
 import re
+import string
 import struct
 import math
 import os
@@ -436,21 +437,54 @@ def parse_soc_templates(soc_text):
 			i += 1
 	return templates
 
+def extended_map_to_levelnum(ext):
+	"""Convert an extended map number (two characters) to an integer."""
+	ext = ext.upper()
+
+	if len(ext) != 2:
+		return None
+
+	x, y = ext[0], ext[1]
+
+	if x not in string.ascii_uppercase:
+		return None
+
+	# First character: A=0, B=1, etc.
+	p = ord(x) - ord('A')
+
+	# Second character: 0-9 = 0-9, A-Z = 10-35
+	if y.isdigit():
+		q = int(y)
+	elif y in string.ascii_uppercase:
+		q = ord(y) - ord('A') + 10
+	else:
+		return None
+
+	return (36 * p + q) + 100
+
+
 def mapname_to_levelnum(mapname):
-	"""Convert Doom map name (ExMx or MAPxx) to a level number."""
+	"""Convert Doom/SRB2 map name (ExMx, MAPxx, or extended MAPxx) to a level number."""
 	mapname = mapname.upper()
+
 	if mapname.startswith("E") and 'M' in mapname:
 		# ExMx format
 		m = re.match(r'E(\d)M(\d{1,2})', mapname)
 		if m:
 			ep = int(m.group(1))
 			mp = int(m.group(2))
-			# SRB2 uses the same numbering as Doom: (ep-1)*9 + mp
 			return (ep - 1) * 9 + mp
+
 	elif mapname.startswith("MAP"):
 		num = mapname[3:]
+
+		# Normal MAPxx format
 		if num.isdigit():
 			return int(num)
+
+		# Extended map number format (MAPE4, MAPGH, etc.)
+		return extended_map_to_levelnum(num)
+
 	return None
 
 def strip_d_music(music_name):
@@ -590,14 +624,60 @@ def generate_soc_patch(processor, base_templates):
 		soc_lines.append("")  # blank line between levels
 	return "\n".join(soc_lines)
 
-def process_umapinfo(src_wadio, out_wad, base_templates):
+def process_umapinfo_from_text(umapinfo_text, out_wad, base_templates, format='auto'):
 	"""
-	Process UMAPINFO lump from source WAD.
+	Process UMAPINFO/MAPINFO text and generate LUA_UMAP and SOC_UMAP lumps.
+	Returns True if processing occurred, False otherwise.
+	"""
+	if MAPINFOProcessor is None or not umapinfo_text:
+		return False
+
+	try:
+		processor = MAPINFOProcessor(umapinfo_text, format=format)
+		processor.parse()
+		print(f"Parsed UMAPINFO: {len(processor.maps)} map definitions")
+	except Exception as e:
+		print(f"Error parsing UMAPINFO: {e}")
+		return False
+
+	# Annotate WAD with parsed UMAPINFO for later Lua generation
+	try:
+		out_wad.umapinfo_data = processor.maps
+	except Exception:
+		pass
+
+	# Generate LUA_UMAP
+	lua_content = generate_lua_umap(processor)
+	out_wad.data["LUA_UMAP"] = Lump(lua_content.encode('utf-8'))
+	print("Added LUA_UMAP lump")
+
+	# Generate SOC patch
+	soc_content = generate_soc_patch(processor, base_templates)
+	if soc_content:
+		out_wad.data["SOC_UMAP"] = Lump(soc_content.encode('utf-8'))
+		print("Added SOC_UMAP lump")
+	else:
+		print("No SOC patch generated (no applicable maps?)")
+
+	return True
+
+
+def process_umapinfo(src_wadio, out_wad, base_templates, external_umapinfo_text=None, external_umapinfo_format=None):
+	"""
+	Process UMAPINFO lump from source WAD or external mapinfo text.
 	If found, parse it and generate LUA_UMAP and SOC_UMAP lumps.
 	Returns True if processing occurred, False otherwise.
 	"""
 	if MAPINFOProcessor is None:
 		return False
+
+	if external_umapinfo_text:
+		return process_umapinfo_from_text(
+			external_umapinfo_text,
+			out_wad,
+			base_templates,
+			format=external_umapinfo_format or 'auto'
+		)
 
 	# Check if UMAPINFO exists
 	try:
@@ -629,30 +709,8 @@ def process_umapinfo(src_wadio, out_wad, base_templates):
 		print(f"Failed to read UMAPINFO: {e}")
 		return False
 
-	try:
-		format=umapinfo_lump_name == "MAPINFO" and "mapinfo" or "umapinfo"
-		processor = MAPINFOProcessor(umapinfo_text, format=format)
-		# Parse
-		processor.parse()
-		print(f"Parsed UMAPINFO: {len(processor.maps)} map definitions")
-	except Exception as e:
-		print(f"Error parsing UMAPINFO: {e}")
-		return False
-
-	# Generate LUA_UMAP
-	lua_content = generate_lua_umap(processor)
-	out_wad.data["LUA_UMAP"] = Lump(lua_content.encode('utf-8'))
-	print("Added LUA_UMAP lump")
-
-	# Generate SOC patch
-	soc_content = generate_soc_patch(processor, base_templates)
-	if soc_content:
-		out_wad.data["SOC_UMAP"] = Lump(soc_content.encode('utf-8'))
-		print("Added SOC_UMAP lump")
-	else:
-		print("No SOC patch generated (no applicable maps?)")
-
-	return True
+	format = 'mapinfo' if umapinfo_lump_name == 'MAPINFO' else 'umapinfo'
+	return process_umapinfo_from_text(umapinfo_text, out_wad, base_templates, format=format)
 
 def _hash_bytes(data: bytes) -> str:
 	return hashlib.sha256(data).hexdigest()
@@ -977,68 +1035,73 @@ def make_cycle_sequence(src_wad, out_wad, prefix, start, end, base_start, base_e
 
 	return created
 
-def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None):
-	"""
-	Convert ExMx map names into MAPnn in out_wad.maps and copy D_E* lumps.
-	Also convert MUS lumps to MIDI.
-	"""
-	ex_pattern = re.compile(r"^E(\d)M(\d{1,2})$", re.IGNORECASE)
-	src_map_names = list(src_wad.maps.keys())
-	src_wadio = WadIO(src_path)
-	process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data)
-	ex_to_new_map = {}
+def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None, engine_mode="doom", external_umapinfo_text=None, external_umapinfo_format=None):
+    """
+    Convert ExMx map names into MAPnn in out_wad.maps and copy D_E* lumps.
+    Also convert MUS lumps to MIDI.
+    """
+    ex_pattern = re.compile(r"^E(\d)M(\d{1,2})$", re.IGNORECASE)
+    src_map_names = list(src_wad.maps.keys())
+    src_wadio = WadIO(src_path)
+    process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data, engine_mode=engine_mode)
+    ex_to_new_map = {}
 
-	for oldname in src_map_names:
-		m = ex_pattern.match(oldname.upper())
-		if not m:
-			continue
-		ep = int(m.group(1))
-		mp = int(m.group(2))
+    for oldname in src_map_names:
+        m = ex_pattern.match(oldname.upper())
+        if not m:
+            continue
+        ep = int(m.group(1))
+        mp = int(m.group(2))
 
-		mapnum = exmx_to_mapnum(ep, mp)
-		target_name = f"MAP{mapnum:02d}"
-		target_num = mapnum
-		
-		print(f"Converting {oldname} -> {target_name}")
+        mapnum = exmx_to_mapnum(ep, mp)
+        target_name = f"MAP{mapnum:02d}"
+        target_num = mapnum
+        
+        print(f"Converting {oldname} -> {target_name}")
 
-		out_wad.maps[target_name] = src_wad.maps[oldname].copy()
-		if oldname in out_wad.maps:
-			try:
-				del out_wad.maps[oldname]
-			except Exception:
-				pass
+        out_wad.maps[target_name] = src_wad.maps[oldname].copy()
+        if oldname in out_wad.maps:
+            try:
+                del out_wad.maps[oldname]
+            except Exception:
+                pass
 
-		ex_to_new_map[oldname.upper()] = (target_name, target_num)
+        ex_to_new_map[oldname.upper()] = (target_name, target_num)
 
-	# Collect music lumps for MUSICDEF creation
-	music_lumps = []
-	
-	for entry in src_wadio.entries:
-		lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
-		
-		data_bytes = src_wadio.read(lname)
-		data_bytes = convert_mus_to_midi(data_bytes)
-		lump_obj = Lump(data_bytes)
-		lump_obj.name = lname
+    # Collect music lumps for MUSICDEF creation
+    music_lumps = []
+    
+    for entry in src_wadio.entries:
+        lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+        
+        data_bytes = src_wadio.read(lname)
+        data_bytes = convert_mus_to_midi(data_bytes)
+        lump_obj = Lump(data_bytes)
+        lump_obj.name = lname
 
-		if lname.startswith("D_"):
-			out_wad.music[lname] = lump_obj
-			music_lumps.append(lname)
-			print(f"Copied music lump: {lname}")
+        if lname.startswith("D_"):
+            out_wad.music[lname] = lump_obj
+            music_lumps.append(lname)
+            print(f"Copied music lump: {lname}")
 
-	# Create MUSICDEF lump
-	if music_lumps:
-		endoom_md5 = get_endoom_md5(src_wadio)
-		musicdef_lump = create_musicdef_lump(endoom_md5, music_lumps, music_def_file)
-		out_wad.data["MUSICDEF"] = musicdef_lump
-		print(f"Created MUSICDEF lump with {len(music_lumps)} entries")
+    # Create MUSICDEF lump
+    if music_lumps:
+        endoom_md5 = get_endoom_md5(src_wadio)
+        musicdef_lump = create_musicdef_lump(endoom_md5, music_lumps, music_def_file)
+        out_wad.data["MUSICDEF"] = musicdef_lump
+        print(f"Created MUSICDEF lump with {len(music_lumps)} entries")
 
+    # Load base SOC templates
+    base_templates = parse_soc_templates(DOOM2_SOC_TEXT)
+    process_umapinfo(
+        src_wadio,
+        out_wad,
+        base_templates,
+        external_umapinfo_text=external_umapinfo_text,
+        external_umapinfo_format=external_umapinfo_format,
+    )
 
-	# Load base SOC templates
-	base_templates = parse_soc_templates(DOOM2_SOC_TEXT)
-	process_umapinfo(src_wadio, out_wad, base_templates)
-
-	return len(ex_to_new_map)
+    return len(ex_to_new_map)
 
 def is_doom1_wad(wad):
 	"""Check if WAD appears to be Doom 1 based by looking for ExMx maps"""
@@ -1193,187 +1256,187 @@ def parse_pnames(lump_bytes: bytes) -> list:
 	return names
 
 def parse_animated_lump(animated_data):
-    """
-    Parse an ANIMATED lump and return a list of animation records.
-    
-    Each record is 23 bytes:
-    - 1 byte: type (0=flat, 1=texture, 255=terminator)
-    - 9 bytes: last texture/flat name (null-terminated)
-    - 9 bytes: first texture/flat name (null-terminated)
-    - 4 bytes: speed (little-endian)
-    
-    Returns:
-        list of dict: Each dict contains 'type', 'last', 'first', 'speed'
-    """
-    animations = []
-    pos = 0
-    record_size = 23
-    
-    while pos + 1 <= len(animated_data):
-        # Read type byte
-        anim_type = animated_data[pos]
-        pos += 1
-        
-        # Terminator record
-        if anim_type == 255:
-            break
-        
-        # Ensure we have enough data for a full record
-        if pos + 20 > len(animated_data):
-            print(f"Warning: Incomplete ANIMATED record at offset {pos-1}, skipping")
-            break
-        
-        # Read 9 bytes for last name
-        last_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
-        pos += 9
-        
-        # Read 9 bytes for first name
-        first_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
-        pos += 9
-        
-        # Read 4 bytes for speed
-        speed = int.from_bytes(animated_data[pos:pos+4], 'little')
-        pos += 4
-        
-        # Clean up names (remove trailing spaces)
-        last_name = last_name.rstrip()
-        first_name = first_name.rstrip()
-        
-        animations.append({
-            'type': anim_type,
-            'last': last_name,
-            'first': first_name,
-            'speed': speed
-        })
-    
-    return animations
+	"""
+	Parse an ANIMATED lump and return a list of animation records.
+	
+	Each record is 23 bytes:
+	- 1 byte: type (0=flat, 1=texture, 255=terminator)
+	- 9 bytes: last texture/flat name (null-terminated)
+	- 9 bytes: first texture/flat name (null-terminated)
+	- 4 bytes: speed (little-endian)
+	
+	Returns:
+		list of dict: Each dict contains 'type', 'last', 'first', 'speed'
+	"""
+	animations = []
+	pos = 0
+	record_size = 23
+	
+	while pos + 1 <= len(animated_data):
+		# Read type byte
+		anim_type = animated_data[pos]
+		pos += 1
+		
+		# Terminator record
+		if anim_type == 255:
+			break
+		
+		# Ensure we have enough data for a full record
+		if pos + 20 > len(animated_data):
+			print(f"Warning: Incomplete ANIMATED record at offset {pos-1}, skipping")
+			break
+		
+		# Read 9 bytes for last name
+		last_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+		pos += 9
+		
+		# Read 9 bytes for first name
+		first_name = animated_data[pos:pos+9].split(b'\x00', 1)[0].decode('ascii', errors='ignore')
+		pos += 9
+		
+		# Read 4 bytes for speed
+		speed = int.from_bytes(animated_data[pos:pos+4], 'little')
+		pos += 4
+		
+		# Clean up names (remove trailing spaces)
+		last_name = last_name.rstrip()
+		first_name = first_name.rstrip()
+		
+		animations.append({
+			'type': anim_type,
+			'last': last_name,
+			'first': first_name,
+			'speed': speed
+		})
+	
+	return animations
 
 def generate_animdefs_from_animated(animations):
-    """
-    Generate ANIMDEFS content from parsed ANIMATED records.
-    
-    Args:
-        animations: List of animation records from parse_animated_lump()
-    
-    Returns:
-        str: ANIMDEFS lump content
-    """
-    lines = []
-    lines.append("// ANIMDEFS generated from ANIMATED lump")
-    lines.append("// Converted from binary ANIMATED format")
-    lines.append("")
-    
-    for anim in animations:
-        anim_type = "Flat" if anim['type'] == 0 else "Texture"
-        first = anim['first']
-        last = anim['last']
-        speed = anim['speed']
-        
-        # Speed of 0 or 1 doesn't make sense, default to 8
-        if speed <= 1:
-            speed = 8
-            print(f"Warning: Animation {first}->{last} had speed {anim['speed']}, using default 8")
-        
-        lines.append(f'{anim_type}\tOptional\t{first}\tRange\t{last}\tTics {speed}')
-    
-    return "\n".join(lines)
+	"""
+	Generate ANIMDEFS content from parsed ANIMATED records.
+	
+	Args:
+		animations: List of animation records from parse_animated_lump()
+	
+	Returns:
+		str: ANIMDEFS lump content
+	"""
+	lines = []
+	lines.append("// ANIMDEFS generated from ANIMATED lump")
+	lines.append("// Converted from binary ANIMATED format")
+	lines.append("")
+	
+	for anim in animations:
+		anim_type = "Flat" if anim['type'] == 0 else "Texture"
+		first = anim['first']
+		last = anim['last']
+		speed = anim['speed']
+		
+		# Speed of 0 or 1 doesn't make sense, default to 8
+		if speed <= 1:
+			speed = 8
+			print(f"Warning: Animation {first}->{last} had speed {anim['speed']}, using default 8")
+		
+		lines.append(f'{anim_type}\tOptional\t{first}\tRange\t{last}\tTics {speed}')
+	
+	return "\n".join(lines)
 
 def process_animated_lump(src_wadio, out_wad):
-    """
-    Process ANIMATED lump from source WAD and convert to ANIMDEFS.
-    
-    Args:
-        src_wadio: WadIO object to read lumps from
-        out_wad: Output WAD object to write ANIMDEFS to
-    
-    Returns:
-        bool: True if ANIMATED was found and processed, False otherwise
-    """
-    try:
-        # Find ANIMATED lump
-        animated_lump_name = None
-        for entry in src_wadio.entries:
-            lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
-            if lname == "ANIMATED":
-                animated_lump_name = lname
-                break
-        
-        if animated_lump_name is None:
-            return False
-        
-        print(f"Found ANIMATED lump, converting to ANIMDEFS...")
-        
-        # Read ANIMATED data
-        animated_data = src_wadio.read(animated_lump_name)
-        
-        # Parse animations
-        animations = parse_animated_lump(animated_data)
-        
-        if not animations:
-            print("Warning: ANIMATED lump contains no valid animation records")
-            return False
-        
-        print(f"Parsed {len(animations)} animation records")
-        
-        # Generate ANIMDEFS content
-        animdefs_content = generate_animdefs_from_animated(animations)
-        
-        # Add ANIMDEFS lump to output WAD
-        out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
-        print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Error processing ANIMATED lump: {e}")
-        return False
+	"""
+	Process ANIMATED lump from source WAD and convert to ANIMDEFS.
+	
+	Args:
+		src_wadio: WadIO object to read lumps from
+		out_wad: Output WAD object to write ANIMDEFS to
+	
+	Returns:
+		bool: True if ANIMATED was found and processed, False otherwise
+	"""
+	try:
+		# Find ANIMATED lump
+		animated_lump_name = None
+		for entry in src_wadio.entries:
+			lname = (entry.name if isinstance(entry.name, str) else entry.name.decode("ascii")).upper().rstrip("\x00")
+			if lname == "ANIMATED":
+				animated_lump_name = lname
+				break
+		
+		if animated_lump_name is None:
+			return False
+		
+		print(f"Found ANIMATED lump, converting to ANIMDEFS...")
+		
+		# Read ANIMATED data
+		animated_data = src_wadio.read(animated_lump_name)
+		
+		# Parse animations
+		animations = parse_animated_lump(animated_data)
+		
+		if not animations:
+			print("Warning: ANIMATED lump contains no valid animation records")
+			return False
+		
+		print(f"Parsed {len(animations)} animation records")
+		
+		# Generate ANIMDEFS content
+		animdefs_content = generate_animdefs_from_animated(animations)
+		
+		# Add ANIMDEFS lump to output WAD
+		out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
+		print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
+		
+		return True
+		
+	except Exception as e:
+		print(f"Error processing ANIMATED lump: {e}")
+		return False
 
 def process_animated_in_wad(src_wad, out_wad):
-    """
-    Process ANIMATED lump from a WAD object directly.
-    This is a convenience wrapper for use in existing functions.
-    
-    Args:
-        src_wad: Source WAD object (must have data attribute)
-        out_wad: Output WAD object
-    
-    Returns:
-        bool: True if ANIMATED was found and processed, False otherwise
-    """
-    # Check if src_wad has data and contains ANIMATED
-    if not hasattr(src_wad, 'data'):
-        return False
-    
-    if "ANIMATED" not in src_wad.data:
-        return False
-    
-    try:
-        animated_data = src_wad.data["ANIMATED"].data
-        
-        # Parse animations
-        animations = parse_animated_lump(animated_data)
-        
-        if not animations:
-            print("Warning: ANIMATED lump contains no valid animation records")
-            return False
-        
-        print(f"Parsed {len(animations)} animation records from ANIMATED")
-        
-        # Generate ANIMDEFS content
-        animdefs_content = generate_animdefs_from_animated(animations)
-        
-        # Add ANIMDEFS lump to output WAD
-        out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
-        print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Error processing ANIMATED from WAD data: {e}")
-        return False
+	"""
+	Process ANIMATED lump from a WAD object directly.
+	This is a convenience wrapper for use in existing functions.
+	
+	Args:
+		src_wad: Source WAD object (must have data attribute)
+		out_wad: Output WAD object
+	
+	Returns:
+		bool: True if ANIMATED was found and processed, False otherwise
+	"""
+	# Check if src_wad has data and contains ANIMATED
+	if not hasattr(src_wad, 'data'):
+		return False
+	
+	if "ANIMATED" not in src_wad.data:
+		return False
+	
+	try:
+		animated_data = src_wad.data["ANIMATED"].data
+		
+		# Parse animations
+		animations = parse_animated_lump(animated_data)
+		
+		if not animations:
+			print("Warning: ANIMATED lump contains no valid animation records")
+			return False
+		
+		print(f"Parsed {len(animations)} animation records from ANIMATED")
+		
+		# Generate ANIMDEFS content
+		animdefs_content = generate_animdefs_from_animated(animations)
+		
+		# Add ANIMDEFS lump to output WAD
+		out_wad.data["ANIMDEFS"] = Lump(animdefs_content.encode('utf-8'))
+		print(f"Created ANIMDEFS lump with {len(animations)} animation definitions")
+		
+		return True
+		
+	except Exception as e:
+		print(f"Error processing ANIMATED from WAD data: {e}")
+		return False
 
 # Add to process_special_lumps function:
-def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None):
+def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None, engine_mode="doom"):
     """
     Iterate source lumps and produce additional helper lumps for the PWAD.
     """
@@ -1422,6 +1485,15 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None):
                 print(f"Inserted {out_name} (ENDOOM -> Lua endoom)")
             except Exception as e:
                 print(f"Failed to process ENDOOM: {e}")
+
+        elif name == "ENDSTRF" and engine_mode == "strife":
+            try:
+                lua_bytes = parse_endoom_and_build_lua(lump_bytes)
+                out_name = "LUA_ENDM"
+                safe_add_lump_to_data(out_wad, out_name, WadIO._LumpFromBytes(lua_bytes) if hasattr(WadIO, '_LumpFromBytes') else Lump(lua_bytes))
+                print(f"Inserted {out_name} (ENDSTRF -> Lua endoom)")
+            except Exception as e:
+                print(f"Failed to process ENDSTRF: {e}")
 
         elif name in ("DEHACKED", "DEHACK", "DEH", "PATCH", "BEX"):
             all_external_deh.append((f"internal_{name}", lump_bytes))
@@ -1530,6 +1602,26 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None):
         except Exception as e:
             print(f"TEXTURE -> TEXTURES conversion failed: {e}")
 
+    if engine_mode == "strife":
+        try:
+            from modules.strife_dialogs import parse_and_emit_strife_scripts
+            from modules.strife_voices import STRIFE_VOICE_MAPPINGS, map_strife_voice_name
+        except ImportError:
+            parse_and_emit_strife_scripts = None
+            STRIFE_VOICE_MAPPINGS = {}
+            map_strife_voice_name = None
+
+        if parse_and_emit_strife_scripts:
+            parse_and_emit_strife_scripts(src_wad, out_wad, src_wadio)
+
+        if map_strife_voice_name and STRIFE_VOICE_MAPPINGS:
+            for lump_name, lump_data in src_wad.data.items():
+                if lump_name.upper() in STRIFE_VOICE_MAPPINGS:
+                    new_name = map_strife_voice_name(lump_name.upper())
+                    if new_name:
+                        out_wad.sounds[new_name] = lump_data
+                        print(f"Renamed {lump_name} -> {new_name}")
+
 def parse_switches_lump(switches_data):
 	"""
 	Parse a SWITCHES lump and generate a Lua table.
@@ -1578,10 +1670,10 @@ def parse_switches_lump(switches_data):
 		# Escape strings for Lua
 		off_escaped = lua_string(sw['off'])
 		on_escaped = lua_string(sw['on'])
-		lua_lines.append(f'    {{{off_escaped}, {on_escaped}, {sw["iwad"]}}},')
+		lua_lines.append(f'	{{{off_escaped}, {on_escaped}, {sw["iwad"]}}},')
 	
 	# Add terminating entry
-	lua_lines.append('    {"\\0", "\\0", 0}')
+	lua_lines.append('	{"\\0", "\\0", 0}')
 	lua_lines.append("}")
 	
 	return "\n".join(lua_lines)
@@ -1900,7 +1992,12 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	# Gather all PLAY lumps
 	play_lumps = {}
 	def is_valid_play_lump(name):
-		return name.startswith("PLAY") and len(name) >= 5 and name[4] in validframes and name != 'PLAYPAL'
+		return (
+			name != "PLAYPAL"
+			and name.startswith("PLAY")
+			and len(name) in (6, 8)
+			and name[4] in validframes
+		)
 
 	def parse_play_suffix(suffix):
 		if len(suffix) % 2 != 0:
@@ -1992,7 +2089,58 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	print(f"Created {created_count} player sprite lumps from PLAY lumps")
 	return created_count
 
+import hashlib
+
+# Hash -> folder name
+KNOWN_STCFN_HASHES = {
+	"75e2d00f15391bf0d872ab486657410d1d752e6b2e2745c354a892fc20cdd687": "doom",
+	"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "sd2",
+	# "anotherhash": "heretic",
+}
+
+def hash_stcfn_lumps(wad):
+	"""Return a SHA-256 hash of all STCFN lump contents."""
+
+	hasher = hashlib.sha256()
+
+	for name in sorted(wad.graphics):
+		if not name.startswith("STCFN"):
+			continue
+
+		lump = wad.graphics[name]
+		data = lump.data
+
+		hasher.update(name.encode("ascii"))
+		hasher.update(b"\0")
+		hasher.update(data)
+
+	return hasher.hexdigest()
+
 def append_stcfn_uppercase_to_lowercase(wad):
+	hash_string = hash_stcfn_lumps(wad)
+
+	match = KNOWN_STCFN_HASHES.get(hash_string)
+	if match is not None:
+		folder = Path(__file__).parent / "prepacked-stcfn" / match
+
+		print(f"Matched STCFN hash '{hash_string}' -> {folder}")
+
+		for file in sorted(folder.iterdir()):
+			if not file.is_file():
+				continue
+
+			lump_name = file.stem.upper()   # "STCFN097" instead of "STCFN097.PNG"
+
+			if lump_name in wad.data:
+				del wad.data[lump_name]
+
+			wad.graphics[lump_name] = Lump(from_file=str(file))
+			print(f"Added {file.name}")
+
+		return
+
+	print(f"DEBUG: No match found for hash '{hash_string}'")
+
 	stcfn_prefix = "STCFN"
 	uppercase_range = range(65, 91)
 	lowercase_range = range(97, 123)
@@ -2002,7 +2150,6 @@ def append_stcfn_uppercase_to_lowercase(wad):
 		lower_name = f"{stcfn_prefix}{lower:03}"
 
 		if upper_name in wad.graphics:
-			# Deep copy the Graphic lump
 			wad.graphics[lower_name] = wad.graphics[upper_name].copy()
 			print(f"Copied {upper_name} → {lower_name}")
 		else:

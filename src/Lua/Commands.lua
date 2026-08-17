@@ -5,6 +5,20 @@ local ammoMap = {
 	"cells"
 }
 
+--#ifdef STRIFE
+local weaponMap = {
+	"punchdagger",
+	"crossbow",
+	"crossbow2",
+	"assaultgun",
+	/*
+	"chaingun",
+	"rocketlauncher",
+	"plasmarifle",
+	"bfg9000"
+	*/
+}
+--#else
 local weaponMap = {
 	"chainsaw",
 	"brassknuckles",
@@ -15,6 +29,7 @@ local weaponMap = {
 	"plasmarifle",
 	"bfg9000"
 }
+--#endif
 
 local function P_GiveArmor(player, class)
 	local funcs = P_GetMethodsForSkin(player)
@@ -56,9 +71,11 @@ local function giveWeaponsArmorAndAmmo(player)
 		local max = funcs.getMaxFor(player, aType)
 		funcs.setAmmoFor(player, aType, max)
 	end
+	--#ifdef DOOM
 	if not doom.isdoom1 then
 		doom.giveWeapon(player, "supershotgun")
 	end
+	--#endif
 	for i = 1, #weaponMap do
 		local weaponName = weaponMap[i]
 		if doom.weapons[weaponName] and doom.weapons[weaponName].noshareware then

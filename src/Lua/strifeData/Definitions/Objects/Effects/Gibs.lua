@@ -59,4 +59,5 @@ function A_DoomTossGib(actor)
     gib.angle = FixedAngle(P_RandomRange(0, 360) * FRACUNIT)
     P_InstaThrust(gib, gib.angle, P_RandomRange(0, 15) * FRACUNIT)
     gib.momz = P_RandomRange(0, 15) * FRACUNIT
+	gib.frame = P_RandomRange(A, T)
 end

@@ -12,7 +12,7 @@ states[S_ONETICINVIS] = {
 }
 
 states[S_DEBUG] = {
-	sprite = SPR_PLAY,
+	sprite = SPR_NULL,
 	frame = A,
 	tics = -1,
     action = nil,
@@ -343,6 +343,10 @@ addHook("MobjLineCollide", function(ray, usedLine)
 	if DOOM_UseRaycastInteractionChecks(ray, usedLine, "switch") then return true else return end
 end, MT_DOOM_USERAYCAST)
 
+--#ifdef STRIFE
+addHook("MobjMoveCollide", doom.Strife_TryNPCInteract, MT_DOOM_USERAYCAST)
+--#endif
+
 addHook("MobjLineCollide", function(ray, usedLine)
     if not (ray and ray.valid) then return end
     -- I'm like 99% sure the gunshot use type doesn't cancel the "raycast" if it ever executes a line action
@@ -350,6 +354,7 @@ addHook("MobjLineCollide", function(ray, usedLine)
 end, MT_DOOM_BULLETRAYCAST)
 
 local function MaybeHitFloor_Simple(bullet)
+	if not (bullet and bullet.valid) then return end
     local shooter = bullet.shooter
     if not (shooter and shooter.valid) then return end
 
@@ -375,6 +380,7 @@ local function MaybeHitFloor_Simple(bullet)
 end
 
 local function BulletHit_Simple(bullet, target, line)
+	if not (bullet and bullet.valid) then return end
     local shooter = bullet.shooter
     if not (shooter and shooter.valid) then return end
 
@@ -541,43 +547,35 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
 	end
 
     for i = 1, pellets do
-        -- save original state
-        local ogangle = shooter.angle
-        local ogaiming = player and player.aiming or 0
+		local angle = shooter.angle
+		local pitch = player and player.aiming or 0
 
-        -- spread
-        local hspr
-        local vspr
+		local hspr = 0
+		local vspr = 0
 
 		if type(horizspread) == "boolean" then
 			if not horizspread then
 				local difference = (DOOM_Random()-DOOM_Random()) << 18
-				shooter.angle = $ + difference
 				hspr = AngleFixed(difference)
-			else
-				hspr = 0
+				angle = $ + difference
 			end
 		else
 			hspr = FixedMul(P_RandomFixed() - FRACUNIT/2, horizspread*2)
-			shooter.angle = $ + FixedAngle(hspr)
+			angle = $ + FixedAngle(hspr)
 		end
-        if player then
+
+		if player then
 			if type(vertspread) == "boolean" then
 				if not vertspread then
 					local difference = (DOOM_Random()-DOOM_Random()) << 18
-					player.aiming = $ + difference
 					vspr = AngleFixed(difference)
-				else
-					vspr = 0
+					pitch = $ + difference
 				end
 			else
 				vspr = FixedMul(P_RandomFixed() - FRACUNIT/2, vertspread*2)
-				player.aiming = $ + FixedAngle(vspr)
+				pitch = $ + FixedAngle(vspr)
 			end
-        end
-
-        local angle = shooter.angle
-        local pitch = player and player.aiming or 0
+end
 
         if not player then
             local dest = source.target
@@ -605,10 +603,6 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
         end
 
         local bullet = P_SpawnMobjFromMobj(shooter, 0, 0, spawnz, shootmobj or MT_DOOM_BULLETRAYCAST)
-
-        -- restore state
-        shooter.angle = $ - FixedAngle(hspr or 0)
-        if player and vspr then player.aiming = $ - FixedAngle(vspr) end
 
         if bullet and bullet.valid then
             bullet.flags2 = shootflags2 or 0
