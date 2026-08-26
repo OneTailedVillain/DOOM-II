@@ -779,6 +779,33 @@ local function getIntersectingObjects(target, shootables)
 	return results
 end
 
+-- TODO: This is major ass suck!
+-- However I just want this to be *working*
+addHook("PlayerThink", function(player)
+	if not player.mo then return end
+	if player.mo.flags & MF_NOTHINK then return end
+
+	player.doom.oldz = player.mo.z
+end)
+
+addHook("PostThinkFrame", function()
+	for player in players.iterate do
+		if not player.mo then continue end
+
+		local mo = player.mo
+		local oldz = player.doom.oldz
+
+		if mo.eflags & MFE_JUSTSTEPPEDDOWN then
+			local diff = oldz - mo.z
+
+			if diff == MAXSTEPMOVE then
+				mo.z = oldz
+				mo.momz = 0
+			end
+		end
+	end
+end)
+
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
