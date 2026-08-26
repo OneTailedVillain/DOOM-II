@@ -643,7 +643,7 @@ function doom.getTitleMusicLump()
 		return "logo"
 	--#else
 		if doom.isdoom1 then
-			return "introa"
+			return "intro"
 		else
 			return "dm2ttl"
 		end
