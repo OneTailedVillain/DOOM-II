@@ -188,6 +188,11 @@ sfxinfo[sfx_swtchn].caption = "Switch activated"
 sfxinfo[sfx_swtchx].caption = "Switch deactivated"
 sfxinfo[sfx_secret].caption = "A secret is revealed!"
 sfxinfo[sfx_itmbk].caption = "Item respawned"
+sfxinfo[sfx_getpow].caption = "Power-up Attained"
+sfxinfo[sfx_posact].caption = "Roaming Zombie"
+sfxinfo[sfx_posit1].caption = "Zombie Alerted"
+sfxinfo[sfx_posit2].caption = "Zombie Alerted"
+sfxinfo[sfx_posit3].caption = "Zombie Alerted"
 end
 
 -- DeHackEd bullshit
