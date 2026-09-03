@@ -269,54 +269,32 @@ local function DrawStatusBarNumbers(v, player, noSBar)
 end
 
 local function DrawKeys(v, player, noSBar)
-	local keyColors = {"BLUE", "YELLOW", "RED"} -- In order of how DOOM draws these
-	local keyX = { 239, 239, 239 }
-	local keyY = { 171, 181, 191 }
+	local keyColors = {"BLUE", "YELLOW", "RED"}
+	local keyY = {171, 181, 191}
 
-	local xFlags = 0
-	if noSBar then
-		xFlags = V_SNAPTORIGHT
-	end
+	local xFlags = noSBar and V_SNAPTORIGHT or 0
+	local playerKeys = player.doom.keys or 0
 
 	local keys = {
-		v.cachePatch("STKEYS2"),
-		v.cachePatch("STKEYS0"),
-		v.cachePatch("STKEYS1"),
-		v.cachePatch("STKEYS5"),
-		v.cachePatch("STKEYS3"),
-		v.cachePatch("STKEYS4"),
-	}
-
-	local bitNums = {
-		[1]   = 1,
-		[2]   = 2,
-		[4]   = 3,
-		[8]   = 4,
-		[16]  = 5,
-		[32]  = 6,
-		[64]  = 7,
-		[128] = 8,
-		[256] = 9,
-		[512] = 10,
+		[doom.KEY_BLUE] = v.cachePatch("STKEYS0"),
+		[doom.KEY_YELLOW] = v.cachePatch("STKEYS1"),
+		[doom.KEY_RED] = v.cachePatch("STKEYS2"),
+		[doom.KEY_SKULLBLUE] = v.cachePatch("STKEYS3"),
+		[doom.KEY_SKULLYELLOW] = v.cachePatch("STKEYS4"),
+		[doom.KEY_SKULLRED] = v.cachePatch("STKEYS5"),
 	}
 
 	for i, color in ipairs(keyColors) do
-		local skullKeyName  = "KEY_SKULL" .. color
-		local normalKeyName = "KEY_" .. color
-		local keyBit = nil
-
-		-- prefer skull variant
-		if (player.doom.keys or 0) & doom[skullKeyName] != 0 then
-			keyBit = skullKeyName
-		elseif (player.doom.keys or 0) & doom[normalKeyName] != 0 then
-			keyBit = normalKeyName
-		end
+		local skullBit = doom["KEY_SKULL" + color]
+		local normalBit = doom["KEY_" + color]
+		local keyBit = (playerKeys & skullBit) != 0 and skullBit
+			or ((playerKeys & normalBit) != 0 and normalBit)
 
 		if keyBit then
 			v.draw(
-				keyX[i],
+				239,
 				keyY[i],
-				keys[bitNums[doom[keyBit]]], -- ts so mid
+				keys[keyBit],
 				V_PERPLAYER|V_SNAPTOBOTTOM|xFlags
 			)
 		end
