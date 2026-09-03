@@ -616,6 +616,13 @@ def generate_lua_for_wad(wad, udmf_namespace="srb2"):
 		
 		for map_name, umapinfo in wad.umapinfo_data.items():
 			lua_table_lines = []
+			if hasattr(umapinfo, "__dict__"):
+				umapinfo = vars(umapinfo)
+
+			if not hasattr(umapinfo, "items"):
+				print(f"Skipping unsupported UMAPINFO entry {map_name}: {type(umapinfo).__name__}")
+				continue
+
 			for key, value in umapinfo.items():
 				if key == 'mapname':
 					continue
