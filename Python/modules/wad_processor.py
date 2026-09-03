@@ -1330,8 +1330,8 @@ def generate_animdefs_from_animated(animations):
 		last = anim['last']
 		speed = anim['speed']
 		
-		# Speed of 0 or 1 doesn't make sense, default to 8
-		if speed <= 1:
+		# Speed of 0 doesn't make sense, default to 8
+		if speed <= 0:
 			speed = 8
 			print(f"Warning: Animation {first}->{last} had speed {anim['speed']}, using default 8")
 		
