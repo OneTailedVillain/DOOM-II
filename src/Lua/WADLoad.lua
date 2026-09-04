@@ -258,6 +258,33 @@ local EndoomRegistry = {
 		"       " .. string.char(201) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(187),
 		"       " .. string.char(186) .. " Development builds can be downloaded at freedoom.soulsphere.org." .. string.char(186),
 		"       " .. string.char(200) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(205) .. string.char(188),
+	}),
+	sd2 = hashEndoom({
+		"",
+		"        Thanks for Playing:",
+		"",
+		"     SSSSSS  OOOOOO  N   N   I   CCCCCC",
+		"    S       O      O NN  N   I  C",
+		"    SSSSSS  O      O N N N   I  C",
+		"          S O      O N  NN   I  C",
+		"     SSSSSS  OOOOOO  N   N   I   CCCCCC",
+		"",
+		"      Doom 2 : Bots on Mobius!",
+		"       32-level LITE Edition",
+		"",
+		"  Producer: A.J. Freda",
+		"",
+		"  Sprites: Michael Stearns, A.J. Freda",
+		"",
+		"  Levels: Damian Grove, David Everett,",
+		"          A.J. Freda",
+		"",
+		" Sonic and all related characters are",
+		" (c) Sega Enterprises, Ltd.",
+		"",
+		"",
+		"",
+		"",
 	})
 }
 
@@ -968,6 +995,59 @@ local function doLoadingShit()
 	--#elif STRIFE
 		doom.loadStrings()
 	--#endif
+
+	-- Chances are that the user is being sensible and loading the DOOM II IWAD before SD2, so it should be safe to do this
+	if matchedGame == "sd2" then
+		-- Change some things around
+		doom.strings["SKILL_BABY"] = "Sub-Sonic"
+		doom.strings["SKILL_EASY"] = "Sonic"
+		doom.strings["SKILL_MEDIUM"] = "Super Sonic"
+		doom.strings["SKILL_HARD"] = "Hyper Sonic"
+		doom.strings["SKILL_NIGHTMARE"] = "Warp Sonic"
+
+		-- Captions
+		-- SRB2:TP did most of the hard part, so steal it! steal it all!
+		sfxinfo[sfx_posit1].caption = "Aha! This time I'm ready for ya"
+		sfxinfo[sfx_posit2].caption = "Aha! This time I'm ready for ya"
+		sfxinfo[sfx_posit3].caption = "Aha! This time I'm ready for ya"
+		sfxinfo[sfx_posact].caption = "Tread squeak"
+		sfxinfo[sfx_popain].caption = "OW!"
+		sfxinfo[sfx_claw].caption = "*Bop*"
+		sfxinfo[sfx_firsht].caption = "Projectile fire"
+		sfxinfo[sfx_firxpl].caption = "Fiery explosion"
+		sfxinfo[sfx_bgsit1].caption = "Coconuts awakens"
+		sfxinfo[sfx_bgsit2].caption = "Coconuts awakens"
+		sfxinfo[sfx_bgact].caption = "Snarl"
+		sfxinfo[sfx_cacsit].caption = "Buzz Bomber awakens"
+		sfxinfo[sfx_vilsit].caption = "Metal awakens"
+		sfxinfo[sfx_vilact].caption = "Metal roaming"
+		sfxinfo[sfx_vilatk].caption = "Metal summoning flames"
+		sfxinfo[sfx_vipain].caption = "Metal hurt"
+		sfxinfo[sfx_vildth].caption = "Metal dead"
+		sfxinfo[sfx_flamst].caption = "Flame ignite"
+		sfxinfo[sfx_flame].caption = "Flame crackle"
+		sfxinfo[sfx_sgtsit].caption = "Targeting"
+		sfxinfo[sfx_sgtatk].caption = "*Boop*"
+		sfxinfo[sfx_sgtdth].caption = "Collapse"
+		sfxinfo[sfx_dmpain].caption = "OVA Bot hurt"
+		sfxinfo[sfx_dmact].caption = "OVA Bot roaming"
+		sfxinfo[sfx_sklatk].caption = "Chirp"
+		sfxinfo[sfx_skesit].caption = "Hey, blue doof ball!"
+		sfxinfo[sfx_skeact].caption = "How about a knuckle sandwich?!"
+		sfxinfo[sfx_skedth].caption = "Grrrr!"
+		sfxinfo[sfx_skeswg].caption = "Impact"
+		sfxinfo[sfx_skepch].caption = "*Punch*"
+		sfxinfo[sfx_bspsit].caption = "Charging up"
+		sfxinfo[sfx_bspdth].caption = "Powering down"
+		sfxinfo[sfx_bspact].caption = "Pseudo-Sonic roaming"
+		sfxinfo[sfx_pesit].caption = "Bye, Sonic!"
+		sfxinfo[sfx_pepain].caption = "Ow!"
+		sfxinfo[sfx_pedth].caption = "AHHHH!"
+		sfxinfo[sfx_cybsit].caption = "Red Metal Sonic awakens"
+		sfxinfo[sfx_cybdth].caption = "Red Metal Sonic collapses"
+		sfxinfo[sfx_metal].caption = "/"
+		sfxinfo[sfx_hoof].caption = "/"
+	end
 
 	doom.matchedGame = matchedGame or $
 end
