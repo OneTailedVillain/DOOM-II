@@ -2321,14 +2321,14 @@ function doom.loadStrings(gameType, gamemode)
 			
 			CHEXWIN		 = [[Mission accomplished.
 
-						Are you prepared for the next mission?
+Are you prepared for the next mission?
 
 
 
 
 
 
-						Press the escape key to continue...]]
+Press the escape key to continue...]]
 		}
 
 		-- Immobilize the Baron
