@@ -12,7 +12,7 @@ local function SafeFreeSlot(...)
     return ret
 end
 
-SafeFreeSlot("SPR_VILE", "sfx_vilatk", "sfx_flamst", "sfx_vildth", "sfx_vipain", "sfx_flame")
+SafeFreeSlot("SPR_VILE", "sfx_vilsit", "sfx_vilact", "sfx_vilatk", "sfx_flamst", "sfx_vildth", "sfx_vipain", "sfx_flame")
 local name = "Archvile"
 
 local object = {
@@ -23,9 +23,9 @@ local object = {
 	speed = 15,
 	painchance = 200,
 	doomednum = 64,
-	seesound = sfx_bgsit1,
-	activesound = sfx_bgact,
-	painsound = sfx_popain,
+	seesound = sfx_vilsit,
+	activesound = sfx_vilact,
+	painsound = sfx_vipain,
 	deathsound = sfx_vildth,
 	sprite = SPR_VILE,
 	doomflags = DF_COUNTKILL
