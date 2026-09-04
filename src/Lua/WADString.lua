@@ -1810,9 +1810,22 @@ function doom.loadStrings(gameType, gamemode)
 			DOOMUTITLE = "The Ultimate DOOM Startup",
 			DOOMTITLE = "DOOM Registered Startup",
 			DOOM1TITLE = "DOOM Shareware Startup",
+
+			-- SRB2 didnt exactly... *have* doom's menu, so re-use SD2's
+			SKILL_BABY = "Sub-Sonic",
+			SKILL_EASY = "Sonic",
+			SKILL_MEDIUM = "Super Sonic",
+			SKILL_HARD = "Hyper Sonic",
+			SKILL_NIGHTMARE = "Warp Sonic",
 		}
 	elseif gameType == "doom" then
 		doom.strings = {
+			SKILL_BABY = "I'm too young to die",
+			SKILL_EASY = "Hey, not too rough",
+			SKILL_MEDIUM = "Hurt me plenty",
+			SKILL_HARD = "Ultra-Violence",
+			SKILL_NIGHTMARE = "Nightmare!",
+
 			SWSTRING	  = "this is the shareware version of doom.\n\nyou need to order the entire trilogy.\n\npress a key.",
 
 			-- DOOM1
