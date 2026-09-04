@@ -2330,6 +2330,63 @@ function doom.loadStrings(gameType, gamemode)
 
 						Press the escape key to continue...]]
 		}
+
+		-- Immobilize the Baron
+		mobjinfo[MT_DOOM_BARONOFHELL].speed = 0
+		mobjinfo[MT_DOOM_BARONOFHELL].radius = 2883584
+		mobjinfo[MT_DOOM_BARONOFHELL].height = 6553600
+
+		-- The Zombieman and Shotgunner both aren't safe, too!
+		-- They lack a missile state and instead their missile states are used in melee
+		mobjinfo[MT_DOOM_ZOMBIEMAN].meleestate = mobjinfo[MT_DOOM_ZOMBIEMAN].missilestate
+		mobjinfo[MT_DOOM_SHOTGUNNER].meleestate = mobjinfo[MT_DOOM_SHOTGUNNER].missilestate
+		mobjinfo[MT_DOOM_ZOMBIEMAN].missilestate = S_NULL
+		mobjinfo[MT_DOOM_SHOTGUNNER].missilestate = S_NULL
+
+		-- Lost Soul lacks any height
+		mobjinfo[MT_DOOM_LOSTSOUL].height = 0
+
+		-- The Baron of Hell's missile states also have changed state durations!
+		-- The last one has a tick speed of 0, which turns it into lost media
+		states[S_DOOM_BARONOFHELL_ATTACK1].tics = 3
+		states[S_DOOM_BARONOFHELL_ATTACK2].tics = 3
+		states[S_DOOM_BARONOFHELL_ATTACK3].tics = 0
+
+		/*
+		TODO CHEATS
+			Cheat 0
+			Chainsaw = joelkoenigs
+			God mode = davidbrus
+			Ammo & Keys = scottholman
+			Ammo = mikekoenigs
+			No Clipping 1 = charlesjacobi
+			No Clipping 2 = charlesjacobi
+			Invincibility = andrewbenson
+			Berserk = deanhyers
+			Invisibility = marybregi
+			Radiation Suit = allen
+			Auto-map = digitalcafe
+			Lite-amp Goggles = joshuastorms
+			Level Warp = leesnyder
+			Player Position = kimhyers
+			Map cheat = sherrill
+		*/
+
+		doom.changeCheatSequence("idchoppers", "joelkoenigs")
+		doom.changeCheatSequence("iddqd", "davidbrus")
+		doom.changeCheatSequence("idfa", "mikekoenigs")
+		doom.changeCheatSequence("idkfa", "scottholman")
+		doom.changeCheatSequence("idclip", "charlesjacobi")
+		doom.changeCheatSequence("idspispopd", "charlesjacobi")
+		doom.changeCheatSequence("idbeholdi", "marybregi")
+		doom.changeCheatSequence("idbeholdr", "allen")
+		doom.changeCheatSequence("idbeholdv", "andrewbenson")
+		doom.changeCheatSequence("idbeholds", "deanhyers")
+		doom.changeCheatSequence("idbeholda", "digitalcafe")
+		doom.changeCheatSequence("idbeholdl", "joshuastorms")
+		doom.changeCheatSequence("idclev", "leesnyder")
+		doom.changeCheatSequence("idmypos", "kimhyers")
+		doom.changeCheatSequence("iddt", "sherrill")
 	end
 end
 --#endif

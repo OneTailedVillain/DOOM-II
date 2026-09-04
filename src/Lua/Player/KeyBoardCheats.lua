@@ -135,12 +135,57 @@ local cheats = {
 			return n and #buf <= 2
 		end,
 		7, 7),
-    
+    /*
     cheat("idbehold", handlePowerupCheat,
         function(buf)
             return #buf == 1 and buf:match("[irvsal]")
         end, 9, 9), -- "idbehold" + 1 letter
+    */
+    -- Unfortunately, DeHackEd isnt really considerate of idbehold as the above, so
+    -- We have to convert it to its own parts as separate entries
+    cheat("idbeholdi", function(buf, player) COM_BufInsertText(player, "idbehold i") return true end, nil, 10, 10),
+    cheat("idbeholdr", function(buf, player) COM_BufInsertText(player, "idbehold r") return true end, nil, 10, 10),
+    cheat("idbeholdv", function(buf, player) COM_BufInsertText(player, "idbehold v") return true end, nil, 10, 10),
+    cheat("idbeholds", function(buf, player) COM_BufInsertText(player, "idbehold s") return true end, nil, 10, 10),
+    cheat("idbeholda", function(buf, player) COM_BufInsertText(player, "idbehold a") return true end, nil, 10, 10),
+    cheat("idbeholdl", function(buf, player) COM_BufInsertText(player, "idbehold l") return true end, nil, 10, 10)
 }
+
+-- change the letters needed to activate a cheat
+-- e.g. "idkfa" -> "porcupine"
+function doom.changeCheatSequence(oldSeq, newSeq)
+    if type(oldSeq) != "string" or type(newSeq) != "string" then
+        return false
+    end
+
+    oldSeq = oldSeq:lower()
+    newSeq = newSeq:lower()
+
+    if #newSeq == 0 then
+        return false
+    end
+
+    for _, c in ipairs(cheats) do
+        if c.sequence == newSeq and c.sequence != oldSeq then
+            return false -- New sequence already in use
+        end
+    end
+
+    for _, c in ipairs(cheats) do
+        if not c.pattern and c.sequence == oldSeq then
+            c.sequence = newSeq
+            c.progress = 0
+
+            if c.buffer then
+                c.buffer = ""
+            end
+
+            return true
+        end
+    end
+
+    return false
+end
 
 addHook("KeyDown", function(keyevent)
     if not (consoleplayer and consoleplayer.valid) then return end
