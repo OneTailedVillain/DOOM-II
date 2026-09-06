@@ -1184,7 +1184,7 @@ rawset(_G, "DOOM_DamageMobj", function(target, inflictor, source, damage, damage
 		if player.mo.doom.health <= 1 then
 			return
 		end
-		print(num_rings)
+
 		if num_rings > 30 then
 			return
 		end
