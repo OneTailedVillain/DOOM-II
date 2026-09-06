@@ -106,7 +106,11 @@ local function ST_updateFaceWidget(plyr)
 		if pd.damagecount ~= 0 and pd.attacker and pd.attacker ~= plyr.mo then
 			pd.priority = 7
 
-			if myHealth - pd.oldhealth > ST_MUCHPAIN then
+			local ouchFaceGlitchFix = tonumber(DOOM_GetConfigStoreValue(plyr, "ouchglitch")) or 0
+			local diff = myHealth - pd.oldhealth
+			if ouchFaceGlitchFix then diff = abs($) end
+
+			if diff > ST_MUCHPAIN then
 				pd.facecount = ST_TURNCOUNT
 				pd.faceindex = ST_calcPainOffset(plyr) + ST_OUCHOFFSET
 			else
@@ -141,7 +145,12 @@ local function ST_updateFaceWidget(plyr)
 	-- 7 & 6: hurting yourself (no attacker or attacker == self)
 	if pd.priority < 7 then
 		if pd.damagecount ~= 0 then
-			if myHealth - pd.oldhealth > ST_MUCHPAIN then
+
+			local ouchFaceGlitchFix = tonumber(DOOM_GetConfigStoreValue(plyr, "ouchglitch")) or 0
+			local diff = myHealth - pd.oldhealth
+			if ouchFaceGlitchFix then diff = abs($) end
+
+			if diff > ST_MUCHPAIN then
 				pd.priority = 7
 				pd.facecount = ST_TURNCOUNT
 				pd.faceindex = ST_calcPainOffset(plyr) + ST_OUCHOFFSET
@@ -916,17 +925,19 @@ addHook("PlayerThink", function(player)
 		ironfeetTime = player.doom.powers[pw_ironfeet]
 	end
 
+	local flashPalGlitchFix = tonumber(DOOM_GetConfigStoreValue(player, "fpglitch")) or 0
+
     if cnt > 0 then
         -- red palette for damage/berserk
         local redPal = ((cnt + 7) >> 3)
         if redPal >= NUMREDPALS then redPal = NUMREDPALS - 1 end
-        paletteType = STARTREDPALS + redPal
+        paletteType = STARTREDPALS + redPal - flashPalGlitchFix
 
     elseif player.doom.bonuscount and player.doom.bonuscount > 0 then
         -- yellow/bonus palette
         local bonusPal = ((player.doom.bonuscount + 7) >> 3)
         if bonusPal >= NUMBONUSPALS then bonusPal = NUMBONUSPALS - 1 end
-        paletteType = STARTBONUSPALS + bonusPal
+        paletteType = STARTBONUSPALS + bonusPal - flashPalGlitchFix
 
     elseif ironfeetTime and (ironfeetTime > 4*32 or (ironfeetTime & 8) ~= 0) then
         paletteType = RADIATIONPAL
