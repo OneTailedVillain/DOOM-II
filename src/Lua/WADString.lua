@@ -2341,7 +2341,13 @@ Are you prepared for the next mission?
 
 
 
-Press the escape key to continue...]]
+Press the escape key to continue...]],
+
+			SKILL_BABY = "Easy does it",
+			SKILL_EASY = "Not so sticky",
+			SKILL_MEDIUM = "Gobs of goo",
+			SKILL_HARD = "Extreme ooze",
+			SKILL_NIGHTMARE = "Super slimey!"
 		}
 
 		-- Immobilize the Baron
