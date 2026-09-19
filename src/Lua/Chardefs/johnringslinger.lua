@@ -30,7 +30,7 @@ doom.characterDefs.johnringslinger = {
 			--[sfx_pldeth] = sfx_sd2die,
 		},
 
-		dealdamagefactor = FRACUNIT*4/4,
+		dealdamagefactor = FRACUNIT,
 
 		damagefactor = {
 			all = FRACUNIT*5/4,
