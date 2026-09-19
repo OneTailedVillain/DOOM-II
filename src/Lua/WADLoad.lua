@@ -1016,6 +1016,9 @@ local function doLoadingShit()
 		or matchedGame == "tnt"
 		or matchedGame == "plutonia"
 	then
+		sfxinfo[sfx_sssit].caption = "Schutzstaffel!"
+		sfxinfo[sfx_ssdth].caption = "Mein Leben!"
+
 		if matchedGame == "doom2" or matchedGame == "tnt" or matchedGame == "plutonia" then
 			doom.gamemode = "commercial"
 			if matchedGame == "tnt" then
