@@ -445,7 +445,9 @@ rawset(_G, "DefineDoomItem", function(name, objData, stateFrames, onPickup)
 		if not (mobj.flags & MF_SPECIAL) then return end
 		-- stupid fucking hack
 		mobj.radius = 0
+		if not (mobj and mobj.valid) then return end
 		mobj.z = mobj.floorz
+		if not (mobj and mobj.valid) then return end
 		mobj.radius = FixedMul(mobjinfo[mobj.type].radius, mobj.scale)
 		if not (mobj and mobj.valid) then return end
 		mobj.momz = 0
