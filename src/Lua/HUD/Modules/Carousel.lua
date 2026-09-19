@@ -103,6 +103,7 @@ end
 addHook("PlayerThink", function(player)
 	local carousel = player.doom.wepcarousel
 
+	if not carousel then return end
 	if not carousel.animoffset then return end
 	carousel.animoffset = FixedMul(carousel.animoffset, 8*FRACUNIT/10)
 
