@@ -559,6 +559,7 @@ local lastleveltime
 
 ---@param v videolib
 local function DrawTitleScreen(v, player)
+	if multiplayer then return end
 	if lastleveltime != leveltime then
 		hudtime = hudtime + 1
 		lastleveltime = leveltime
