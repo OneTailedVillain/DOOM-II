@@ -335,6 +335,84 @@ local function printTable(data, prefix)
 	end
 end
 
+-- Valid patchable music tracks
+local validTracks = {
+	-- DOOM / Ultimate DOOM
+	e1m1 = true,
+	e1m2 = true,
+	e1m3 = true,
+	e1m4 = true,
+	e1m5 = true,
+	e1m6 = true,
+	e1m7 = true,
+	e1m8 = true,
+	e1m9 = true,
+
+	e2m1 = true,
+	e2m2 = true,
+	e2m3 = true,
+	e2m4 = true,
+	e2m5 = true,
+	e2m6 = true,
+	e2m7 = true,
+	e2m8 = true,
+	e2m9 = true,
+
+	e3m1 = true,
+	e3m2 = true,
+	e3m3 = true,
+	e3m4 = true,
+	e3m5 = true,
+	e3m6 = true,
+	e3m7 = true,
+	e3m8 = true,
+	e3m9 = true,
+
+	e4m1 = true,
+	e4m2 = true,
+	e4m3 = true,
+	e4m4 = true,
+	e4m5 = true,
+	e4m6 = true,
+	e4m7 = true,
+	e4m8 = true,
+	e4m9 = true,
+
+	-- DOOM II
+	runnin = true,
+	stalks = true,
+	countd = true,
+	betwee = true,
+	doom = true,
+	the_da = true,
+	shawn = true,
+	ddtblu = true,
+	in_cit = true,
+	dead = true,
+	stlks2 = true,
+	theda2 = true,
+	doom2 = true,
+	ddtbl2 = true,
+	runni2 = true,
+	dead2 = true,
+	stlks3 = true,
+	romero = true,
+	shawn2 = true,
+	messag = true,
+	count2 = true,
+	ddtbl3 = true,
+	ampie = true,
+	theda3 = true,
+	adrian = true,
+	messg2 = true,
+	romer2 = true,
+	tense = true,
+	shawn3 = true,
+	openin = true,
+	evil = true,
+	ultima = true,
+}
+
 local function applyDehackedStrings()
 	if not (doom and doom.dehacked and doom.strings) then
 		print("ERROR: doom, doom.dehacked, or doom.strings is missing!")
@@ -345,6 +423,7 @@ local function applyDehackedStrings()
 
 	local dehEntries = doom.dehacked.text and doom.dehacked.text.entries or {}
 	doom.dehacked.strings = doom.dehacked.strings or {}
+	doom.dehacked_musicswaps = doom.dehacked_musicswaps or {}
 
 	-- lookup: original string -> entry
 	local lookup = {}
@@ -375,6 +454,27 @@ local function applyDehackedStrings()
 
 			lookup[entry.original] = entry
 			applied[entry.original] = false
+
+			if validTracks[entry.original] then
+				local musicID = entry.original
+				local mapID = entry.new
+
+				doom.dehacked_musicswaps[musicID:lower()] = mapID
+
+				print(
+					"DEHACKED music swap: '"..
+					musicID.."' = '"..
+					mapID.."'"
+				)
+
+				-- Warn for new track longer than 6 (as SRB2 won't play it as intended)
+				if #mapID > 6 then
+					print(
+						"WARNING: DEHACKED music swap new track '"..
+						mapID.."' is longer than 6 characters."
+					)
+				end
+			end
 		end
 	end
 
@@ -407,6 +507,23 @@ local function applyDehackedStrings()
 
 	print("DEHACKED string application complete.")
 end
+
+doom.dehacked_musicswaps = $ or {}
+
+addHook("MusicChange", function(old, new)
+	-- Hack into the music and swap it if a DEHACKED entry exists for it
+	if doom and doom.dehacked_musicswaps then
+		local newMusicID = doom.dehacked_musicswaps[new:lower()]
+		print(new, newMusicID)
+		if newMusicID then
+			print("Found override!")
+			if old == newMusicID then
+				return true
+			end
+			return newMusicID
+		end
+	end
+end)
 
 /*
 DSDHacked
