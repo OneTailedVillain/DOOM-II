@@ -651,8 +651,10 @@ function doom.getTitleMusicLump()
 end
 
 addHook("MusicChange", function(old, new)
-	--print(gamestate, 0, "old", old, "new", new, new:lower())
-	if gamestate != GS_TITLESCREEN then return end
+	-- This is genuinely bullshit.
+	-- what the fuck do you mean the *title screen* isnt always on the title screen gamestate
+	if gamestate != GS_TITLESCREEN and gamestate != GS_NULL then return end
+
 	if new:lower() == "_title" then
 		return doom.getTitleMusicLump()
 	elseif old:lower() == doom.getTitleMusicLump() then
