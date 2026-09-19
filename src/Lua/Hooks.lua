@@ -147,6 +147,108 @@ local function SkillMaskFor(skill)
 	return 4
 end
 
+-- Get the spawn point for a player, based on their slot and the current map's spawnpoints
+function doom.getPlayerSpawn(player)
+	local spawnpoints = doom.spawnpoints
+
+	-- Spawn selection methods
+	local function getCoopSpawn()
+		local count = #spawnpoints.player
+		if count == 0 then return end
+
+		local slot = #player
+		for i = 0, count - 1 do
+			local checkslot = ((slot - 1 + i) % count) + 1
+			local list = spawnpoints.player[checkslot]
+			if list and list[#list] then
+				-- Get the total length of the list and spawn in voodoo dolls on all non-last entries
+				for j = 1, #list - 1 do
+					local spawn = list[j]
+					local doll = P_SpawnMobj(
+						spawn.x,
+						spawn.y,
+						spawn.z,
+						MT_DOOM_VOODOODOLL
+					)
+
+					if doll then
+						doll.angle = spawn.angle
+					end
+				end
+				return list[#list]
+			end
+		end
+	end
+
+	local function getDeathmatchSpawn()
+		local list = spawnpoints.deathmatch
+		-- if only one deathmatch spawn exists (likely due to not being a deathmatch map), then fall out and allow the next comparison to be used instead
+		if #list == 1 then
+			return nil
+		end
+
+		if #list > 0 then
+			return list[P_RandomKey(#list) + 1]
+		end
+	end
+
+	local function getCTFSpawn()
+		for _, list in pairs(spawnpoints.ctf) do
+			if list and #list > 0 then
+				return list[P_RandomKey(#list) + 1]
+			end
+		end
+	end
+
+	local function getTeamSpawn()
+		local team = player.team
+		local list = team and spawnpoints.ctf[team]
+		if list and #list > 0 then
+			return list[P_RandomKey(#list) + 1]
+		end
+	end
+
+	-- Select the priority order.
+	local order
+
+	if gametyperules & GTR_TEAMS then
+		order = {getTeamSpawn, getDeathmatchSpawn, getCoopSpawn}
+	elseif gametyperules & GTR_RINGSLINGER then
+		order = {getDeathmatchSpawn, getCTFSpawn, getCoopSpawn}
+	else
+		order = {getCoopSpawn, getDeathmatchSpawn, getCTFSpawn}
+	end
+
+	-- Try each spawn type in priority order.
+	for _, getSpawn in ipairs(order) do
+		local spawn = getSpawn()
+		if spawn then
+			return spawn
+		end
+	end
+
+	-- No spawns exist! Just build something up based on the first mapthing
+	for mthing in mapthings.iterate do
+		print("WARNING: Current map has no player starts. Falling back to first thing...")
+		return {
+			x = mthing.x * FRACUNIT,
+			y = mthing.y * FRACUNIT,
+			z = P_FloorzAtPos(mthing.x * FRACUNIT, mthing.y * FRACUNIT, 0, 0),
+			angle = FixedAngle(mthing.angle * FRACUNIT),
+			mthing = mthing
+		}
+	end
+
+		print("WARNING: Current map has no mapthings. Falling back to origin...")
+		return {
+			x = 0 * FRACUNIT,
+			y = 0 * FRACUNIT,
+			z = P_FloorzAtPos(0 * FRACUNIT, 0 * FRACUNIT, 0, 0),
+			angle = FixedAngle(0 * FRACUNIT),
+			mthing = nil
+		}
+end
+
 addHook("MapLoad", function(mapid)
 	doom.kills = 0
 	doom.killcount = 0
@@ -454,7 +556,26 @@ addHook("MapLoad", function(mapid)
 			table.insert(doom.spawnpoints.deathmatch, {
 				x = mthing.x * FRACUNIT,
 				y = mthing.y * FRACUNIT,
-				z = P_FloorzAtPos(x, y, 0, 0),
+				z = P_FloorzAtPos(mthing.x*FRACUNIT, mthing.y*FRACUNIT, 0, 0),
+				angle = FixedAngle(mthing.angle * FRACUNIT),
+				mthing = mthing
+			})
+		-- CTF starts; following CTF standard
+		elseif mthing.type == 5080 or mthing.type == 5081 or mthing.type == 5083 or mthing.type == 5084 then
+			-- CTF 4team starts skip 5082
+			local team = mthing.type - 5080 + 1
+			if mthing.type > 5082 then
+				team = team - 1
+			end
+
+			if not doom.spawnpoints.ctf[team] then
+				doom.spawnpoints.ctf[team] = {}
+			end
+
+			table.insert(doom.spawnpoints.ctf[team], {
+				x = mthing.x * FRACUNIT,
+				y = mthing.y * FRACUNIT,
+				z = P_FloorzAtPos(mthing.x*FRACUNIT, mthing.y*FRACUNIT, 0, 0),
 				angle = FixedAngle(mthing.angle * FRACUNIT),
 				mthing = mthing
 			})
@@ -483,7 +604,7 @@ addHook("MapLoad", function(mapid)
 		end
 
 		if not player.mo then continue end
-
+/*
 		local function getPlayerSpawn(preferred)
 			for i = 0, coopspawns - 1 do
 				local slot = ((preferred - 1 + i) % coopspawns) + 1
@@ -515,6 +636,14 @@ addHook("MapLoad", function(mapid)
 				player.mo.angle = pspawn.angle
 				player.drawangle = pspawn.angle
 			end
+		end
+*/
+		-- Place the player at their spawn point
+		local pspawn = doom.getPlayerSpawn(player)
+		if pspawn then
+			P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+			player.mo.angle = pspawn.angle
+			player.drawangle = pspawn.angle
 		end
 	end
 

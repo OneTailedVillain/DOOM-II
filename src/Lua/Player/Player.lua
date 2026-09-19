@@ -1166,6 +1166,13 @@ addHook("PlayerSpawn",function(player)
 	-- If spawnpoints are initialized...
 	if (sp and sp.player and sp.player[1] and #sp.player[1] > 0)
 	or (sp and sp.deathmatch and #sp.deathmatch > 0) then
+		local pspawn = doom.getPlayerSpawn(player)
+		if pspawn then
+			P_SetOrigin(player.mo, pspawn.x, pspawn.y, pspawn.z)
+			player.mo.angle = pspawn.angle
+			player.drawangle = pspawn.angle
+		end
+		/*
 		local function getPlayerSpawn(preferred)
 			local spawns = #doom.playerStartMap
 			for i = 0, spawns - 1 do
@@ -1199,6 +1206,7 @@ addHook("PlayerSpawn",function(player)
 				player.drawangle = pspawn.angle
 			end
 		end
+		*/
 	end
 end)
 
