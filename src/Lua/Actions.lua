@@ -1753,8 +1753,9 @@ function A_DoomFireCGun(actor, var1, var2, weapon)
 	local pd = player.doom
 
 	DOOM_Fire(actor, MISSILERANGE, pd.refire == 0, true, 1, 5, 15)
-	pd.ammo[weapon.ammotype] = $ - (weapon.shotcost or 1)
 	S_StartSound(actor, sfx_pistol)
+	if pd.ammo[weapon.ammotype] < 1 then return end
+	pd.ammo[weapon.ammotype] = $ - 1
 
 	A_DoomGunFlash(actor)
 
