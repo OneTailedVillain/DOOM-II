@@ -33,7 +33,7 @@ local function onPickup(item, mobj)
 	if not mobj.player then return true end -- Early exit WITHOUT doing vanilla special item stuff (Why is our second argument mobj_t and not player_t???)
 	for player in players.iterate do
 		player.doom.keys = ($ or 0)|doom.KEY_SKULLRED
-		DOOM_DoMessage(player, "$GOTREDSKUL")
+		DOOM_DoMessage(player, "$GOTREDSKULL")
 	end
 end
 
