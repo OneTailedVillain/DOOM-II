@@ -1449,13 +1449,13 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
 		end
 	end
 
-    local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
-    if not stateDef then
-        return
+	local stateDef = DOOM_ResolveStateDef(wepDef, state, frame)
+	if not stateDef then
+		return
 	end
 
-    psp.state = state
-    psp.frame = frame
+	psp.state = state
+	psp.frame = frame
 
 	if wepDef.poststatechange then
 		local targst, targfr = wepDef.poststatechange(player, psp.state, psp.frame, slot, wepDef)
@@ -1466,10 +1466,29 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
 			psp.frame = targfr
 		end
 	end
-	psp.tics = stateDef.tics or 0
-	doom.runStateAction(player, stateDef)
 
-    return true
+	-- Re-resolve the state definition after any poststatechange modifications
+	local resolvedDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+
+	if realSlot != nil then
+		psp.state = realSlot
+		if psp.frame == nil then
+			psp.frame = 1
+		end
+	end
+
+	if psp.state != S_NULL then
+		if not resolvedDef then
+			return
+		end
+	else
+		resolvedDef = {tics = INT32_MAX}
+	end
+
+	psp.tics = resolvedDef.tics or 0
+	doom.runStateAction(player, resolvedDef)
+
+	return true
 end)
 
 -- compatibility wrapper

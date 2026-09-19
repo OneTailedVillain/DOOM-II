@@ -260,14 +260,6 @@ addHook("PlayerThink", function(player)
 	end
 end)
 
-local nameMapping = {
-	[A_DoomReFire] = "Refire",
-	[A_DoomFire] = "FireWeapon",
-	[A_DoomWeaponReady] = "WeaponReady",
-	[A_DoomLower] = "WeaponLower",
-	[A_DoomRaise] = "WeaponRaise"
-}
-
 local function DOOM_WeaponPreStateChange(player, wepDef, psp, oldState, oldFrame, newState, newFrame, slot)
 	if wepDef and wepDef.prestatechange then
 		local targst, targfr = wepDef.prestatechange(player, oldState, oldFrame, newState, newFrame, slot, wepDef)
@@ -338,25 +330,6 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
 
     local oldState = psp.state
     local oldFrame = psp.frame
-
-    local stateDef, realSlot = DOOM_ResolveStateDef(wepDef, targetState, targetFrame)
-
-    if realSlot != nil then
-        targetState = realSlot
-        targetFrame = nil
-    else
-        targetState = targetState
-        targetFrame = targetFrame
-    end
-
-    if targetState != S_NULL then
-        if not stateDef then
-            error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(targetFrame) .. "!")
-        end
-    else
-        stateDef = {tics = INT32_MAX}
-    end
-
     targetState, targetFrame = DOOM_WeaponPreStateChange(
         player, wepDef, psp,
         oldState, oldFrame,
@@ -369,18 +342,31 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
 
     DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
 
-    psp.tics = stateDef.tics or 0
-    DOOM_RunStateAction(player, stateDef)
+	-- Resolve the final state definition after any pre/post state change hooks
+	local stateDef, realSlot = DOOM_ResolveStateDef(wepDef, targetState, targetFrame)
+
+	if realSlot != nil then
+		targetState = realSlot
+		if targetFrame == nil then
+			targetFrame = 1
+		end
+	end
+
+	if targetState != S_NULL then
+		if not stateDef then
+			error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(targetFrame) .. "!")
+		end
+	else
+		stateDef = {tics = INT32_MAX}
+	end
+
+	psp.tics = stateDef.tics or 0
+	DOOM_RunStateAction(player, stateDef)
 end
 
 local HOLD_STATES = {
     raise = true,
     lower = true,
-}
-
-local mapping = {
-	[PSP_WEAPON] = "weapon",
-	[PSP_FLASH] = "Flash"
 }
 
 local function DOOM_AdvancePSprite(player, slot, fallbackState)
@@ -439,19 +425,58 @@ local function DOOM_AdvancePSprite(player, slot, fallbackState)
 			slot
 		)
 
+		-- update psp with any changes from prestatechange
+		psp.state = newState
 		psp.frame = newFrame
 
 		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
 
-		psp.tics = nextDef.tics or 0
-		DOOM_RunStateAction(player, nextDef)
-        return
+		-- re-resolve the frame definition after hooks in case they changed state/frame
+		local resolvedDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+
+		if realSlot != nil then
+			psp.state = realSlot
+			if psp.frame == nil then
+				psp.frame = 1
+			end
+		end
+
+		if psp.state != S_NULL then
+			if not resolvedDef then
+				error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
+			end
+		else
+			resolvedDef = {tics = INT32_MAX}
+		end
+
+		psp.tics = resolvedDef.tics or 0
+		DOOM_RunStateAction(player, resolvedDef)
+		return
     end
 
     if HOLD_STATES[psp.state] then
         psp.tics = 1
 		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
-		DOOM_RunStateAction(player, frameDef)
+
+		-- re-resolve the frame definition after poststatechange so the action sees correct frame
+		local resolvedFrameDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+
+		if realSlot != nil then
+			psp.state = realSlot
+			if psp.frame == nil then
+				psp.frame = 1
+			end
+		end
+
+		if psp.state != S_NULL then
+			if not resolvedFrameDef then
+				error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
+			end
+		else
+			resolvedFrameDef = {tics = INT32_MAX}
+		end
+
+		DOOM_RunStateAction(player, resolvedFrameDef)
         return
     end
 

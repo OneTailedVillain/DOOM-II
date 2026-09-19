@@ -1759,7 +1759,14 @@ function A_DoomFireCGun(actor, var1, var2, weapon)
 
 	A_DoomGunFlash(actor)
 
-	DOOM_SetFlashState(player, "flash", player.doom.psprites[PSP_WEAPON].frame)
+	-- New system fucks us over! So we have to do this
+	local psp = player.doom.psprites[PSP_WEAPON]
+	local resolvedDef, realSlot = DOOM_ResolveStateDef(weapon, psp and psp.state, psp and psp.frame)
+	local flashFrame = psp and psp.frame or 1
+	if resolvedDef and resolvedDef.frame ~= nil then
+		flashFrame = resolvedDef.frame
+	end
+	DOOM_SetFlashState(player, "flash", flashFrame + 1)
 end
 
 function A_DoomFireMissile(actor, var1, var2, weapon)
