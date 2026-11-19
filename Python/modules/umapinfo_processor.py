@@ -7,6 +7,7 @@ UMAPINFO and classic ZDoom MAPINFO lumps from Doom engine games.
 
 import re
 import json
+import zipfile
 from typing import Dict, List, Optional, Union, Any, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -106,6 +107,87 @@ class MapDefinition:
             self.episode = "clear"
 
 
+# Built-in LANGUAGE defaults for Doom music substitutions.
+DEFAULT_LANGUAGE = {
+    "MUSIC_E1M1": "e1m1",
+    "MUSIC_E1M2": "e1m2",
+    "MUSIC_E1M3": "e1m3",
+    "MUSIC_E1M4": "e1m4",
+    "MUSIC_E1M5": "e1m5",
+    "MUSIC_E1M6": "e1m6",
+    "MUSIC_E1M7": "e1m7",
+    "MUSIC_E1M8": "e1m8",
+    "MUSIC_E1M9": "e1m9",
+    "MUSIC_E2M1": "e2m1",
+    "MUSIC_E2M2": "e2m2",
+    "MUSIC_E2M3": "e2m3",
+    "MUSIC_E2M4": "e2m4",
+    "MUSIC_E2M5": "e2m5",
+    "MUSIC_E2M6": "e2m6",
+    "MUSIC_E2M7": "e2m7",
+    "MUSIC_E2M8": "e2m8",
+    "MUSIC_E2M9": "e2m9",
+    "MUSIC_E3M1": "e3m1",
+    "MUSIC_E3M2": "e3m2",
+    "MUSIC_E3M3": "e3m3",
+    "MUSIC_E3M4": "e3m4",
+    "MUSIC_E3M5": "e3m5",
+    "MUSIC_E3M6": "e3m6",
+    "MUSIC_E3M7": "e3m7",
+    "MUSIC_E3M8": "e3m8",
+    "MUSIC_E3M9": "e3m9",
+    "MUSIC_E4M1": "e4m1",
+    "MUSIC_E4M2": "e4m2",
+    "MUSIC_E4M3": "e4m3",
+    "MUSIC_E4M4": "e4m4",
+    "MUSIC_E4M5": "e4m5",
+    "MUSIC_E4M6": "e4m6",
+    "MUSIC_E4M7": "e4m7",
+    "MUSIC_E4M8": "e4m8",
+    "MUSIC_E4M9": "e4m9",
+    "MUSIC_INTER": "inter",
+    "MUSIC_INTRO": "intro",
+    "MUSIC_BUNNY": "bunny",
+    "MUSIC_VICTOR": "victor",
+    "MUSIC_INTROA": "introa",
+    "MUSIC_RUNNIN": "runnin",
+    "MUSIC_STALKS": "stalks",
+    "MUSIC_COUNTD": "countd",
+    "MUSIC_BETWEE": "betwee",
+    "MUSIC_DOOM": "doom",
+    "MUSIC_THE_DA": "the_da",
+    "MUSIC_SHAWN": "shawn",
+    "MUSIC_DDTBLU": "ddtblu",
+    "MUSIC_IN_CIT": "in_cit",
+    "MUSIC_DEAD": "dead",
+    "MUSIC_STLKS2": "stlks2",
+    "MUSIC_THEDA2": "theda2",
+    "MUSIC_DOOM2": "doom2",
+    "MUSIC_DDTBL2": "ddtbl2",
+    "MUSIC_RUNNI2": "runni2",
+    "MUSIC_DEAD2": "dead2",
+    "MUSIC_STLKS3": "stlks3",
+    "MUSIC_ROMERO": "romero",
+    "MUSIC_SHAWN2": "shawn2",
+    "MUSIC_MESSAG": "messag",
+    "MUSIC_COUNT2": "count2",
+    "MUSIC_DDTBL3": "ddtbl3",
+    "MUSIC_AMPIE": "ampie",
+    "MUSIC_THEDA3": "theda3",
+    "MUSIC_ADRIAN": "adrian",
+    "MUSIC_MESSG2": "messg2",
+    "MUSIC_ROMER2": "romer2",
+    "MUSIC_TENSE": "tense",
+    "MUSIC_SHAWN3": "shawn3",
+    "MUSIC_OPENIN": "openin",
+    "MUSIC_EVIL": "evil",
+    "MUSIC_ULTIMA": "ultima",
+    "MUSIC_READ_M": "read_m",
+    "MUSIC_DM2TTL": "dm2ttl",
+    "MUSIC_DM2INT": "dm2int",
+}
+
+
 class MAPINFOProcessor:
     """
     Main class for parsing and processing both UMAPINFO and classic ZDoom MAPINFO.
@@ -129,7 +211,7 @@ class MAPINFOProcessor:
         'ChaingunGuy', 'Imp', 'WolfensteinSS', 'CommanderKeen', 'IconOfSin'
     }
 
-    def __init__(self, text: str = None, format: str = 'auto'):
+    def __init__(self, text: str = None, format: str = 'auto', language_text: str = None):
         """
         Initialize the processor with optional MAPINFO text.
 
@@ -145,6 +227,9 @@ class MAPINFOProcessor:
         self.format = format.lower()
         self._defaults = {}          # for defaultmap/adddefaultmap
         self._gamedefaults = {}      # for gamedefaults
+        self.language = dict(DEFAULT_LANGUAGE)
+        if language_text:
+            self.language.update(self._parse_language(language_text))
 
         if text:
             self.parse()
@@ -170,6 +255,44 @@ class MAPINFOProcessor:
             raise MAPINFOError(f"Unknown format: {self.format}")
 
         return self.maps
+
+    def _parse_language(self, text: str) -> Dict[str, str]:
+        """Parse LANGUAGE lump key = "value"; entries."""
+        text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
+        # Remove // comments while preserving occurrences inside quoted strings.
+        lines = []
+        for line in text.splitlines():
+            quoted = False
+            escaped = False
+            i = 0
+            while i < len(line):
+                ch = line[i]
+                if ch == '"' and not escaped:
+                    quoted = not quoted
+                if not quoted and line[i:i + 2] == '//':
+                    line = line[:i]
+                    break
+                if ch == '\\' and not escaped:
+                    escaped = True
+                else:
+                    escaped = False
+                i += 1
+            lines.append(line)
+        text = '\n'.join(lines)
+
+        entries = {}
+        pattern = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"((?:\\.|[^"\\])*)"\s*;', re.DOTALL)
+        for match in pattern.finditer(text):
+            value = match.group(2)
+            value = value.replace(r'\"', '"').replace(r'\\', '\\').replace(r'\n', '\n')
+            entries[match.group(1)] = value
+        return entries
+
+    def _resolve_language_value(self, value: Any) -> Any:
+        """Resolve $KEY references using LANGUAGE; preserve unknown references."""
+        if isinstance(value, str) and value.startswith('$'):
+            return self.language.get(value[1:], value)
+        return value
 
     def get_map(self, mapname: str) -> Optional[MapDefinition]:
         """Get a specific map definition by name."""
@@ -444,6 +567,8 @@ class MAPINFOProcessor:
             # Just warn, don't crash
             print(f"Unknown key '{key}' at line {line_number}")
         value = self._parse_value(value_part.strip())
+        if key in ('music', 'intermusic'):
+            value = self._resolve_language_value(value)
         self._set_value(key, value)
 
     def _parse_value(self, value_str: str) -> Any:
@@ -585,17 +710,24 @@ class MAPINFOProcessor:
         line = lines[start_idx]
         # Extract maplump and nice name
         # Format: map <maplump> <nice name> (with optional quoted nice name)
-        parts = line.split(None, 2)  # split into at most 3 parts
-        if len(parts) < 3:
-            raise MAPINFOError(f"Invalid map line: {line}")
-        maplump = parts[1]
-        nice_name = parts[2].strip()
-        # Remove trailing '{' if present (some people use braces)
-        if nice_name.endswith('{'):
-            nice_name = nice_name[:-1].strip()
-        # Remove quotes
-        if nice_name.startswith('"') and nice_name.endswith('"'):
-            nice_name = nice_name[1:-1]
+        lookup_match = re.match(
+            r'^map\s+(\S+)\s+lookup\s+"([^"]+)"\s*(?:\{)?$',
+            line, re.IGNORECASE
+        )
+        if lookup_match:
+            maplump = lookup_match.group(1)
+            lookup_key = lookup_match.group(2)
+            nice_name = self.language.get(lookup_key, lookup_key)
+        else:
+            parts = line.split(None, 2)
+            if len(parts) < 3:
+                raise MAPINFOError(f"Invalid map line: {line}")
+            maplump = parts[1]
+            nice_name = parts[2].strip()
+            if nice_name.endswith('{'):
+                nice_name = nice_name[:-1].strip()
+            if nice_name.startswith('"') and nice_name.endswith('"'):
+                nice_name = nice_name[1:-1]
 
         # Create map definition
         mapdef = MapDefinition(mapname=maplump, levelname=nice_name)
@@ -786,6 +918,8 @@ class MAPINFOProcessor:
         if key in string_keys:
             # Remove quotes
             val = value_str.strip('"')
+            if key in ('music', 'intermusic'):
+                val = self._resolve_language_value(val)
             setattr(mapdef, key, val)
             return
 
@@ -845,6 +979,36 @@ class MAPINFOProcessor:
 # ----------------------------------------------------------------------
 #  Convenience functions
 # ----------------------------------------------------------------------
+
+def load_mapinfo_pk3(filename: str, mapinfo_lump: str = None) -> MAPINFOProcessor:
+    """
+    Load MAPINFO/UMAPINFO plus the top-level LANGUAGE lump from a PK3.
+    Only entries at the archive root are considered.
+    """
+    with zipfile.ZipFile(filename, 'r') as archive:
+        root_lumps = {
+            name.upper(): name for name in archive.namelist()
+            if '/' not in name and not name.endswith('/')
+        }
+        language_text = None
+        if 'LANGUAGE' in root_lumps:
+            language_text = archive.read(root_lumps['LANGUAGE']).decode('utf-8-sig')
+
+        if mapinfo_lump:
+            selected = mapinfo_lump.upper()
+            if selected not in root_lumps:
+                raise MAPINFOError(f"{mapinfo_lump} lump not found at PK3 root")
+        elif 'MAPINFO' in root_lumps:
+            selected = 'MAPINFO'
+        elif 'UMAPINFO' in root_lumps:
+            selected = 'UMAPINFO'
+        else:
+            raise MAPINFOError("Neither MAPINFO nor UMAPINFO was found at the PK3 root")
+
+        mapinfo_text = archive.read(root_lumps[selected]).decode('utf-8-sig')
+        selected_format = 'mapinfo' if selected == 'MAPINFO' else 'umapinfo'
+        return MAPINFOProcessor(mapinfo_text, format=selected_format, language_text=language_text)
+
 
 def load_mapinfo_file(filename: str) -> MAPINFOProcessor:
     """Load MAPINFO from a file, auto‑detect format."""
