@@ -1,155 +1,155 @@
 doom.byeMessages = {
-	"BYE!",
-	"Thanks, Bye!",
+	"Bye!",
+	"Thanks, bye!",
 	"See you later!"
 }
 
 doom.rndMessages = {
 	PEASANT = {
-		"PLEASE DON'T HURT ME.",
+		"Please don't hurt me.",
 
-		"IF YOU'RE LOOKING TO HURT ME, I'M \n" ..
-		"NOT REALLY WORTH THE EFFORT.",
+		"If you're looking to hurt me, I'm \n" ..
+		"not really worth the effort.",
 
-		"I DON'T KNOW ANYTHING.",
+		"I don't know anything.",
 
-		"GO AWAY OR I'LL CALL THE GUARDS!",
+		"Go away or I'll call the guards!",
 
-		"I WISH SOMETIMES THAT ALL THESE \n" ..
-		"REBELS WOULD JUST LEARN THEIR \n" ..
-		"PLACE AND STOP THIS NONSENSE.",
+		"I wish sometimes that all these \n" ..
+		"rebels would just learn their \n" ..
+		"place and stop this nonsense.",
 
-		"JUST LEAVE ME ALONE, OK?",
+		"Just leave me alone, OK?",
 
-		"I'M NOT SURE, BUT SOMETIMES I THINK \n" ..
-		"THAT I KNOW SOME OF THE ACOLYTES.",
+		"I'm not sure, but sometimes I think \n" ..
+		"that I know some of the acolytes.",
 
-		"THE ORDER'S GOT EVERYTHING AROUND HERE PRETTY WELL LOCKED UP TIGHT.",
+		"The Order's got everything around here pretty well locked up tight.",
 
-		"THERE'S NO WAY THAT THIS IS JUST A \n" ..
-		"SECURITY FORCE.",
+		"There's no way that this is just a \n" ..
+		"security force.",
 
-		"I'VE HEARD THAT THE ORDER IS REALLY \n" ..
-		"NERVOUS ABOUT THE FRONT'S \n" ..
-		"ACTIONS AROUND HERE."
+		"I've heard that the Order is really \n" ..
+		"nervous about the Front's \n" ..
+		"actions around here."
 	},
 
 	REBEL = {
-		"THERE'S NO WAY THE ORDER WILL \n" ..
-		"STAND AGAINST US.",
+		"There's no way the Order will \n" ..
+		"stand against us.",
 
-		"WE'RE ALMOST READY TO STRIKE. \n" ..
-		"MACIL'S PLANS ARE FALLING IN PLACE.",
+		"We're almost ready to strike. \n" ..
+		"Macil's plans are falling in place.",
 
-		"WE'RE ALL BEHIND YOU, DON'T WORRY.",
+		"We're all behind you, don't worry.",
 
-		"DON'T GET TOO CLOSE TO ANY OF THOSE BIG ROBOTS. THEY'LL MELT YOU DOWN \n" ..
-		"FOR SCRAP!",
+		"Don't get too close to any of those big robots. They'll melt you down \n" ..
+		"for scrap!",
 
-		"THE DAY OF OUR GLORY WILL SOON \n" ..
-		"COME, AND THOSE WHO OPPOSE US WILL \n" ..
-		"BE CRUSHED!",
+		"The day of our glory will soon \n" ..
+		"come, and those who oppose us will \n" ..
+		"be crushed!",
 
-		"DON'T GET TOO COMFORTABLE. WE'VE \n" ..
-		"STILL GOT OUR WORK CUT OUT FOR US.",
+		"Don't get too comfortable. We've \n" ..
+		"still got our work cut out for us.",
 
-		"MACIL SAYS THAT YOU'RE THE NEW \n" ..
-		"HOPE. BEAR THAT IN MIND.",
+		"Macil says that you're the new \n" ..
+		"hope. Bear that in mind.",
 
-		"ONCE WE'VE TAKEN THESE CHARLATANS DOWN, WE'LL BE ABLE TO REBUILD THIS " ..
-		"WORLD AS IT SHOULD BE.",
+		"Once we've taken these charlatans down, we'll be able to rebuild this " ..
+		"world as it should be.",
 
-		"REMEMBER THAT YOU AREN'T FIGHTING \n" ..
-		"JUST FOR YOURSELF, BUT FOR \n" ..
-		"EVERYONE HERE AND OUTSIDE.",
+		"Remember that you aren't fighting \n" ..
+		"just for yourself, but for \n" ..
+		"everyone here and outside.",
 
-		"AS LONG AS ONE OF US STILL STANDS, \n" ..
-		"WE WILL WIN."
+		"As long as one of us still stands, \n" ..
+		"we will win."
 	},
 
 	AGUARD = {
-		"MOVE ALONG,  PEASANT.",
+		"Move along,  peasant.",
 
-		"FOLLOW THE TRUE FAITH, ONLY THEN \n" ..
-		"WILL YOU BEGIN TO UNDERSTAND.",
+		"Follow the true faith, only then \n" ..
+		"will you begin to understand.",
 
-		"ONLY THROUGH DEATH CAN ONE BE \n" ..
-		"TRULY REBORN.",
+		"Only through death can one be \n" ..
+		"truly reborn.",
 
-		"I'M NOT INTERESTED IN YOUR USELESS \n" ..
-		"DRIVEL.",
+		"I'm not interested in your useless \n" ..
+		"drivel.",
 
-		"IF I HAD WANTED TO TALK TO YOU I \n" ..
-		"WOULD HAVE TOLD YOU SO.",
+		"If I had wanted to talk to you I \n" ..
+		"would have told you so.",
 
-		"GO AND ANNOY SOMEONE ELSE!",
+		"Go and annoy someone else!",
 
-		"KEEP MOVING!",
+		"Keep moving!",
 
-		"IF THE ALARM GOES OFF, JUST STAY OUT OF OUR WAY!",
+		"If the alarm goes off, just stay out of our way!",
 
-		"THE ORDER WILL CLEANSE THE WORLD \n" ..
-		"AND USHER IT INTO THE NEW ERA.",
+		"The Order will cleanse the world \n" ..
+		"and usher it into the new era.",
 
-		"PROBLEM?  NO, I THOUGHT NOT."
+		"Problem?  No, I thought not."
 	},
 
 	BEGGAR = {
-		"ALMS FOR THE POOR?",
+		"Alms for the poor?",
 
-		"WHAT ARE YOU LOOKING AT, SURFACER?",
+		"What are you looking at, surfacer?",
 
-		"YOU WOULDN'T HAVE ANY EXTRA FOOD, WOULD YOU?",
+		"You wouldn't have any extra food, would you?",
 
-		"YOU  SURFACE PEOPLE WILL NEVER \n" ..
-		"                                      UNDERSTAND US.",
+		"You  surface people will never \n" ..
+		"                                      understand us.",
 
-		"HA, THE GUARDS CAN'T FIND US.  THOSE \n" ..
-		"IDIOTS DON'T EVEN KNOW WE EXIST.",
+		"Ha, the guards can't find us.  Those \n" ..
+		"idiots don't even know we exist.",
 
-		"ONE DAY EVERYONE BUT THOSE WHO SERVE THE ORDER WILL BE FORCED TO " ..
-		"JOIN US.",
+		"One day everyone but those who serve the Order will be forced to " ..
+		"join us.",
 
-		"STARE NOW,  BUT YOU KNOW THAT THIS WILL BE YOUR OWN FACE ONE DAY.",
+		"Stare now,  but you know that this will be your own face one day.",
 
-		"THERE'S NOTHING THING MORE \n" ..
-		"ANNOYING THAN A SURFACER WITH AN ATTITUDE!",
+		"There's nothing thing more \n" ..
+		"annoying than a surfacer with an attitude!",
 
-		"THE ORDER WILL MAKE SHORT WORK OF YOUR PATHETIC FRONT.",
+		"The Order will make short work of your pathetic Front.",
 
-		"WATCH YOURSELF SURFACER. WE KNOW OUR ENEMIES!"
+		"Watch yourself surfacer. We know our enemies!"
 	},
 
 	PGUARD = {
-		"WE ARE THE HANDS OF FATE. TO EARN \n" ..
-		"OUR WRATH IS TO FIND OBLIVION!",
+		"We are the hands of fate. To earn \n" ..
+		"our wrath is to find oblivion!",
 
-		"THE ORDER WILL CLEANSE THE WORLD \n" ..
-		"OF THE WEAK AND CORRUPT!",
+		"The Order will cleanse the world \n" ..
+		"of the weak and corrupt!",
 
-		"OBEY THE WILL OF THE MASTERS!",
+		"Obey the will of the masters!",
 
-		"LONG LIFE TO THE BROTHERS OF THE \n" ..
-		"ORDER!",
+		"Long life to the brothers of the \n" ..
+		"Order!",
 
-		"FREE WILL IS AN ILLUSION THAT BINDS \n" ..
-		"THE WEAK MINDED.",
+		"Free will is an illusion that binds \n" ..
+		"the weak minded.",
 
-		"POWER IS THE PATH TO GLORY. TO \n" ..
-		"FOLLOW THE ORDER IS TO WALK THAT \n" ..
-		"PATH!",
+		"Power is the path to glory. To \n" ..
+		"follow the Order is to walk that \n" ..
+		"path!",
 
-		"TAKE YOUR PLACE AMONG THE \n" ..
-		"RIGHTEOUS, JOIN US!",
+		"Take your place among the \n" ..
+		"righteous, join us!",
 
-		"THE ORDER PROTECTS ITS OWN.",
+		"The Order protects its own.",
 
-		"ACOLYTES?  THEY HAVE YET TO SEE THE FULL GLORY OF THE ORDER.",
+		"Acolytes?  They have yet to see the full glory of the Order.",
 
-		"IF THERE IS ANY HONOR INSIDE THAT \n" ..
-		"PATHETIC SHELL OF A BODY, \n" ..
-		"YOU'LL ENTER INTO THE ARMS OF THE \n" ..
-		"ORDER."
+		"If there is any honor inside that \n" ..
+		"pathetic shell of a body, \n" ..
+		"you'll enter into the arms of the \n" ..
+		"Order."
 	}
 }
 

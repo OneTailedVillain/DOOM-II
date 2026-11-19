@@ -26,6 +26,9 @@ from modules.umapinfo_processor import *
 from modules.pcspeaker_converter import replace_ds_with_dp
 from modules.carouselspriteshit import createCarouselGraphics
 from modules.prepack_resolver import resolve_prepacked_carousel
+from modules.map_hashes import parse_soc_level_names
+# Software level renderer (used for the MAPxxP / MAPxxW level select pictures)
+from modules import doomrender
 
 # Attempt to import OMGIFOL
 try:
@@ -98,6 +101,76 @@ def process_weapon_carousels(src_wad, out_wad):
 		created_total += count
 
 	return created_total
+
+def _omg_wad_to_bytes(wad):
+	"""Serialize an omgifol WAD to bytes (in memory if possible, temp file otherwise)."""
+	from io import BytesIO
+	try:
+		buf = BytesIO()
+		wad.to_file(buf)
+		return buf.getvalue()
+	except Exception:
+		fd, tmp = tempfile.mkstemp(suffix=".wad")
+		os.close(fd)
+		try:
+			wad.to_file(tmp)
+			with open(tmp, "rb") as f:
+				return f.read()
+		finally:
+			try:
+				os.remove(tmp)
+			except OSError:
+				pass
+
+def process_level_select_renders(out_wad, src_path, iwad_path=None, skill=3, doom1=False):
+	"""
+	Render SRB2 level select pictures for every MAPxx level in out_wad:
+	  MAPxxP - 160x100, FOCAL = H / 2.0
+	  MAPxxW - 564x100, FOCAL = H / 1.0
+	Pictures that already exist in the WAD are left alone.
+
+	Textures/flats/sprites/palette come from the WAD itself layered over the
+	IWAD (iwad_path, or an IWAD auto-detected next to src_path).
+	Returns the number of lumps added.
+	"""
+	try:
+		level_wad = doomrender.Wad(_omg_wad_to_bytes(out_wad), name=os.path.basename(src_path))
+	except Exception as e:
+		print(f"Level select renders skipped: could not serialize WAD ({e})")
+		return 0
+
+	headers = [h for h in level_wad.level_headers()
+			   if h.startswith("MAP") and doomrender.level_select_lump_names(h)]
+	if not headers:
+		print("No binary-format MAPxx levels found; no level select images rendered")
+		return 0
+
+	resource_wads = []
+	iwad = doomrender.resolve_iwad(iwad_path, src_path, level_wad, log=print)
+	if iwad is not None:
+		resource_wads.append(iwad)
+	resource_wads.append(level_wad)
+
+	try:
+		res = doomrender.Resources(resource_wads)
+	except doomrender.RenderError as e:
+		print(f"Level select renders skipped: {e}")
+		return 0
+
+	images = doomrender.render_level_select_images(
+		res, level_wad, headers, skill=skill, log=print,
+		sky_for=doomrender.doom1_sky_name if doom1 else None
+	)
+
+	from omg import Graphic
+	added = 0
+	for lump_name, data in images.items():
+		if lump_name in level_wad.index:
+			print(f"  {lump_name} already exists in the WAD, keeping the original")
+			continue
+		out_wad.graphics[lump_name] = Graphic(data)
+		added += 1
+	return added
 
 def create_deh_only_wad(deh_files, out_path):
 	"""
@@ -254,7 +327,7 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	
 	# Check if we should process as PK3
 	if src_path.lower().endswith('.pk3'):
-		process_pk3_file(src_path, out_path)
+		process_pk3_file(src_path, out_path, options)
 		return
 	
 	# Check if we should search PK3 files instead of processing WAD
@@ -316,7 +389,12 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 	is_doom1 = is_doom1_wad(src_wad)
 	if is_doom1:
 		print("WAD seems to be based on Doom 1, appending level SOC...")
-		out_wad.data["SOC_LVLS"] = Lump(build_soc_levels())
+		hash_soc = out_wad.data.get("SOC_MHSH")
+		hash_level_names = (
+			parse_soc_level_names(hash_soc.data)
+			if hash_soc is not None else {}
+		)
+		out_wad.data["SOC_LVLS"] = Lump(build_soc_levels(hash_level_names))
 
 	out_wad.data["LUA_DOOM"] = Lump(build_lua_marker(is_doom1, options.get("srb2ver", 0)))
 
@@ -343,6 +421,18 @@ def main(src_path: str, out_path: str, deh_files=None, options=None):
 
 	created = make_cycle_sequence(src_wad, out_wad, "LITEB", 1, 3, 1, 3)
 	print(f"LITEB created: {created}")
+
+	# Level select pictures (MAPxxP / MAPxxW) rendered from the converted maps
+	if options.get('levelselect_renders', True):
+		print("Rendering level select images...")
+		try:
+			ls_count = process_level_select_renders(
+				out_wad, src_path, options.get('levelselect_iwad') or None,
+				doom1=is_doom1
+			)
+			print(f"Level select image lumps created: {ls_count}")
+		except Exception as e:
+			print(f"Level select rendering failed: {e}")
 
 	# MIDI to OGG conversion
 	if options.get('midi_to_ogg', False):
@@ -376,6 +466,14 @@ def parse_arguments():
 					   choices=[11025, 22050],
 					   help='Sample rate for PC speaker conversions (default: 11025)')
 	
+	# Level select render options
+	parser.add_argument('--no-levelselect',
+					   action='store_false', dest='levelselect_renders',
+					   help='Do not render MAPxxP/MAPxxW level select images')
+	parser.add_argument('--levelselect-iwad', metavar='IWAD', default=None,
+					   help='IWAD supplying textures/palette for level select renders '
+							'(default: auto-detect next to the source file)')
+
 	# Other options
 	parser.add_argument('--no-normalize-pegging',
 					   action='store_false', dest='normalize_pegging',
@@ -386,7 +484,7 @@ def parse_arguments():
 	parser.add_argument('--midi-to-ogg',
 					   action='store_true',
 					   help='Convert MIDI music to OGG format')
-	parser.add_argument('--engine', choices=['auto', 'doom', 'strife'], default='auto', help='Force the processing engine for the input WAD. Default: auto')
+	parser.add_argument('--engine', choices=['auto', 'doom', 'strife', 'heretic'], default='auto', help='Force the processing engine for the input WAD. Default: auto')
 	
 	return parser.parse_args()
 
@@ -401,6 +499,8 @@ if __name__ == "__main__":
 		'player_sprites': args.player_sprites,
 		'midi_to_ogg': args.midi_to_ogg,
 		'engine': args.engine,
+		'levelselect_renders': args.levelselect_renders,
+		'levelselect_iwad': args.levelselect_iwad,
 	}
 	
 	# Load DEH/BEX files if provided

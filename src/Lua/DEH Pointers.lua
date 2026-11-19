@@ -1,4 +1,4 @@
-local function BulletHitObject(tmthing, thing)
+function doom.BulletHitObject(tmthing, thing)
 	if not (tmthing and tmthing.valid) then return false end
 	if doom.missileHookIgnoreList[tmthing.type] then return false end
     if tmthing.hitenemy then return false end
@@ -25,15 +25,17 @@ local function BulletHitObject(tmthing, thing)
 		damage = (DOOM_Random() % 8 + 1) * damageVal
 	end
 
-	tmthing.hitenemy = true
-	tmthing.momx = 0
-	tmthing.momy = 0
-	tmthing.momz = 0
     DOOM_DamageMobj(thing, tmthing, tmthing.target, damage, damagetype)
-	P_KillMobj(tmthing)
+	if not doom.callHook("ProjectileHitEnemy", doom.hookTypes.anytrue, tmthing, thing) then
+		tmthing.hitenemy = true
+		tmthing.momx = 0
+		tmthing.momy = 0
+		tmthing.momz = 0
+		S_StartSound(tmthing, mobjinfo[tmthing.type].deathsound)
+		P_KillMobj(tmthing)
+	end
 	if not (tmthing and tmthing.valid) then return false end
-	S_StartSound(tmthing, mobjinfo[tmthing.type].deathsound)
-	return false
+	return not tmthing.doom.missileIsRipper
 end
 
 doom.missileHookIgnoreList = {
@@ -61,7 +63,7 @@ local function addMobjHookByFlags(hookType, mobjFlags, hook)
 	addShit()
 end
 
-addMobjHookByFlags("MobjMoveCollide", MF_MISSILE, BulletHitObject)
+addMobjHookByFlags("MobjMoveCollide", MF_MISSILE, doom.BulletHitObject)
 
 doom.mthingReplacements = {}
 
@@ -198,7 +200,7 @@ end
 -- DeHackEd bullshit
 DOOM_Freeslot("S_DOOM_UNUSED_DEADTORSO",
 "S_DOOM_UNUSED_DEADBOTTOM", "SPR_SMT2",
-"S_DOOM_UNUSED_STALAG")
+"S_DOOM_UNUSED_STALAG", "SPR_FATB", "SPR_FBXP")
 
 states[S_DOOM_UNUSED_DEADTORSO] = {
 	sprite = SPR_FIRE,
@@ -267,8 +269,7 @@ doom.bossDeathSpecials = {
 
 doom.dehackedpointers = {
 	sprites = {
-		SPR_NULL,
-		SPR_TROO,
+		[0] = SPR_TROO, -- 0-based like every other table here: DEH sprite n is sprites[n]
 		SPR_SHTG,
 		SPR_PUNG,
 		SPR_PISG,
@@ -468,12 +469,35 @@ doom.dehackedpointers = {
 		[57] = MT_DOOM_INVULNSPHERE,
 		[58] = MT_DOOM_BERSERK,
 		[59] = MT_DOOM_BLURSPHERE,
+		[60] = MT_DOOM_RADSUIT,
+		[61] = MT_DOOM_ALLMAP,
+		[62] = MT_DOOM_LIGHTAMP,
+		[63] = MT_DOOM_MEGASPHERE,
+		[64] = MT_DOOM_CLIP,
+		[65] = MT_DOOM_CLIPBOX,
+		[66] = MT_DOOM_ROCKET,
+		[67] = MT_DOOM_ROCKETBOX,
+		[68] = MT_DOOM_CELL,
+		[69] = MT_DOOM_CELLPACK,
+		[70] = MT_DOOM_SHELLS,
+		[71] = MT_DOOM_SHELLBOX,
+		[72] = MT_DOOM_BACKPACK,
+		[73] = MT_DOOM_BFG9000,
+		[74] = MT_DOOM_CHAINGUN,
+		[75] = MT_DOOM_CHAINSAW,
+		[76] = MT_DOOM_RPG,
 		[77] = MT_DOOM_PLASMARIFLE,
 		[78] = MT_DOOM_SHOTGUN,
 		[79] = MT_DOOM_SUPERSHOTGUN,
 		[80] = MT_DOOM_TALLTECHNOFLOORLAMP,
 		[81] = MT_DOOM_SHORTTECHNOFLOORLAMP,
+		[82] = MT_DOOM_FLOORLAMP,
 		[83] = MT_DOOM_TALLGREENCOLUMN,
+		[84] = MT_DOOM_SHORTGREENPILLAR,
+		[85] = MT_DOOM_TALLREDCOLUMN,
+		[86] = MT_DOOM_SHORTREDCOLUMN,
+		[87] = MT_DOOM_REDPILLARWITHSKULL,
+		[88] = MT_DOOM_HEARTCOLUMN,
 		[89] = MT_DOOM_EVILEYE,
 		[90] = MT_DOOM_FLOATINGSKULL,
 		[91] = MT_DOOM_TORCHTREE,
@@ -484,7 +508,13 @@ doom.dehackedpointers = {
 		[96] = MT_DOOM_SHORTGREENTORCH,
 		[97] = MT_DOOM_SHORTREDTORCH,
 		[98] = MT_DOOM_STALAGTITE,
+		[99] = MT_DOOM_TALLTECHNOCOLUMN,
+		[100] = MT_DOOM_CANDLESTICK,
 		[101] = MT_DOOM_CANDELABRA,
+		[102] = MT_DOOM_BLOODYTWITCH,
+		[103] = MT_DOOM_MEAT2,
+		[104] = MT_DOOM_MEAT3,
+		[105] = MT_DOOM_MEAT4,
 		[106] = MT_DOOM_MEAT5,
 		[107] = MT_DOOM_NONSOLIDMEAT2,
 		[108] = MT_DOOM_NONSOLIDMEAT4,
@@ -500,7 +530,7 @@ doom.dehackedpointers = {
 		[118] = MT_DOOM_DEADSHOTGUNNER,
 		[119] = MT_DOOM_BLOODYMESS,
 		[120] = MT_DOOM_BLOODYMESSEXTRA,
-		[121] = MT_DOOM_CRUSHGIBS,
+		[121] = MT_DOOM_HEADSONASTICK,
 		[122] = MT_DOOM_CRUSHGIBS,
 		[123] = MT_DOOM_HEADONASTICK,
 		[124] = MT_DOOM_HEADCANDLES,
@@ -509,6 +539,14 @@ doom.dehackedpointers = {
 		[127] = MT_DOOM_BIGTREE,
 		[128] = MT_DOOM_FLAMINGBARREL,
 		[129] = MT_DOOM_HANGNOGUTS,
+		[130] = MT_DOOM_HANGTLOOKINGUPA,
+		[131] = MT_DOOM_HANGTLOOKINGDOWN,
+		[132] = MT_DOOM_HANGTSKULL,
+		[133] = MT_DOOM_HANGTLOOKINGUP,
+		[134] = MT_DOOM_HANGTNOBRAIN,
+		[135] = MT_DOOM_POOLOFBLOOD,
+		[136] = MT_DOOM_SMALLBLOODPOOL,
+		[137] = MT_DOOM_BRAINSTEM,
 	},
 
 	flags = {
@@ -536,7 +574,7 @@ doom.dehackedpointers = {
 		[1<<21] = {num = MF2_INFLOAT,     type = "MF2"},
 		[1<<22] = {num = DF_COUNTKILL,    type = "DF"},
 		[1<<23] = {num = DF_COUNTITEM,    type = "DF"},
-		[1<<24] = {num = MF2_SKULLFLY,    type = "MF"},
+		[1<<24] = {num = MF2_SKULLFLY,    type = "MF2"},
 		[1<<25] = {num = DF_NOTDMATCH,    type = "DF"},
 		[1<<26] = {num = DF_SKINCOLOR1,   type = "DF"},
 		[1<<27] = {num = DF_SKINCOLOR2,   type = "DF"},
@@ -794,7 +832,10 @@ doom.dehackedpointers = {
 		[120] = S_DOOM_BFGBALL_EXPLODE4,
 		[121] = S_DOOM_BFGBALL_EXPLODE5,
 		[122] = S_DOOM_BFGBALL_EXPLODE6,
-		-- gap, BFG tracers
+		[123] = S_DOOM_BFGBALL_TRACER1,
+		[124] = S_DOOM_BFGBALL_TRACER2,
+		[125] = S_DOOM_BFGBALL_TRACER3,
+		[126] = S_DOOM_BFGBALL_TRACER4,
 		[127] = S_ROCKET_EXPLODE1,
 		[128] = S_ROCKET_EXPLODE2,
 		[129] = S_ROCKET_EXPLODE3,
@@ -991,8 +1032,17 @@ doom.dehackedpointers = {
 		[309] = S_DOOM_ARCHVILEFIRE_29,
 		[310] = S_DOOM_ARCHVILEFIRE_30,
 		--#endregion Archvile
-		-- Revenant tracer states
 		--#region Revenant
+		[311] = S_DOOM_REVENANTTRACER_SPAWN1,
+		[312] = S_DOOM_REVENANTTRACER_SPAWN2,
+		[313] = S_DOOM_REVENANTTRACER_SPAWN3,
+		[314] = S_DOOM_REVENANTTRACER_SPAWN4,
+		[315] = S_DOOM_REVENANTTRACER_SPAWN5,
+		[316] = S_DOOM_REVENANTPROJ_SHOT1,
+		[317] = S_DOOM_REVENANTPROJ_SHOT2,
+		[318] = S_DOOM_REVENANTPROJ_EXPLODE1,
+		[319] = S_DOOM_REVENANTPROJ_EXPLODE2,
+		[320] = S_DOOM_REVENANTPROJ_EXPLODE3,
 		[321] = S_DOOM_REVENANT_STAND1,
 		[322] = S_DOOM_REVENANT_STAND2,
 		[323] = S_DOOM_REVENANT_CHASE1,
@@ -1195,6 +1245,40 @@ doom.dehackedpointers = {
 		[519] = S_DOOM_CACODEMON_RAISE4,
 		[520] = S_DOOM_CACODEMON_RAISE5,
 		[521] = S_DOOM_CACODEMON_RAISE6,
+		[522] = S_DOOM_BARONFIREBALL_SHOT1,
+		[523] = S_DOOM_BARONFIREBALL_SHOT2,
+		[524] = S_DOOM_BARONFIREBALL_EXPLODE1,
+		[525] = S_DOOM_BARONFIREBALL_EXPLODE2,
+		[526] = S_DOOM_BARONFIREBALL_EXPLODE3,
+		[527] = S_DOOM_BARONOFHELL_STAND1,
+		[528] = S_DOOM_BARONOFHELL_STAND2,
+		[529] = S_DOOM_BARONOFHELL_CHASE1,
+		[530] = S_DOOM_BARONOFHELL_CHASE2,
+		[531] = S_DOOM_BARONOFHELL_CHASE3,
+		[532] = S_DOOM_BARONOFHELL_CHASE4,
+		[533] = S_DOOM_BARONOFHELL_CHASE5,
+		[534] = S_DOOM_BARONOFHELL_CHASE6,
+		[535] = S_DOOM_BARONOFHELL_CHASE7,
+		[536] = S_DOOM_BARONOFHELL_CHASE8,
+		[537] = S_DOOM_BARONOFHELL_ATTACK1,
+		[538] = S_DOOM_BARONOFHELL_ATTACK2,
+		[539] = S_DOOM_BARONOFHELL_ATTACK3,
+		[540] = S_DOOM_BARONOFHELL_PAIN1,
+		[541] = S_DOOM_BARONOFHELL_PAIN2,
+		[542] = S_DOOM_BARONOFHELL_DIE1,
+		[543] = S_DOOM_BARONOFHELL_DIE2,
+		[544] = S_DOOM_BARONOFHELL_DIE3,
+		[545] = S_DOOM_BARONOFHELL_DIE4,
+		[546] = S_DOOM_BARONOFHELL_DIE5,
+		[547] = S_DOOM_BARONOFHELL_DIE6,
+		[548] = S_DOOM_BARONOFHELL_DIE7,
+		[549] = S_DOOM_BARONOFHELL_RAISE1,
+		[550] = S_DOOM_BARONOFHELL_RAISE2,
+		[551] = S_DOOM_BARONOFHELL_RAISE3,
+		[552] = S_DOOM_BARONOFHELL_RAISE4,
+		[553] = S_DOOM_BARONOFHELL_RAISE5,
+		[554] = S_DOOM_BARONOFHELL_RAISE6,
+		[555] = S_DOOM_BARONOFHELL_RAISE7,
 		[556] = S_DOOM_HELLKNIGHT_STAND1,
 		[557] = S_DOOM_HELLKNIGHT_STAND2,
 		[558] = S_DOOM_HELLKNIGHT_CHASE1,
@@ -1486,8 +1570,15 @@ doom.dehackedpointers = {
 		[858] = S_DOOM_MEGASPHERE_2,
 		[859] = S_DOOM_MEGASPHERE_3,
 		[860] = S_DOOM_MEGASPHERE_4,
-
-		-- gap
+		[861] = S_DOOM_RADSUIT_1,
+		[862] = S_DOOM_ALLMAP_1,
+		[863] = S_DOOM_ALLMAP_2,
+		[864] = S_DOOM_ALLMAP_3,
+		[865] = S_DOOM_ALLMAP_4,
+		[866] = S_DOOM_ALLMAP_5,
+		[867] = S_DOOM_ALLMAP_6,
+		[868] = S_DOOM_LIGHTAMP_1,
+		[869] = S_DOOM_LIGHTAMP_2,
 		[870] = S_DOOM_CLIP_1,
 		[871] = S_DOOM_CLIPBOX_1,
 		[872] = S_DOOM_ROCKET_1,
@@ -1496,7 +1587,14 @@ doom.dehackedpointers = {
 		[875] = S_DOOM_CELLPACK_1,
 		[876] = S_DOOM_SHELLS_1,
 		[877] = S_DOOM_SHELLBOX_1,
-
+		[878] = S_DOOM_BACKPACK_1,
+		[879] = S_DOOM_BFG9000_1,
+		[880] = S_DOOM_CHAINGUN_1,
+		[881] = S_DOOM_CHAINSAW_1,
+		[882] = S_DOOM_RPG_1,
+		[883] = S_DOOM_PLASMARIFLE_1,
+		[884] = S_DOOM_SHOTGUN_1,
+		[885] = S_DOOM_SUPERSHOTGUN_1,
 		[886] = S_DOOM_FLOORLAMP_1,
 		[887] = S_DOOM_UNUSED_STALAG,
 		[888] = S_DOOM_BLOODYTWITCH_1,
@@ -1507,14 +1605,34 @@ doom.dehackedpointers = {
 		[893] = S_DOOM_UNUSED_DEADBOTTOM,
 		[894] = S_DOOM_HEADSONASTICK_1,
 		[895] = S_DOOM_CRUSHGIBS_1,
+		[896] = S_DOOM_HEADONASTICK_1,
+		[897] = S_DOOM_HEADCANDLES_1,
+		[898] = S_DOOM_HEADCANDLES_2,
+		[899] = S_DOOM_DEADSTICK_1,
+		[900] = S_DOOM_LIVESTICK_1,
+		[901] = S_DOOM_LIVESTICK_2,
+		[902] = S_DOOM_MEAT2_1,
+		[903] = S_DOOM_MEAT3_1,
+		[904] = S_DOOM_MEAT4_1,
+		[905] = S_DOOM_MEAT5_1,
+		[906] = S_DOOM_STALAGTITE_1,
+		[907] = S_DOOM_TALLGREENCOLUMN_1,
+		[908] = S_DOOM_SHORTGREENPILLAR_1,
+		[909] = S_DOOM_TALLREDCOLUMN_1,
+		[910] = S_DOOM_SHORTREDCOLUMN_1,
 		[911] = S_DOOM_CANDLESTICK_1,
+		[912] = S_DOOM_CANDELABRA_1,
+		[913] = S_DOOM_REDPILLARWITHSKULL_1,
+		[914] = S_DOOM_TORCHTREE_1,
+		[915] = S_DOOM_BIGTREE_1,
+		[916] = S_DOOM_TALLTECHNOCOLUMN_1,
 		[917] = S_DOOM_EVILEYE_1,
 		[918] = S_DOOM_EVILEYE_2,
 		[919] = S_DOOM_EVILEYE_3,
 		[920] = S_DOOM_EVILEYE_4,
 		[921] = S_DOOM_FLOATINGSKULL_1,
 		[922] = S_DOOM_FLOATINGSKULL_2,
-		[923] = S_DOOM_FLOATINGSKULL_1,
+		[923] = S_DOOM_FLOATINGSKULL_3,
 		[924] = S_DOOM_HEARTCOLUMN_1,
 		[925] = S_DOOM_HEARTCOLUMN_2,
 		[926] = S_DOOM_BLUETORCH_1,
@@ -1541,6 +1659,15 @@ doom.dehackedpointers = {
 		[947] = S_DOOM_SHORTREDTORCH_2,
 		[948] = S_DOOM_SHORTREDTORCH_3,
 		[949] = S_DOOM_SHORTREDTORCH_4,
+		[950] = S_DOOM_HANGNOGUTS_1,
+		[951] = S_DOOM_HANGTLOOKINGUPA_1,
+		[952] = S_DOOM_HANGTLOOKINGDOWN_1,
+		[953] = S_DOOM_HANGTSKULL_1,
+		[954] = S_DOOM_HANGTLOOKINGUP_1,
+		[955] = S_DOOM_HANGTNOBRAIN_1,
+		[956] = S_DOOM_POOLOFBLOOD_1,
+		[957] = S_DOOM_SMALLBLOODPOOL_1,
+		[958] = S_DOOM_BRAINSTEM_1,
 		[959] = S_DOOM_TALLTECHNOFLOORLAMP_1,
 		[960] = S_DOOM_TALLTECHNOFLOORLAMP_2,
 		[961] = S_DOOM_TALLTECHNOFLOORLAMP_3,
@@ -1568,6 +1695,7 @@ doom.dehackedpointers = {
 		GunFlash = A_DoomGunFlash,
 		Hoof = A_Hoof,
 		XScream = A_DoomXScream,
+		Tracer = A_DoomTracer
 	}
 }
 

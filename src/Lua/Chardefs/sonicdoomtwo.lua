@@ -423,6 +423,16 @@ doom.characterDefs.sonic = {
 						{tics = 2},
 						{tics = 2},
 					},
+					dp_noammo = {
+						{frame = B, tics = 2},
+						{frame = C, tics = 2},
+						{frame = D, tics = 2, action = A_PlaySound, var1 = sfx_dbopn, var2 = 1},
+						{frame = E, tics = 2, action = A_FillClipOrIdle},
+						{frame = F, tics = 2, action = A_PlaySound, var1 = sfx_dbload, var2 = 1},
+						{frame = G, tics = 2},
+						{frame = H, tics = 2, action = A_PlaySound, var1 = sfx_dbcls, var2 = 1},
+						{frame = A, tics = 2, action = A_DoomReFire, goto = "idle"}
+					},
 					flash = {
 						{tics = 2},
 						{tics = 2},

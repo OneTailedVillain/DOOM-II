@@ -54,11 +54,11 @@ local states = {
 	},
 	missile = {
 		{action = A_DoomFaceTarget, frame = E, tics = 6},
-		{action = A_DoomFire,       frame = F, tics = 12, var2 = 4},
+		{action = A_CyberAttack,    frame = F, tics = 12},
 		{action = A_DoomFaceTarget, frame = E, tics = 12},
-		{action = A_DoomFire,       frame = F, tics = 12, var2 = 4},
+		{action = A_CyberAttack,    frame = F, tics = 12},
 		{action = A_DoomFaceTarget, frame = E, tics = 12},
-		{action = A_DoomFire,       frame = F, tics = 12, var2 = 4, next = "chase"},
+		{action = A_CyberAttack,    frame = F, tics = 12, next = "chase"},
 	},
 	pain = {
 		{action = A_DoomPain, frame = G, tics = 10, next = "chase"},

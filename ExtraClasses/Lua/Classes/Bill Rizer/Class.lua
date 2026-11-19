@@ -35,6 +35,7 @@ methods.damage = function(player, damage, attacker, proj, damageType, minhealth)
 
 	-- lower damagefactor if attacker and proj are both nil
 	-- (likely means it's a damaging sector)
+	-- Bill would snap like a twig at even the 5-damage sectors. now just imagine how bad it would be for 10-damage. or even 20.
 	if not (Valid(attacker) and Valid(proj)) then
 		player.doom.properties.damagefactor.all = FRACUNIT
 	else
@@ -153,19 +154,19 @@ doom.characterDefs.dpecbillrizer = {
 			all = FRACUNIT*3,
 		},
 
-		movefactor = 2300, -- How fast the player will move in DOOM movement. Default is 2048.
-		walkfactor = FRACUNIT*2/3, -- How much of the movefactor the player will use while walking in DOOM movement. Default is FRACUNIT/2.
-		mass = 100, -- Player mass. Only relevant for explosion pushback.
+		movefactor = 2300,
+		walkfactor = FRACUNIT*2/3,
+		mass = 100,
 
 		starthealth = 96,
 		maxhealth = 96,
 
 		maxarmor = 96,
 
-		armorproperties = { -- DOOMPort behavior makes it so security and combat armors ignore the armor property, which works in our favor for making the armors the blue and red tunics while preventing too much power by way of armor bonuses.
-			armorclassmult = 96, -- How much armor each class is worth (green armor is class 1, blue armor is class 2)
-			armorclass1prot = FRACUNIT/3, -- Blue tunic protects this much in source game
-			armorclass2prot = FRACUNIT/2, -- Red tunic protects this much in source game
+		armorproperties = {
+			armorclassmult = 96,
+			armorclass1prot = FRACUNIT/3,
+			armorclass2prot = FRACUNIT/2,
 		},
 
 		

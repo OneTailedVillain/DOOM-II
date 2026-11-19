@@ -288,7 +288,10 @@ local function DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
 	end
 end
 
-local function DOOM_RunStateAction(player, stateDef)
+local DOOM_AdvancePSprite
+local advancingPSprites = {}
+
+local function DOOM_RunStateAction(player, stateDef, slot)
 	/*
 	local actionName = stateDef and stateDef.action
 	if actionName then
@@ -296,21 +299,23 @@ local function DOOM_RunStateAction(player, stateDef)
 	end
 	print(actionName)
 	*/
-    if not stateDef or not stateDef.action then
-        return
-    end
+	if stateDef and stateDef.action then
+		local wepDef = DOOM_GetWeaponDef(player)
+		if not wepDef then
+			return
+		end
 
-    local wepDef = DOOM_GetWeaponDef(player)
-    if not wepDef then
-        return
-    end
+		stateDef.action(
+			player.mo,
+			stateDef.var1,
+			stateDef.var2,
+			wepDef
+		)
+	end
 
-    stateDef.action(
-        player.mo,
-        stateDef.var1,
-        stateDef.var2,
-        wepDef
-    )
+	if slot != nil and DOOM_AdvancePSprite then
+		DOOM_AdvancePSprite(player, slot, nil, true)
+	end
 end
 
 doom.runStateAction = DOOM_RunStateAction
@@ -354,14 +359,15 @@ local function DOOM_ApplyStateJump(player, slot, targetState, targetFrame)
 
 	if targetState != S_NULL then
 		if not stateDef then
-			error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(targetFrame) .. "!")
+			if tostring(targetState) == "flash" and tostring(targetFrame) == "1" then stateDef = {tics = INT32_MAX, sprite = SPR_NULL} else
+			error("Invalid state/frame " .. tostring(targetState) .. " " .. tostring(targetFrame) .. "!") end
 		end
 	else
 		stateDef = {tics = INT32_MAX}
 	end
 
 	psp.tics = stateDef.tics or 0
-	DOOM_RunStateAction(player, stateDef)
+	DOOM_RunStateAction(player, stateDef, slot)
 end
 
 local HOLD_STATES = {
@@ -369,118 +375,163 @@ local HOLD_STATES = {
     lower = true,
 }
 
-local function DOOM_AdvancePSprite(player, slot, fallbackState)
+DOOM_AdvancePSprite = function(player, slot, fallbackState, immediate)
     local psp = DOOM_GetPSprite(player, slot)
-	--print("slot=".. tostring(mapping[slot]), "state=" .. tostring(psp.state), "frame=" .. tostring(psp.frame), "tics=" .. tostring(psp.tics))
+	if advancingPSprites[psp] then
+		return
+	end
+
     local wepDef = DOOM_GetWeaponDef(player)
     if not wepDef then return end
 
-    psp.tics = $ - 1
-    if psp.tics > 0 then
-        return
-    end
+	advancingPSprites[psp] = true
+	if not immediate then
+		psp.tics = $ - 1
+		if psp.tics > 0 then
+			advancingPSprites[psp] = nil
+			return
+		end
+	end
 
-    local frameDef = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
-    if not frameDef then
-        if HOLD_STATES[psp.state] then
-            psp.tics = 1
-			DOOM_RunStateAction(player, frameDef)
-            return
-        end
-
-        DOOM_ApplyStateJump(player, slot, fallbackState or DOOM_GetPSpriteDefaultState(slot), 1)
-        return
-    end
-
-    if frameDef.goto ~= nil then
-        DOOM_ApplyStateJump(player, slot, frameDef.goto, frameDef.gotoframe)
-        return
-    end
-
-    local nextstate = frameDef.nextstate
-    if nextstate == nil and type(psp.state) == "number" then
-        nextstate = states[psp.state].nextstate
-    end
-
-    if nextstate ~= nil then
-        DOOM_ApplyStateJump(player, slot, nextstate, frameDef.nextframe)
-        return
-    end
-
-	if psp.frame == nil then psp.frame = 1 end
-    local nextFrame = psp.frame + 1
-    local nextDef = DOOM_ResolveStateDef(wepDef, psp.state, nextFrame)
-
-    if nextDef then
-		local oldState = psp.state
-		local oldFrame = psp.frame
-
-		local newState = psp.state
-		local newFrame = nextFrame
-
-		newState, newFrame = DOOM_WeaponPreStateChange(
-			player, wepDef, psp,
-			oldState, oldFrame,
-			newState, newFrame,
-			slot
-		)
-
-		-- update psp with any changes from prestatechange
-		psp.state = newState
-		psp.frame = newFrame
-
-		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
-
-		-- re-resolve the frame definition after hooks in case they changed state/frame
-		local resolvedDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
-
-		if realSlot != nil then
-			psp.state = realSlot
-			if psp.frame == nil then
-				psp.frame = 1
-			end
+	local transitions = 0
+	local justEnteredState = immediate
+	while true do
+		if psp.tics > 0 then
+			advancingPSprites[psp] = nil
+			return
+		end
+		wepDef = DOOM_GetWeaponDef(player)
+		if not wepDef then
+			advancingPSprites[psp] = nil
+			return
 		end
 
-		if psp.state != S_NULL then
-			if not resolvedDef then
-				error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
-			end
-		else
-			resolvedDef = {tics = INT32_MAX}
+		transitions = $ + 1
+		if transitions > 64 then
+			advancingPSprites[psp] = nil
+			error("Too many consecutive zero-tic weapon states!")
 		end
 
-		psp.tics = resolvedDef.tics or 0
-		DOOM_RunStateAction(player, resolvedDef)
-		return
-    end
-
-    if HOLD_STATES[psp.state] then
-        psp.tics = 1
-		DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
-
-		-- re-resolve the frame definition after poststatechange so the action sees correct frame
-		local resolvedFrameDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
-
-		if realSlot != nil then
-			psp.state = realSlot
-			if psp.frame == nil then
-				psp.frame = 1
+		local frameDef = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+		if not frameDef then
+			if HOLD_STATES[psp.state] then
+				psp.tics = 1
+				advancingPSprites[psp] = nil
+				return
 			end
+
+			DOOM_ApplyStateJump(player, slot, fallbackState or DOOM_GetPSpriteDefaultState(slot), 1)
+			justEnteredState = true
+			continue
 		end
 
-		if psp.state != S_NULL then
-			if not resolvedFrameDef then
-				error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
-			end
-		else
-			resolvedFrameDef = {tics = INT32_MAX}
+		if frameDef.goto != nil then
+			DOOM_ApplyStateJump(player, slot, frameDef.goto, frameDef.gotoframe)
+			justEnteredState = true
+			continue
 		end
 
-		DOOM_RunStateAction(player, resolvedFrameDef)
-        return
-    end
+		local nextstate = frameDef.nextstate
+		if nextstate == nil and type(psp.state) == "number" then
+			nextstate = states[psp.state].nextstate
+		end
 
-    DOOM_ApplyStateJump(player, slot, fallbackState or DOOM_GetPSpriteDefaultState(slot), 1)
+		if nextstate != nil then
+			DOOM_ApplyStateJump(player, slot, nextstate, frameDef.nextframe)
+			justEnteredState = true
+			continue
+		end
+
+		if psp.frame == nil then psp.frame = 1 end
+		local nextFrame = psp.frame + 1
+		local nextDef = DOOM_ResolveStateDef(wepDef, psp.state, nextFrame)
+
+		if nextDef then
+			local oldState = psp.state
+			local oldFrame = psp.frame
+
+			local newState = psp.state
+			local newFrame = nextFrame
+
+			newState, newFrame = DOOM_WeaponPreStateChange(
+				player, wepDef, psp,
+				oldState, oldFrame,
+				newState, newFrame,
+				slot
+			)
+
+			psp.state = newState
+			psp.frame = newFrame
+
+			DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
+
+			local resolvedDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+
+			if realSlot != nil then
+				psp.state = realSlot
+				if psp.frame == nil then
+					psp.frame = 1
+				end
+			end
+
+			if psp.state != S_NULL then
+				if not resolvedDef then
+					advancingPSprites[psp] = nil
+					error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
+				end
+			else
+				resolvedDef = {tics = INT32_MAX}
+			end
+
+			psp.tics = resolvedDef.tics or 0
+			DOOM_RunStateAction(player, resolvedDef, slot)
+			justEnteredState = true
+			continue
+		end
+
+		if HOLD_STATES[psp.state] then
+			if frameDef.tics == 0 and frameDef.action then
+				DOOM_ApplyStateJump(player, slot, psp.state, psp.frame)
+				justEnteredState = true
+				continue
+			end
+
+			psp.tics = 1
+			if justEnteredState then
+				advancingPSprites[psp] = nil
+				return
+			end
+
+			DOOM_WeaponPostStateChange(player, wepDef, psp, slot)
+
+			local resolvedFrameDef, realSlot = DOOM_ResolveStateDef(wepDef, psp.state, psp.frame)
+
+			if realSlot != nil then
+				psp.state = realSlot
+				if psp.frame == nil then
+					psp.frame = 1
+				end
+			end
+
+			if psp.state != S_NULL then
+				if not resolvedFrameDef then
+					advancingPSprites[psp] = nil
+					error("Invalid state/frame " .. tostring(psp.state) .. " " .. tostring(psp.frame) .. "!")
+				end
+			else
+				resolvedFrameDef = {tics = INT32_MAX}
+			end
+
+			if not immediate then
+				DOOM_RunStateAction(player, resolvedFrameDef, slot)
+			end
+			justEnteredState = true
+			continue
+		end
+
+		DOOM_ApplyStateJump(player, slot, fallbackState or DOOM_GetPSpriteDefaultState(slot), 1)
+		justEnteredState = true
+	end
 end
 
 local function updateWeaponState(player, isFlashState)
@@ -505,6 +556,10 @@ COM_AddCommand("strife_setaccuracy", function(player, stamina)
 	stamina = tonumber(stamina) or 0
 	player.doom.strife_accuracy = stamina
 end)
+
+COM_AddCommand("strife_setsigil", function(player, sigil)
+	player.doom.strife_sigilprogression = sigil
+end)
 --#endif
 
 ---@param player player_t
@@ -514,8 +569,16 @@ addHook("PlayerThink", function(player)
 
 	if (player.mo.eflags & MFE_JUSTHITFLOOR) then
 		if (player.doom.lastmomz or 0) <= doom.defaultgravity*-8 then
+			--#ifdef STRIFE
+			local speed = -player.doom.lastmomz
+			if speed < 20*FRACUNIT then
+				doom.playReplaceableSound(player.mo, "oof", player)
+			else
+				DOOM_DamageMobj(player.mo, nil, nil, speed / -25000, doom.damagetypes.fall)
+			end
+			--#else
 			doom.playReplaceableSound(player.mo, "oof", player)
-			--player.deltaviewheight = player.doom.lastmomz>>3
+			--#endif
 		end
 	else
 		player.doom.lastmomz = player.mo.momz
@@ -813,15 +876,20 @@ local function getIntersectingObjects(target, shootables)
 	return results
 end
 
--- TODO: This is major ass suck!
--- However I just want this to be *working*
-addHook("PlayerThink", function(player)
-	if not player.mo then return end
-	if player.mo.flags & MF_NOTHINK then return end
+-- TODO: Do we REALLY need to move the player twice to do this??
+--       Why can't the floorheight function just. yaknow. accept a damn radius argument?
+addHook("MobjThinker", function(mo)
+	local player = mo.player
+	if not player then return end
 
-	player.doom.oldz = player.mo.z
-end)
-
+	P_MoveOrigin(mo, mo.x + mo.momx, mo.y + mo.momy, mo.z + mo.momz)
+	local nextz = mo.floorz
+	P_MoveOrigin(mo, mo.x - mo.momx, mo.y - mo.momy, mo.z - mo.momz)
+	if mo.z - nextz == MAXSTEPMOVE and mo.z > nextz then
+		mo.z = $ + 1
+	end
+end, MT_PLAYER)
+/*
 addHook("PostThinkFrame", function()
 	for player in players.iterate do
 		if not player.mo then continue end
@@ -839,7 +907,7 @@ addHook("PostThinkFrame", function()
 		end
 	end
 end)
-
+*/
 addHook("PlayerThink", function(player)
 	if not player.mo then return end
 	if (player.mo.flags & MF_NOTHINK) then return end
@@ -1275,12 +1343,12 @@ local typeHandlers = {
 		end
 
 		if (plyrmo.flags & MF_MISSILE) then return end
-		if plyrmo.reactiontime and plyrmo.reactiontime > 0 then return end
+		-- (players are briefly frozen after a teleport; monsters are not blocked)
+		if plyrmo.player and plyrmo.reactiontime and plyrmo.reactiontime > 0 then return end
 		if P_PointOnLineSide(plyrmo.x, plyrmo.y, usedLine) == 1 then return end
 
 		local teletarg
 		for sector in sectors.tagged(usedLine.tag) do
-			if sector == plyrmo.subsector.sector then continue end
 			for mobj in sector.thinglist() do
 				if mobj.type == MT_DOOM_TELETARGET then
 					teletarg = mobj
@@ -1325,13 +1393,17 @@ local typeHandlers = {
 
 addHook("MobjLineCollide", function(mobj, hit)
 	if mobj.flags & MF_MISSILE then return end
-	if mobj.doom.handlingtele then return end
+	if mobj.doom and mobj.doom.handlingtele then return end
 
 	-- pos + momentum = the direction the player intended to go
 	-- TODO: Add checks for if the movement is available to the player!
 	if P_PointOnLineSide(mobj.x, mobj.y, hit) == P_PointOnLineSide(mobj.x + mobj.momx, mobj.y + mobj.momy, hit) then return end
 	if not mobj then return end
     local usedLine = hit
+	if doom.hexen_linespecials and doom.hexen_linespecials[usedLine] then
+		doom.activateHexenSpecial(usedLine, doom.hexen_linespecials[usedLine], HXL_MCROSS, doom.hexen_lineargs[1], doom.hexen_lineargs[2], doom.hexen_lineargs[3], doom.hexen_lineargs[4], doom.hexen_lineargs[5], mobj)
+	end
+
     local lineSpecial = doom.linespecials[usedLine]
     if not lineSpecial then
 		return
@@ -1341,19 +1413,30 @@ addHook("MobjLineCollide", function(mobj, hit)
 		return
 	end
 
+	if not mobj.player and not whatIs.monsters then return end
+	if mobj.player and whatIs.monstersOnly then return end
+
     local targSide = usedLine.sidenum[0]
     if sides[targSide] then
         local sector = sides[targSide].sector
         whatIs.newfloorpic = sector.floorpic
-        whatIs.newceilpic  = sector.ceilpic
+        whatIs.newceilpic  = sector.ceilingpic
         whatIs.newSectorSpecial = sector.special
     end
+
+	whatIs.tag = usedLine.tag
 
 	if typeHandlers[whatIs.type] then
 		typeHandlers[whatIs.type](usedLine, whatIs, mobj)
 	else
-		for sector in sectors.tagged(usedLine.tag) do
-			doom.addThinker(sector, whatIs)
+		local expectedUserdata = doom.expectedUserdatas[whatIs.type]
+
+		if expectedUserdata == "line_t" then
+			doom.addThinker(usedLine, whatIs)
+		elseif expectedUserdata == "sector_t" then
+			for sector in sectors.tagged(usedLine.tag) do
+				doom.addThinker(sector, whatIs)
+			end
 		end
 	end
 

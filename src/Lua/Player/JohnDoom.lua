@@ -312,8 +312,39 @@ end)
 
 local STOPSPEED = 0x1000
 
-local function P_PlayerMove(player, doRun)
+local function getMaxAirSpeed(player)
+	local properties = P_GetPlayerSkinProperties(player)
+
+	local mult = properties.movefactor or 2048
+	return (50 * mult) * 6
+end
+
+local function P_AirThrust(player, angle, thrust, maxspeed)
+	local mo = player.mo
+
+	local thrustx = FixedMul(cos(angle), thrust)
+	local thrusty = FixedMul(sin(angle), thrust)
+
+	local momx = mo.momx
+	local momy = mo.momy
+
+	local speed = FixedHypot(momx, momy)
+
+	if speed >= maxspeed then
+		local dot = FixedMul(momx, thrustx) + FixedMul(momy, thrusty)
+
+		if dot > 0 then
+			return
+		end
+	end
+
+	mo.momx = momx + thrustx
+	mo.momy = momy + thrusty
+end
+
+local function P_PlayerMove(player, doRun, airControl)
 	if player.mo.reactiontime then return end
+
 	local properties = P_GetPlayerSkinProperties(player)
 
 	local mult = properties.movefactor or 2048
@@ -322,27 +353,51 @@ local function P_PlayerMove(player, doRun)
 	end
 
 	local cmd = player.cmd
-    // Do not let the player control movement
-    //  if not onground.
-	local onground = player.mo.z <= player.mo.floorz
+	local mo = player.mo
 
-	if cmd.forwardmove and onground then
-		P_Thrust(player.mo, player.mo.angle, cmd.forwardmove*mult)
-	end
-	if cmd.sidemove and onground then
-		P_Thrust(player.mo, player.mo.angle - ANGLE_90, cmd.sidemove*mult)
+	local onground = mo.z <= mo.floorz
+
+	local airSpeedCap
+
+	if not onground then
+		airSpeedCap = getMaxAirSpeed(player)
+
+		if airControl then
+			mult = $ / 3
+		end
 	end
 
-	if (cmd.forwardmove or cmd.sidemove) and player.mo.state == S_PLAY_STND then
-		player.mo.state = S_DOOM_PLAYER_MOVE1
-	elseif (player.mo.state >= S_DOOM_PLAYER_MOVE1 and player.mo.state <= S_DOOM_PLAYER_MOVE4)
-		and player.mo.momx > -STOPSPEED
-		and player.mo.momx < STOPSPEED
-		and player.mo.momy > -STOPSPEED
-		and player.mo.momy < STOPSPEED
+	if cmd.forwardmove then
+		local thrust = cmd.forwardmove * mult
+
+		if not onground then
+			P_AirThrust(player, mo.angle, thrust, airSpeedCap)
+		else
+			P_Thrust(mo, mo.angle, thrust)
+		end
+	end
+
+	if cmd.sidemove then
+		local thrust = cmd.sidemove * mult
+		local angle = mo.angle - ANGLE_90
+
+		if not onground then
+			P_AirThrust(player, angle, thrust, airSpeedCap)
+		else
+			P_Thrust(mo, angle, thrust)
+		end
+	end
+
+	if (cmd.forwardmove or cmd.sidemove) and mo.state == S_PLAY_STND then
+		mo.state = S_DOOM_PLAYER_MOVE1
+	elseif (mo.state >= S_DOOM_PLAYER_MOVE1 and mo.state <= S_DOOM_PLAYER_MOVE4)
+		and mo.momx > -STOPSPEED
+		and mo.momx < STOPSPEED
+		and mo.momy > -STOPSPEED
+		and mo.momy < STOPSPEED
 		and player.cmd.forwardmove == 0
 		and player.cmd.sidemove == 0 then
-		player.mo.state = S_PLAY_STND
+		mo.state = S_PLAY_STND
 	end
 end
 
@@ -366,7 +421,7 @@ addHook("PlayerThink", function(player)
 	local run = DOOM_GetConfigStoreValue(player, "autorun") != 0
 	local usingSPIN = (player.cmd.buttons & BT_SPIN) != 0
 	local doRun = run != usingSPIN
-	P_PlayerMove(player, doRun)
+	P_PlayerMove(player, doRun, support.properties.airControllable)
 
 	-- Probably inaccurate... who cares!
 	-- (me :SquidwardBawling:)

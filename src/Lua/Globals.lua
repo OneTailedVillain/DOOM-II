@@ -17,6 +17,7 @@ local toDeclare = {
 	DF_SKINCOLOR2 = 32768,
 	DF_FRIENDLY = 65536,
 	DF_STANDSTILL = 131072,
+    DF_NOTDMATCH = 262144,
 	pw_strength = 1,
 	pw_ironfeet = 2,
 	pw_invisibility = 3,
@@ -34,6 +35,12 @@ local toDeclare = {
     CF_NOMOMENTUM = 2,
 	PSP_WEAPON = 1,
 	PSP_FLASH = 2,
+    HXL_USE = 0x0400, -- activated when used by player
+    HXL_MCROSS = 0x0400, -- activated when crossed by monster
+    HXL_IMPACT = 0x0C00, -- activated when hit by projectile
+    HXL_PUSH = 0x01000, -- activated when bumped by player
+    HXL_PROJCROSS = 0x1400, -- activated crossed by projectile
+    HXL_USETHROUGH = 0x1800, -- activated when used by player (with pass through)
 
 	--#ifdef STRIFE
 	QF_QUEST1  = 1 << 0,

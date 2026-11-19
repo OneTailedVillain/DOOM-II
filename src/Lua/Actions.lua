@@ -174,6 +174,7 @@ function A_DoomTurretLook(actor)
 	-- Players are automatically friendly
 	local isFriendly = actor.doom.flags & DF_FRIENDLY and (targ.doom.flags & DF_FRIENDLY or targ.type == MT_PLAYER)
 
+	if not targ then targ = {} end
 	local player = targ and targ.player
 	local playerAlive = true
 
@@ -181,6 +182,7 @@ function A_DoomTurretLook(actor)
 		local funcs = P_GetMethodsForSkin(player)
 		if funcs.getHealth(player) <= 0 then playerAlive = false end
 	elseif targ then
+		if not targ.doom then return end
 		if targ.doom.health == nil then targ.doom.health = 0 end
 		if targ.doom.health <= 0 then playerAlive = false end
 	end
@@ -571,7 +573,10 @@ local function DOOM_CheckMissileRange(actor)
 end
 
 function A_DoomChase(actor)
-	local delta
+	if actor.doom.chaselastthink == leveltime then
+		return
+	end
+	actor.doom.chaselastthink = leveltime
 
 	if actor.reactiontime and actor.reactiontime > 0 then
 		actor.reactiontime = $ - 1
@@ -1036,9 +1041,8 @@ doom.predefinedWeapons = {
 	},
 }
 
-function A_NotDoomFire(actor)
-    local weapon = (actor.player and DOOM_GetWeaponDef(actor.player))
-    if not weapon then return end
+function A_NotDoomFire(actor, angoffset, aimoffset, weapon)
+    if not weapon then print("Action 'A_NotDoomFire' likely called in a regular state! Don't do that") return end
 
     local player = actor.mo and actor or actor.player
     if not player then return end
@@ -1075,16 +1079,17 @@ function A_NotDoomFire(actor)
         funcs.setAmmoFor(player, curType, curAmmo - weapon.shotcost)
     end
 
-    DOOM_Fire(player, weapon.maxdist or MISSILERANGE,
+    return DOOM_Fire(player, weapon.maxdist or MISSILERANGE,
         spread and spread.horiz or 0,
         spread and spread.vert or 0,
         weapon.pellets or 1,
         weapon.damage[1], weapon.damage[2], weapon.damage[3],
         weapon.shootmobj, weapon.shootflags2, weapon.shootfuse,
-        weapon.firefunc, weapon.hitsound)
+        weapon.firefunc, weapon.hitsound, angoffset, aimoffset)
 end
 
-function A_DoomFire(actor, var1, weaponDef, weapon)
+-- ??? what??? why do i have to do this?
+local function DoomFire(actor, var1, weaponDef, weapon)
     -- Determine if this is a player or enemy
     local player = actor.mo and actor or actor.player
 
@@ -1131,13 +1136,54 @@ function A_DoomFire(actor, var1, weaponDef, weapon)
     else
 		A_DoomFaceTarget(actor)
 
-		local weapon = doom.predefinedWeapons[weaponDef or 1]
+		if weapon == nil then
+			weapon = doom.predefinedWeapons[weaponDef or 1]
+		end
+
         -- Enemy logic
 		if weapon.firesound then
 			S_StartSound(actor, weapon.firesound)
 		end
         DOOM_Fire(actor, weapon.maxdist or MISSILERANGE, weapon.spread and weapon.spread.horiz or 0, weapon.spread and weapon.spread.vert or 0, weapon.pellets or 1, weapon.damage[1], weapon.damage[2], weapon.damage[3], weapon.shootmobj, weapon.shootflags2, weapon.shootfuse, weapon.firefunc, weapon.hitsound)
     end
+end
+
+A_DoomFire = DoomFire
+
+function A_DoomPosAttack(actor)
+	DoomFire(actor, 0, 0, {
+		damage = {3, 15},
+		pellets = 1,
+		firesound = sfx_pistol,
+		spread = {
+			horiz = FRACUNIT*59/10,
+			vert = 0,
+		},
+	})
+end
+
+function A_DoomSPosAttack(actor)
+	DoomFire(actor, nil, nil, {
+		damage = {3, 15},
+		pellets = 3,
+		firesound = sfx_shotgn,
+		spread = {
+			horiz = FRACUNIT*59/10,
+			vert = 0,
+		},
+	})
+end
+
+function A_DoomCPosAttack(actor)
+	DoomFire(actor, 0, 0, {
+		damage = {3, 15},
+		pellets = 1,
+		firesound = sfx_shotgn,
+		spread = {
+			horiz = FRACUNIT*59/10,
+			vert = 0,
+		},
+	})
 end
 
 local function DOOM_GetFrameDef(weapon, stateName, frame)
@@ -1471,6 +1517,19 @@ function A_DoomWeaponReady(actor, action, actionvars, weapondef)
 		local var1 = actionvars and actionvars.var1
 		local var2 = actionvars and actionvars.var2
 		action(actor, var1, var2)
+	end
+
+	if not player.doom.wepcarousel then
+		player.doom.wepcarousel = {
+			curwep = player.doom.curwep,
+			curwepslot = player.doom.curwepslot,
+			curwepcat = player.doom.curwepcat,
+			wepconfirmationtimer = 0,
+			showtimer = 0,
+			active = false,
+			cooldown = 0,
+			animoffset = 0
+		}
 	end
 
 	local noPendingSwitch =

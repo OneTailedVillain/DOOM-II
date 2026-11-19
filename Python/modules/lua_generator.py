@@ -333,20 +333,146 @@ def build_structured_lua_deh(structured_deh: dict) -> bytes:
 			# SPECIAL HANDLING FOR POINTERS: Key by FRAME number instead of pointer index
 			if mode.upper() == "POINTER":
 				frame_idx = None
+
+				# The parser should have extracted the actual target frame
+				# into the FRAME field. Do not infer this from CODEP FRAME,
+				# INDEX, or the pointer/action number.
 				for k, v in fields.items():
-					# Also check for CODEP FRAME/CODEPFRAME
-					if k.upper() in ['FRAME', 'FRAME NUMBER', 'FRAMENUMBER', 'INDEX', 'CODEP FRAME', 'CODEPFRAME']:
+					if k.upper() == "FRAME":
 						if isinstance(v, (bytes, bytearray)):
 							try:
-								frame_idx = int(v.decode('latin-1').strip())
+								frame_idx = int(
+									v.decode('latin-1').strip()
+								)
 							except (ValueError, AttributeError):
-								frame_idx = idx
-							break
-				
+								pass
+						else:
+							try:
+								frame_idx = int(v)
+							except (ValueError, TypeError):
+								pass
+
+						break
+
 				if frame_idx is None:
-					frame_idx = idx
-				
-				lines.append(f'doom.dehacked.{lua_table}[{frame_idx}] = {{{comment_name}')
+					# The frame is essential. Falling back to the pointer/action
+					# number would silently generate incorrect DEHACKED semantics.
+					original_line = fields.get(
+						'_ORIGINAL_LINE', b''
+					).decode('latin-1', errors='replace').strip()
+
+					frame_match = re.search(
+						r'\(\s*Frame\s+(\d+)\s*\)',
+						original_line,
+						re.IGNORECASE
+					)
+
+					if frame_match:
+						frame_idx = int(frame_match.group(1))
+					else:
+						print(
+							f"WARNING: Could not determine target frame for "
+							f"DEHACKED Pointer {idx}; skipping entry."
+						)
+						continue
+
+				comment_name = ""
+
+				if '_ORIGINAL_LINE' in fields:
+					original_line = fields[
+						'_ORIGINAL_LINE'
+					].decode(
+						'latin-1',
+						errors='replace'
+					).strip()
+
+					name_match = re.search(
+						r'\(([^)]+)\)',
+						original_line
+					)
+
+					if name_match:
+						comment_name = f" -- {name_match.group(1)}"
+
+				lines.append(
+					f'doom.dehacked.pointers[{frame_idx}] = {{{comment_name}'
+				)
+
+				# Emit the fields, but NEVER use CODEP FRAME as the target frame.
+				for k, v in fields.items():
+					if (
+						k.startswith('LINE')
+						or k == '_ORIGINAL_LINE'
+						or k.upper() == 'FRAME'
+					):
+						continue
+
+					key_lower = k.lower().replace(' ', '')
+
+					if not re.match(
+						r'^[a-zA-Z_][a-zA-Z0-9_]*$',
+						key_lower
+					):
+						safe_key = k.lower().replace('"', '\\"')
+						key_lua = f'["{safe_key}"]'
+					else:
+						key_lua = key_lower
+
+					if isinstance(v, (bytes, bytearray)):
+						raw = bytes(v)
+						vs = raw.decode(
+							'latin-1',
+							errors='replace'
+						).strip()
+
+						# Pointer fields are normally integer-valued.
+						try:
+							num_val = int(vs)
+							lines.append(
+								f'\t{key_lua} = {num_val},'
+							)
+							continue
+						except (ValueError, TypeError):
+							pass
+
+						needs_bracket = (
+							b'\n' in raw
+							or any(
+								b < 0x20
+								and b not in (0x09, 0x0A, 0x0D)
+								for b in raw
+							)
+							or b'"' in raw
+							or b'\\' in raw
+						)
+
+						if needs_bracket:
+							safe_value = _make_safe_lua_long_bracket_for_bytes(raw)
+							lines.append(
+								f'\t{key_lua} = {safe_value},'
+							)
+						else:
+							escaped_val = (
+								vs
+								.replace('\\', '\\\\')
+								.replace('"', '\\"')
+							)
+							lines.append(
+								f'\t{key_lua} = "{escaped_val}",'
+							)
+					else:
+						str_val = (
+							str(v)
+							.replace('\\', '\\\\')
+							.replace('"', '\\"')
+						)
+						lines.append(
+							f'\t{key_lua} = "{str_val}",'
+						)
+
+				lines.append('}')
+				lines.append('')
+				continue
 			else:
 				lines.append(f'doom.dehacked.{lua_table}[{idx}] = {{{comment_name}')
 			
@@ -439,8 +565,11 @@ def build_structured_lua_deh(structured_deh: dict) -> bytes:
 
 	return ("\n".join(lines)).encode("utf-8")
 
-def build_soc_levels() -> bytes:
+def build_soc_levels(level_names=None) -> bytes:
 	"""Builds the SOC_LVLS lump content with Doom level configurations."""
+	if level_names is None:
+		level_names = {}
+
 	level_data = [
 		(1, "E1M1", "E1M1", 2),
 		(2, "E1M2", "E1M2", 3),
@@ -484,7 +613,7 @@ def build_soc_levels() -> bytes:
 	for level_num, level_name, music, next_level in level_data:
 		lines.extend([
 			f"Level {level_num}",
-			f"levelname = {level_name}",
+			f"levelname = {level_names.get(level_num, level_name)}",
 			"NoTitleCard = true",
 			"TypeOfLevel = Singleplayer,Doom",
 			"Act = 0",
@@ -577,7 +706,7 @@ def generate_lua_for_pk3(wad, udmf_namespace="srb2"):
 				else:
 					lua_value = f'"{str(value)}"'
 				
-				lua_table_lines.append(f'	{key} = {lua_value}')
+				lua_table_lines.append(f'	{key} = {lua_value},')
 			
 			if lua_table_lines:
 				lua_lines.append(f'doom.umapinfo["{map_name}"] = {{')

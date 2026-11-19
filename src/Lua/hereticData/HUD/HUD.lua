@@ -291,6 +291,8 @@ local function DrawCommonBar(v, player)
 	v.draw(17+healthPos, chainY, v.cachePatch("LIFEGEM2"), V_SNAPTOBOTTOM|V_PERPLAYER)
 	v.draw(0, 190, v.cachePatch("LTFACE"), V_SNAPTOBOTTOM|V_PERPLAYER)
 	v.draw(276, 190, v.cachePatch("RTFACE"), V_SNAPTOBOTTOM|V_PERPLAYER)
+	v.draw(277, 190, v.cachePatch("HERETICHUDDARKSTRIP"), V_REVERSESUBTRACT|V_SNAPTOBOTTOM|V_PERPLAYER)
+	--v.draw(19+16, 190, v.cachePatch("HERETICHUDDARKSTRIP"), V_REVERSESUBTRACT|V_SNAPTOBOTTOM|V_PERPLAYER|V_FLIP)
 end
 
 local ChainWiggle = 0

@@ -60,8 +60,8 @@ doom.lineActions = {
 		fastdoor = false, repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWK"
 	},
 	[46] = {
-		type = "door", mode = "opndcls", stay = true,
-		fastdoor = false, repeatable = true, activationType = "gunshot"
+		type = "door", mode = "open", stay = true,
+		fastdoor = false, repeatable = true, activationType = "gunshot", monsters = true
 	},
 	[117] = {
 		type = "door", mode = "opndcls", stay = false, owner = "sector",
@@ -74,7 +74,7 @@ doom.lineActions = {
 
 	-- === Remote ===
 	[29] = {
-		type = "door", mode = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[63] = {
@@ -82,7 +82,7 @@ doom.lineActions = {
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[4] = {
-		type = "door", mode = "open", stay = false, owner = "sector",
+		type = "door", mode = "opndcls", stay = false, monsters = true,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[90] = {
@@ -108,34 +108,34 @@ doom.lineActions = {
 	},
 
 	[50] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		fastdoor = false, repeatable = false, activationType = "switch"
 	},
 	[42] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		fastdoor = false, repeatable = true, activationType = "switch"
 	},
 	[3] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[75] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
 
 	[16] = {
-		type = "door", kind = "clsopn", delay = 30*TICRATE,
+		type = "door", mode = "clsopn", delay = 30*TICRATE,
 		fastdoor = false, repeatable = false, activationType = "walk"
 	},
 	[76] = {
-		type = "door", kind = "clsopn", delay = 30*TICRATE,
+		type = "door", mode = "clsopn", delay = 30*TICRATE,
 		fastdoor = false, repeatable = true, activationType = "walk"
 	},
 
 	-- Fast variants
 	[111] = {
-		type = "door", mode = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		speed = "turbo", repeatable = false, activationType = "switch"
 	},
 	[114] = {
@@ -143,7 +143,7 @@ doom.lineActions = {
 		speed = "turbo", repeatable = true, activationType = "switch"
 	},
 	[108] = {
-		type = "door", mode = "open", stay = false,
+		type = "door", mode = "opndcls", stay = false,
 		speed = "turbo", repeatable = false, activationType = "walk"
 	},
 	[105] = {
@@ -155,7 +155,7 @@ doom.lineActions = {
 		speed = "turbo", repeatable = false, activationType = "switch"
 	},
 	[115] = {
-		type = "door", mode = "opndcls", stay = true,
+		type = "door", mode = "open", stay = true,
 		speed = "turbo", repeatable = true, activationType = "switch"
 	},
 	[109] = {
@@ -163,24 +163,24 @@ doom.lineActions = {
 		speed = "turbo", repeatable = false, activationType = "walk"
 	},
 	[106] = {
-		type = "door", mode = "opndcls", stay = true,
+		type = "door", mode = "open", stay = true,
 		speed = "turbo", repeatable = true, activationType = "walk"
 	},
 
 	[113] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		speed = "turbo", repeatable = false, activationType = "switch"
 	},
 	[116] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		speed = "turbo", repeatable = true, activationType = "switch"
 	},
 	[110] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		speed = "turbo", repeatable = false, activationType = "walk"
 	},
 	[107] = {
-		type = "door", kind = "close", stay = true,
+		type = "door", mode = "close", stay = true,
 		speed = "turbo", repeatable = true, activationType = "walk"
 	},
 
@@ -191,14 +191,14 @@ doom.lineActions = {
 	},
 	[99] = {
 		type = "door", lock = doom.KEY_BLUE|doom.KEY_SKULLBLUE, mode = "open", stay = true,
-		speed = "turbo", repeatable = false, activationType = "switch", denyMessage = "$PD_BLUEO"
+		speed = "turbo", repeatable = true, activationType = "switch", denyMessage = "$PD_BLUEO"
 	},
 	[135] = {
 		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "open", stay = true,
 		speed = "turbo", repeatable = false, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[134] = {
-		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "opndcls", stay = true,
+		type = "door", lock = doom.KEY_RED|doom.KEY_SKULLRED, mode = "open", stay = true,
 		speed = "turbo", repeatable = true, activationType = "switch", denyMessage = "$PD_REDO"
 	},
 	[137] = {
@@ -206,7 +206,7 @@ doom.lineActions = {
 		speed = "turbo", repeatable = false, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 	[136] = {
-		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "opndcls", stay = true,
+		type = "door", lock = doom.KEY_YELLOW|doom.KEY_SKULLYELLOW, mode = "open", stay = true,
 		speed = "turbo", repeatable = true, activationType = "switch", denyMessage = "$PD_YELLOWO"
 	},
 
@@ -244,11 +244,11 @@ doom.lineActions = {
 		repeatable = false, activationType = "walk"
 	},
 	[186] = {
-		type = "ceiling", action = "lower", target = "highest",
+		type = "ceiling", action = "raise", target = "highest",
 		repeatable = true, activationType = "switch"
 	},
 	[166] = {
-		type = "ceiling", action = "lower", target = "highest",
+		type = "ceiling", action = "raise", target = "highest",
 		repeatable = false, activationType = "switch"
 	},
 	[151] = {
@@ -260,35 +260,35 @@ doom.lineActions = {
 		repeatable = false, activationType = "walk"
 	},
 	[206] = {
-		type = "ceiling", action = "raise", target = "highestfloor",
+		type = "ceiling", action = "lower", target = "highestfloor",
 		repeatable = true, activationType = "switch"
 	},
 	[204] = {
-		type = "ceiling", action = "raise", target = "highestfloor",
+		type = "ceiling", action = "lower", target = "highestfloor",
 		repeatable = false, activationType = "switch"
 	},
 	[202] = {
-		type = "ceiling", action = "raise", target = "highestfloor",
+		type = "ceiling", action = "lower", target = "highestfloor",
 		repeatable = true, activationType = "walk"
 	},
 	[200] = {
-		type = "ceiling", action = "raise", target = "highestfloor",
+		type = "ceiling", action = "lower", target = "highestfloor",
 		repeatable = false, activationType = "walk"
 	},
 	[205] = {
-		type = "ceiling", action = "raise", target = "lowest",
+		type = "ceiling", action = "lower", target = "lowest",
 		repeatable = true, activationType = "switch"
 	},
 	[203] = {
-		type = "ceiling", action = "raise", target = "lowest",
+		type = "ceiling", action = "lower", target = "lowest",
 		repeatable = false, activationType = "switch"
 	},
 	[201] = {
-		type = "ceiling", action = "raise", target = "lowest",
+		type = "ceiling", action = "lower", target = "lowest",
 		repeatable = true, activationType = "walk"
 	},
 	[199] = {
-		type = "ceiling", action = "raise", target = "lowest",
+		type = "ceiling", action = "lower", target = "lowest",
 		repeatable = false, activationType = "walk"
 	},
 
@@ -310,19 +310,19 @@ doom.lineActions = {
 		silent = false, repeatable = false, activationType = "walk"
 	},
 	[183] = {
-		type = "crusher", speed = "fast", mode = "start",
+		type = "crusher", speed = "normal", nocrushslow = true, mode = "start",
 		silent = false, repeatable = true, activationType = "switch"
 	},
 	[164] = {
-		type = "crusher", speed = "fast", mode = "start",
+		type = "crusher", speed = "normal", nocrushslow = true, mode = "start",
 		silent = false, repeatable = false, activationType = "switch"
 	},
 	[77] = {
-		type = "crusher", speed = "fast", mode = "start",
+		type = "crusher", speed = "normal", nocrushslow = true, mode = "start",
 		silent = false, repeatable = true, activationType = "walk"
 	},
 	[6] = {
-		type = "crusher", speed = "fast", mode = "start",
+		type = "crusher", speed = "normal", nocrushslow = true, mode = "start",
 		silent = false, repeatable = false, activationType = "walk"
 	},
 	[185] = {
@@ -369,7 +369,7 @@ doom.lineActions = {
 	},
 	[10] = {
 		type = "lift", mode = "lowerwaitraise",
-		repeatable = false, activationType = "walk"
+		repeatable = false, activationType = "walk", monsters = true
 	},
 	[88] = {
 		type = "lift", mode = "lowerwaitraise",
@@ -431,6 +431,14 @@ doom.lineActions = {
 		type = "floor", action = "raise", target = "nextfloor",
 		speed = "fast", repeatable = false, activationType = "switch"
 	},
+	[129] = {
+		type = "floor", action = "raise", target = "nextfloor",
+		speed = "fast", repeatable = true, activationType = "walk"
+	},
+	[132] = {
+		type = "floor", action = "raise", target = "nextfloor",
+		speed = "fast", repeatable = true, activationType = "switch"
+	},
 	[130] = {
 		type = "floor", action = "raise", target = "nextfloor",
 		speed = "fast", repeatable = false, activationType = "walk"
@@ -439,28 +447,28 @@ doom.lineActions = {
 	-- Raise to next higher (Changes)
 	[20] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, changeType = "type",
+		changes = true, changeType = "zero", speed = "half",
 		repeatable = false, activationType = "switch"
 	},
 	[68] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, changeType = "type",
+		changes = true, changeType = "zero", speed = "half",
 		repeatable = true, activationType = "switch"
 	},
 	[22] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, changeType = "type",
+		changes = true, changeType = "zero", speed = "half",
 		repeatable = false, activationType = "walk"
 	},
 	[95] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, changeType = "type",
+		changes = true, changeType = "zero", speed = "half",
 		repeatable = true, activationType = "walk"
 	},
 
 	[47] = {
 		type = "floor", action = "raise", target = "nextfloor",
-		changes = true, changeType = "type",
+		changes = true, changeType = "zero", speed = "half",
 		repeatable = false, activationType = "gunshot"
 	},
 
@@ -508,34 +516,34 @@ doom.lineActions = {
 
 	[15] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, changeType = "texture",
+		changes = true, changeType = "texture", speed = "half",
 		repeatable = false, activationType = "switch"
 	},
 	[66] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, changeType = "texture",
+		changes = true, changeType = "texture", speed = "half",
 		repeatable = true, activationType = "switch"
 	},
 	[59] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, changeType = "zero",
+		changes = true, changeType = "type",
 		repeatable = false, activationType = "walk"
 	},
 	[93] = {
 		type = "floor", action = "raise", target = 24*FRACUNIT,
-		changes = true, changeType = "zero",
+		changes = true, changeType = "type",
 		repeatable = true, activationType = "walk"
 	},
 
 	[14] = {
 		type = "floor", action = "raise", target = 32*FRACUNIT,
-		changes = true, changeType = "texture",
+		changes = true, changeType = "texture", speed = "half",
 		repeatable = false, activationType = "switch"
 	},
 
 	[67] = {
 		type = "floor", action = "raise", target = 32*FRACUNIT,
-		changes = true, changeType = "texture",
+		changes = true, changeType = "texture", speed = "half",
 		repeatable = true, activationType = "switch"
 	},
 
@@ -573,19 +581,21 @@ doom.lineActions = {
 	},
 	[37] = {
 		type = "floor", action = "lower", target = "lowest",
-		changes = true, repeatable = false, activationType = "walk"
+		changes = true, changeType = "type", changeModel = "numeric", -- first two-sided line whose far floor == destination
+		repeatable = false, activationType = "walk"
 	},
 	[84] = {
 		type = "floor", action = "lower", target = "lowest",
-		changes = true, repeatable = true, activationType = "walk"
+		changes = true, changeType = "type", changeModel = "numeric", -- first two-sided line whose far floor == destination
+		repeatable = true, activationType = "walk"
 	},
 
 	[24] = {
-		type = "floor", action = "lower", target = "lowestceiling",
+		type = "floor", action = "raise", target = "lowestceiling",
 		repeatable = false, activationType = "gunshot"
 	},
 	[64] = {
-		type = "floor", action = "lower", target = "lowestceiling",
+		type = "floor", action = "raise", target = "lowestceiling",
 		repeatable = true, activationType = "switch"
 	},
 
@@ -669,19 +679,19 @@ doom.lineActions = {
 
 	-- === Teleports ===
 	[39] = {
-		type = "teleport", monsters = false,
+		type = "teleport", monsters = true,
 		repeatable = false, activationType = "walk"
 	},
 	[97] = {
-		type = "teleport", monsters = false,
+		type = "teleport", monsters = true,
 		repeatable = true, activationType = "walk"
 	},
 	[125] = {
-		type = "teleport", monsters = true,
+		type = "teleport", monsters = true, monstersOnly = true,
 		repeatable = false, activationType = "walk"
 	},
 	[126] = {
-		type = "teleport", monsters = true,
+		type = "teleport", monsters = true, monstersOnly = true,
 		repeatable = true, activationType = "walk"
 	},
 
@@ -720,11 +730,11 @@ doom.lineActions = {
 	},
 	[138] = {
 		type = "light", target = 255,
-		repeatable = false, activationType = "switch"
+		repeatable = true, activationType = "switch"
 	},
 	[139] = {
 		type = "light", target = 35,
-		repeatable = false, activationType = "switch"
+		repeatable = true, activationType = "switch"
 	},
 
 	-- === Exits ===
@@ -771,22 +781,22 @@ doom.lineActions = {
 
 	[244] = {
 		type = "teleport", linetoline = true, preserveangle = true,
-		crossSide = "front", activationType = "walk", repeatable = true
+		crossSide = "front", activationType = "walk", repeatable = true, monsters = true
 	},
 
 	-- === Extensions and shittt ===
 
 	[219] = {
 		type = "floor", action = "lower", target = "nextneighbor",
-		repeatable = true, activationType = "switch"
+		repeatable = false, activationType = "walk"
 	},
 	[220] = {
 		type = "floor", action = "lower", target = "nextneighbor",
-		repeatable = true, activationType = "switch"
+		repeatable = true, activationType = "walk"
 	},
 	[221] = {
 		type = "floor", action = "lower", target = "nextneighbor",
-		repeatable = true, activationType = "switch"
+		repeatable = false, activationType = "switch"
 	},
 	[222] = {
 		type = "floor", action = "lower", target = "nextneighbor",
@@ -820,8 +830,12 @@ doom.lineActions = {
 }
 
 --#ifdef DOOM
--- This line is just a reprise
-doom.lineActions[159] = doom.lineActions[23]
+-- Boom 159: S1 Floor Lower to Lowest, change texture and type (numeric model)
+doom.lineActions[159] = {
+	type = "floor", action = "lower", target = "lowest",
+	changes = true, changeType = "type", changeModel = "numeric",
+	repeatable = false, activationType = "switch"
+}
 
 /*
 Detailed generalized linedef specification
@@ -1396,7 +1410,10 @@ local generalizedFloorConfig = {
 				else
 					self.model = "monster"
 				end
+			else
+				self.changeModel = self.model -- "trigger" or "numeric"
 			end
+			self.monsters = (self.model == "monster")
 		end
 	},
 	direct = {
@@ -1414,10 +1431,10 @@ local generalizedFloorConfig = {
 		[7] = {target = 32*FRACUNIT},
 	},
 	change = {
-		[0] = {change = "nochg"},
-		[1] = {change = "zero"},
-		[2] = {change = "txtonly"},
-		[3] = {change = "type"}
+		[0] = {change = "nochg", changes = false},
+		[1] = {change = "zero", changes = true, changeType = "zero"},
+		[2] = {change = "txtonly", changes = true, changeType = "texture"},
+		[3] = {change = "type", changes = true, changeType = "type"}
 	},
 	crush = {
 		[0] = {crush = false},
@@ -1432,10 +1449,14 @@ applyGroupConfig(generalizedFloorConfig, 0x6000)
 --#endif
 
 -- Now apply potential changes to the line special mapping
+-- TODO: HARD unfinished!!
 --#ifdef STRIFE
 
 -- WR Exit To Map #Tag/100 Spot #Tag%100
-doom.lineActions[145] = {}
+doom.lineActions[145] = {
+	type = "strife_exit", map = "tag/100", spot = "tag%100",
+	repeatable = false, activationType = "walk"
+}
 
 doom.lineActions[202] = {
 	type = "commmessage", id = "tag",
@@ -1462,5 +1483,38 @@ doom.lineActions[234] = {}
 doom.lineActions[146] = {
 	type = "stair", action = "lower", amount = -16, speed = "fast",
 	repeatable = false, activationType = "switch"
+}
+
+COM_AddCommand("strife_togglequestflag", function(player, flag)
+	if not player or not player.doom then return end
+	doom.questflags = ($ or 0) ^^ (1 << flag)
+end)
+
+-- https://github.com/chocolate-doom/chocolate-doom/blob/master/src/strife/p_doors.c#L1280
+
+doom.lineActions[228] = {
+	type = "justletthedefdothebehaviorlmao_line", fun = function(_, _)
+		if not (doom.questflags & QF_QUEST24) then
+			return end
+
+		if doom.questflags & QF_QUEST28 then
+			S_StartSound(nil, doom.voices["VOC128"])
+		else
+			S_StartSound(nil, doom.voices["VOC130"]) end
+	end, activationType = "walk", repeatable = false
+}
+
+doom.lineActions[200] = {
+	type = "justletthedefdothebehaviorlmao_sector",
+	fun = function(sector, data)
+		if not sector then return end
+		local switcher = data.switcher
+		local player = switcher and switcher.player
+		if not player then return end
+
+		if not player.doom.strife_sigilprogression then return end
+		doom.addThinker(sector, doom.lineActions[4])
+	end,
+	activationType = "walk", repeatable = true
 }
 --#endif

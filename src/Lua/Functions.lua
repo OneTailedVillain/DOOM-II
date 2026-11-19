@@ -1486,7 +1486,7 @@ rawset(_G, "DOOM_SetPSpriteState", function(player, slot, state, frame)
 	end
 
 	psp.tics = resolvedDef.tics or 0
-	doom.runStateAction(player, resolvedDef)
+	doom.runStateAction(player, resolvedDef, slot)
 
 	return true
 end)
@@ -1516,7 +1516,7 @@ rawset(_G, "DOOM_FireWeapon", function(player)
 	end
 
 	if type(curAmmo) != "boolean" then
-		if curAmmo - curWep.shotcost < 0 then return end
+		if curAmmo - curWep.shotcost < 0 then if curWep.states["dp_noammo"] then DOOM_SetState(player, "dp_noammo", 1) end return end
 	end
 
 	local actor = player.mo
@@ -1801,7 +1801,7 @@ rawset(_G, "DOOM_ExitLevel", function()
 		mobj.flags = $ | MF_NOTHINK
 		S_StopSound(mobj)
 	end
-	doom.stopThinker()
+	doom.stopAllThinkers()
 end)
 
 rawset(_G, "DOOM_NextLevel", function()
@@ -2018,9 +2018,10 @@ local st_faces = {
 	"STFDEAD0"
 }
 
-function doom.HUD_drawFace(v, player, xpos, ypos)
+function doom.HUD_drawFace(v, player, xpos, ypos, flags, colormap)
 	if xpos == nil then xpos = 143 end
 	if ypos == nil then ypos = 168 end
+	if flags == nil then flags = V_PERPLAYER|V_SNAPTOBOTTOM end
 	local chardef = P_GetPlayerCharDef(player)
 	local index = player.doom.faceindex + 1
 	if index > #st_faces then index = #st_faces end
@@ -2032,7 +2033,7 @@ function doom.HUD_drawFace(v, player, xpos, ypos)
 	end
 	local prefixmaybe = chardef.faceprefix or ""
 	if patch != nil then
-		v.draw(xpos, ypos, v.cachePatch(prefixmaybe .. patch), V_PERPLAYER|V_SNAPTOBOTTOM)
+		v.draw(xpos, ypos, v.cachePatch(prefixmaybe .. patch), flags, colormap)
 	else
 		print("STATUS FACE INDEX " .. index .. " IS MISSING AN ASSOCIATED TABLE ENTRY! MOD SUCKS PLS FIX")
 	end
@@ -2063,4 +2064,37 @@ function doom.getRemappedAmmoType(player, ammoType)
         return overrides.ammotypes[ammoType]
     end
     return ammoType
+end
+
+function doom.activateHexenSpecial(line, special, activationType, arg0, arg1, arg2, arg3, arg4)
+	if not line or not line.valid then return end
+	if not special then return end
+
+	if activationType == nil then
+		activationType = 0
+	end
+
+	-- flags 10-12 are for activation type, so we need to rip those
+	local activationFlags = line.flags & 0x700
+	if activationFlags != activationType then
+		print("Activation types don't match", activationFlags, activationType)
+		return
+	end
+
+	local specialType = doom.hexenLineActions[special]
+	if not specialType then
+		print("WARNING: Unknown Hexen special:", special)
+		return
+	end
+
+	if not specialType.name then print("NOTICE: Hexen special type has no name:", special) end
+
+	-- Call the Hexen special activation function
+	local success, err = pcall(function()
+		specialType.action(line, special, arg0, arg1, arg2, arg3, arg4)
+	end)
+
+	if not success then
+		print("WARNING: Error activating Hexen special:", err)
+	end
 end

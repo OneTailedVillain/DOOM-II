@@ -19,6 +19,14 @@ from omg import WAD, WadIO, Lump
 from modules.utils import *
 from modules.dehacked_parser import parse_key_value_pairs_from_text, parse_dehacked_structured
 from modules.lua_generator import build_lua_deh_table, build_structured_lua_deh, parse_endoom_and_build_lua
+from modules.map_hashes import (
+	generate_soc_map_names,
+	has_mapinfo_lump,
+	hash_map_data,
+	load_map_name_hashes,
+	parse_dehacked_level_names,
+	resolve_map_names,
+)
 from modules.midi_converter import convert_mus_to_midi
 
 try:
@@ -712,6 +720,16 @@ def process_umapinfo(src_wadio, out_wad, base_templates, external_umapinfo_text=
 	format = 'mapinfo' if umapinfo_lump_name == 'MAPINFO' else 'umapinfo'
 	return process_umapinfo_from_text(umapinfo_text, out_wad, base_templates, format=format)
 
+def add_hash_based_level_names(map_names, out_wad, base_templates):
+	"""Add SOC level-name overrides for maps matched by their map-data hash."""
+	soc_content = generate_soc_map_names(map_names, base_templates)
+	if not soc_content:
+		return 0
+
+	out_wad.data["SOC_MHSH"] = Lump(soc_content.encode("utf-8"))
+	print(f"Added hash-based level names for {len(map_names)} map(s)")
+	return len(map_names)
+
 def _hash_bytes(data: bytes) -> str:
 	return hashlib.sha256(data).hexdigest()
 
@@ -791,64 +809,97 @@ def load_music_definitions(music_def_file=None):
 	
 	return MUSIC_DEFINITIONS
 
-def create_musicdef_lump(endoom_md5, music_lumps, music_def_file=None):
-	"""
-	Create a MUSICDEF lump based on ENDOOM MD5 and available music lumps.
-	
-	Args:
-		endoom_md5 (str): MD5 hash of ENDOOM lump or None if not available
-		music_lumps (list): List of music lump names found in WAD
-		music_def_file (str): Path to external music definitions file
-		
-	Returns:
-		Lump: MUSICDEF lump with music definitions
-	"""
-	# Load music definitions
-	music_defs = load_music_definitions(music_def_file)
-	
-	# Determine which music definition to use
-	if not endoom_md5 or endoom_md5 not in music_defs:
-		active_defs = music_defs.get("default", {})
-		print("Using default music definitions")
-	else:
-		active_defs = music_defs.get(endoom_md5, music_defs.get("default", {}))
-		print(f"Using custom music definitions for ENDOOM MD5: {endoom_md5[:8]}...")
-	
-	# Build MUSICDEF content
-	musicdef_lines = []
-	
-	for lump_name in music_lumps:
-		# Clean lump name (remove "D_" prefix if present, truncate to 6 chars)
-		clean_name = lump_name.upper()
-		if clean_name.startswith("D_"):
-			clean_name = clean_name[2:]
-		
-		# Truncate to 6 characters (standard Doom lump name length)
-		clean_name = clean_name[:6]
-		
-		# Look up definition
-		if clean_name in active_defs:
-			def_data = active_defs[clean_name]
-			musicdef_lines.append(f"Lump {clean_name}")
-			musicdef_lines.append(f"Title = {def_data['Title']}")
-			musicdef_lines.append(f"Authors = {def_data['Authors']}")
-			musicdef_lines.append(f"Soundtestpage = {def_data['Soundtestpage']}")
-			musicdef_lines.append(f"Soundtestcond = {def_data['Soundtestcond']}")
-			musicdef_lines.append(f"BPM = {def_data['BPM']}")
-			musicdef_lines.append("")  # Empty line between entries
-		else:
-			# Create default entry for unknown music lumps
-			musicdef_lines.append(f"Lump {clean_name}")
-			musicdef_lines.append(f"Title = {clean_name}")
-			musicdef_lines.append(f"Authors = Unknown")
-			musicdef_lines.append(f"Soundtestpage = 1")
-			musicdef_lines.append(f"Soundtestcond = 0")
-			musicdef_lines.append(f"BPM = 120")
-			musicdef_lines.append("")
-	
-	# Join lines and create lump
-	musicdef_content = "\n".join(musicdef_lines)
-	return Lump(musicdef_content.encode('utf-8'))
+def hash_mapset(map_digests):
+	"""Generate a SHA-256 hash representing all maps in a mapset."""
+	combined = hashlib.sha256()
+
+	for map_name in sorted(map_digests):
+		combined.update(map_name.upper().encode("ascii"))
+		combined.update(map_digests[map_name].encode("ascii"))
+
+	return combined.hexdigest()
+
+
+def create_musicdef_lump(endoom_md5, music_lumps, music_def_file=None, mapset_hash=None):
+    music_defs = load_music_definitions(music_def_file)
+
+    # Start with default definitions
+    active_defs = music_defs.get("default", {}).copy()
+
+    # Apply ENDOOM-specific definitions
+    if endoom_md5:
+        endoom_key = endoom_md5.lower()
+
+        matching_key = next(
+            (
+                key for key in music_defs
+                if key.lower() == endoom_key
+            ),
+            None
+        )
+
+        if matching_key:
+            active_defs.update(music_defs[matching_key])
+            print(f"Using custom music definitions for ENDOOM MD5: {endoom_md5[:8]}...")
+        else:
+            print(f"DEBUG: ENDOOM MD5 {endoom_md5} not in JSON")
+
+    # Apply mapset-specific definitions
+    if mapset_hash:
+        mapset_key = f"mapset_{mapset_hash.lower()}"
+
+        matching_key = next(
+            (
+                key for key in music_defs
+                if key.lower() == mapset_key
+            ),
+            None
+        )
+
+        if matching_key:
+            active_defs.update(music_defs[matching_key])
+            print(f"Using custom music definitions for mapset: {mapset_hash[:8]}...")
+        else:
+            print(f"DEBUG: mapset hash {mapset_hash} not in JSON")
+
+    if active_defs == music_defs.get("default", {}):
+        print("Using default music definitions")
+
+    # Build MUSICDEF content
+    musicdef_lines = []
+
+    for lump_name in music_lumps:
+        clean_name = lump_name.upper()
+
+        if clean_name.startswith("D_"):
+            clean_name = clean_name[2:]
+
+        clean_name = clean_name[:6]
+
+        def_data = active_defs.get(clean_name)
+
+        if def_data:
+            musicdef_lines.extend([
+                f"Lump {clean_name}",
+                f"Title = {def_data.get('Title', clean_name)}",
+                f"Authors = {def_data.get('Authors', 'Unknown')}",
+                f"Soundtestpage = {def_data.get('Soundtestpage', 1)}",
+                f"Soundtestcond = {def_data.get('Soundtestcond', 0)}",
+                f"BPM = {def_data.get('BPM', 120)}",
+                ""
+            ])
+        else:
+            musicdef_lines.extend([
+                f"Lump {clean_name}",
+                f"Title = {clean_name}",
+                "Authors = Unknown",
+                "Soundtestpage = 1",
+                "Soundtestcond = 0",
+                "BPM = 120",
+                ""
+            ])
+
+    return Lump("\n".join(musicdef_lines).encode("utf-8"))
 
 def get_endoom_md5(src_wadio):
 	"""
@@ -1035,15 +1086,21 @@ def make_cycle_sequence(src_wad, out_wad, prefix, start, end, base_start, base_e
 
 	return created
 
-def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None, engine_mode="doom", external_umapinfo_text=None, external_umapinfo_format=None):
+def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_def_file=None, engine_mode="doom", external_umapinfo_text=None, external_umapinfo_format=None, external_umapinfo_present=False):
 	"""
 	Convert ExMx map names into MAPnn in out_wad.maps and copy D_E* lumps.
 	Also convert MUS lumps to MIDI.
 	"""
 	ex_pattern = re.compile(r"^E(\d)M(\d{1,2})$", re.IGNORECASE)
 	src_map_names = list(src_wad.maps.keys())
+	map_digests = {
+		map_name: hash_map_data(src_wad.maps[map_name])
+		for map_name in src_map_names
+	}
 	src_wadio = WadIO(src_path)
-	process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data, engine_mode=engine_mode)
+	deh_level_names = process_special_lumps(
+		src_wad, out_wad, src_wadio, external_deh_data, engine_mode=engine_mode
+	)
 	ex_to_new_map = {}
 
 	for oldname in src_map_names:
@@ -1058,8 +1115,8 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_
 		target_num = mapnum
 		
 		print(f"Converting {oldname} -> {target_name}")
-
 		out_wad.maps[target_name] = src_wad.maps[oldname].copy()
+		map_digests[target_name] = map_digests.pop(oldname)
 		if oldname in out_wad.maps:
 			try:
 				del out_wad.maps[oldname]
@@ -1087,12 +1144,28 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_
 	# Create MUSICDEF lump
 	if music_lumps:
 		endoom_md5 = get_endoom_md5(src_wadio)
-		musicdef_lump = create_musicdef_lump(endoom_md5, music_lumps, music_def_file)
+
+		# Generate one hash for the entire mapset
+		mapset_hash = hash_mapset(map_digests)
+
+		musicdef_lump = create_musicdef_lump(
+			endoom_md5,
+			music_lumps,
+			music_def_file,
+			mapset_hash=mapset_hash
+		)
+
 		out_wad.data["MUSICDEF"] = musicdef_lump
 		print(f"Created MUSICDEF lump with {len(music_lumps)} entries")
+		print(f"Mapset SHA-256: {mapset_hash}")
 
 	# Load base SOC templates
 	base_templates = parse_soc_templates(DOOM2_SOC_TEXT)
+	has_mapinfo = (
+		external_umapinfo_text is not None
+		or external_umapinfo_present
+		or has_mapinfo_lump(src_wadio)
+	)
 	process_umapinfo(
 		src_wadio,
 		out_wad,
@@ -1100,6 +1173,11 @@ def convert_exmx_maps(src_wad, out_wad, src_path, external_deh_data=None, music_
 		external_umapinfo_text=external_umapinfo_text,
 		external_umapinfo_format=external_umapinfo_format,
 	)
+	if not has_mapinfo:
+		map_hash_names = resolve_map_names(map_digests, load_map_name_hashes())
+		for level_num, title in deh_level_names.items():
+			map_hash_names.setdefault(f"MAP{level_num:02d}", title)
+		add_hash_based_level_names(map_hash_names, out_wad, base_templates)
 
 	return len(ex_to_new_map)
 
@@ -1439,6 +1517,7 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None, e
 	Iterate source lumps and produce additional helper lumps for the PWAD.
 	"""
 	deh_mapping = {}
+	deh_level_names = {}
 	src_data = getattr(src_wad, "data", {})
 
 	demo_lumps = [
@@ -1555,6 +1634,9 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None, e
 					for mode, entries in structured_deh.items():
 						if mode not in combined_structured_deh:
 							combined_structured_deh[mode] = []
+						if mode.upper() == "TEXT":
+							combined_structured_deh[mode].extend(entries)
+							continue
 						existing_ids = {entry['id'] for entry in combined_structured_deh[mode] if entry['id'] is not None}
 						for entry in entries:
 							if entry['id'] is not None and entry['id'] in existing_ids:
@@ -1567,6 +1649,7 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None, e
 				print(f"Failed to parse {name} as structured DEHACKED: {e}")
 		
 		if combined_structured_deh:
+			deh_level_names = parse_dehacked_level_names(combined_structured_deh)
 			lua_deh = build_structured_lua_deh(combined_structured_deh)
 			out_wad.data["LUA_DEH"] = Lump(lua_deh)
 			print(f"Wrote combined LUA_DEH from {len(all_external_deh)} DEH/BEX sources")
@@ -1623,6 +1706,8 @@ def process_special_lumps(src_wad, out_wad, src_wadio, external_deh_data=None, e
 					if new_name:
 						out_wad.sounds[new_name] = lump_data
 						print(f"Renamed {lump_name} -> {new_name}")
+
+	return deh_level_names
 
 def parse_switches_lump(switches_data):
 	"""
@@ -1956,6 +2041,15 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 		"GIBD": "W",
 	}
 
+	strife_mapping = {
+		"STND": "A",
+		"WALK": "BCD",
+		"FIRE": "E",
+		"FLSH": "F",
+		"DYIN": "GHIJKLMNOP",
+		"PAIN": "Q"
+	}
+
 	srb2_mapping = {
 		"STND": "A",
 		"WAIT": "BC",
@@ -1984,15 +2078,9 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 				expanded[state_name] = frames
 		return expanded
 
-	frame_mapping = expand_mapping(srb2_mapping if usesrb2conventions else default_mapping)
-
-	validframes_default = 'ABCDEFGHIJKLMNOPQRSTUVW'
-	validframes_srb2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ab'
-
-	validframes = validframes_srb2 if usesrb2conventions else validframes_default
-
 	# Gather all PLAY lumps
 	play_lumps = {}
+
 	def is_valid_play_lump(name):
 		return (
 			name != "PLAYPAL"
@@ -2013,6 +2101,11 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 		angles = ''.join(p[1] for p in pairs)
 		return frame, angles
 
+	# These need to be defined before is_valid_play_lump() is used.
+	validframes_default = 'ABCDEFGHIJKLMNOPQRSTUVW'
+	validframes_srb2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ab'
+	validframes = validframes_srb2 if usesrb2conventions else validframes_default
+
 	for lump_name, lump in {**src_wad.data, **getattr(src_wad, 'sprites', {})}.items():
 		if is_valid_play_lump(lump_name):
 			play_lumps[lump_name] = lump
@@ -2021,6 +2114,34 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	if not play_lumps:
 		print("No valid PLAY lumps found in source WAD")
 		return 0
+
+	# Detect the Strife-style PLAY layout.
+	#
+	# Require every PLAYQ1-PLAYQ8 lump to exist, while
+	# requiring that no PLAYR* lump exists.
+	has_all_strife_pain = all(
+		f"PLAYQ{angle}" in play_lumps
+		for angle in "12345678"
+	)
+
+	has_playr = any(
+		name.startswith("PLAYR")
+		for name in play_lumps
+	)
+
+	is_strife_layout = (
+		not usesrb2conventions
+		and has_all_strife_pain
+		and not has_playr
+	)
+
+	if is_strife_layout:
+		print("Detected Strife-style PLAY sprite layout")
+		frame_mapping = expand_mapping(strife_mapping)
+	else:
+		frame_mapping = expand_mapping(
+			srb2_mapping if usesrb2conventions else default_mapping
+		)
 
 	valid_angle_sets = [
 		set("0"),
@@ -2039,7 +2160,6 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 		pairs = [suffix[i:i+2] for i in range(0, len(suffix), 2)]
 
 		frame = pairs[0][0]
-
 		angles = ''.join(p[1] for p in pairs)
 
 		base_name = "PLAY" + frame
@@ -2057,16 +2177,21 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 		angles_found_str = ''.join(sorted(angles_found))
 		if not any(all(c in s for c in angles_found_str) for s in valid_angle_sets):
 			if not suppresserrors:
-				raise ValueError(f"Incomplete or inconsistent angles for {base_name}: found {angles_found_str}")
+				raise ValueError(
+					f"Incomplete or inconsistent angles for {base_name}: "
+					f"found {angles_found_str}"
+				)
 
 	created_count = 0
 
 	def process_condensed_name(source_name, play_frame, output_frame, state_name):
 		suffix = source_name[4:]
 		chars = list(suffix)
+
 		for i in range(0, len(chars), 2):
 			if i < len(chars) and chars[i] == play_frame:
 				chars[i] = output_frame
+
 		new_suffix = ''.join(chars)
 		return f"{state_name}{new_suffix}"
 
@@ -2074,24 +2199,35 @@ def create_player_sprites_from_play_lumps(src_wad, out_wad, skin_name="johndoom"
 	for state_name, frame_pairs in frame_mapping.items():
 		for play_frame, output_frame in frame_pairs:
 			base_play_name = f"PLAY{play_frame}"
-			matching_lumps = [name for name in play_lumps if name.startswith(base_play_name)]
+			matching_lumps = [
+				name for name in play_lumps
+				if name.startswith(base_play_name)
+			]
 
 			if not matching_lumps:
 				if not suppresserrors:
-					raise ValueError(f"Missing PLAY lump for frame '{play_frame}' required by state '{state_name}'")
+					raise ValueError(
+						f"Missing PLAY lump for frame '{play_frame}' "
+						f"required by state '{state_name}'"
+					)
 
 			for source_lump_name in matching_lumps:
 				output_lump_name = process_condensed_name(
-					source_lump_name, play_frame, output_frame, state_name
+					source_lump_name,
+					play_frame,
+					output_frame,
+					state_name
 				).upper()
-				out_wad.data[output_lump_name] = play_lumps[source_lump_name].copy()
+
+				out_wad.data[output_lump_name] = (
+					play_lumps[source_lump_name].copy()
+				)
+
 				print(f"Created {output_lump_name} from {source_lump_name}")
 				created_count += 1
 
 	print(f"Created {created_count} player sprite lumps from PLAY lumps")
 	return created_count
-
-import hashlib
 
 # Hash -> folder name
 KNOWN_STCFN_HASHES = {

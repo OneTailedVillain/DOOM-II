@@ -9,9 +9,9 @@ end
 --#ifdef HERETIC
 --#meta name Heretic
 --#meta forwho Heretic
---#meta skipwad
 --#ignorefile SOC/SOC_STRF
 --#ignoredir TSoURDt3rd/Strife
+--#meta basewad HERETIC1.WAD
 doom.currentGame = "heretic"
 doom.startingMeleeWeapon = "staff"
 doom.noIwadChecks = function(v)
@@ -55,6 +55,7 @@ end
 dofile("Globals.lua")
 dofile("Freeslots.lua")
 dofile("Specials.lua")
+dofile("HexenSpecials.lua")
 dofile("Colors.lua")
 
 function doom.resolvePlayerAndMobj(target)

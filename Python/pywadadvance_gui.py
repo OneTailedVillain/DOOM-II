@@ -413,6 +413,32 @@ class WadAdvanceGUI(QMainWindow):
         optional_layout.addWidget(srb2_ver_group)
         
         layout.addWidget(optional_group)
+
+        # Level select renders (MAPxxP 160x100 / MAPxxW 564x100)
+        levelselect_group = QGroupBox("Level Select Renders")
+        levelselect_layout = QVBoxLayout(levelselect_group)
+
+        self.levelselect_cb = QCheckBox("Render level select images (MAPxxP 160x100, MAPxxW 564x100)")
+        self.levelselect_cb.setChecked(True)
+        levelselect_layout.addWidget(self.levelselect_cb)
+
+        levelselect_iwad_layout = QHBoxLayout()
+        levelselect_iwad_label = QLabel("IWAD:")
+        self.levelselect_iwad_edit = QLineEdit()
+        self.levelselect_iwad_edit.setPlaceholderText(
+            "Optional: IWAD for textures/palette (auto-detected next to the source if empty)")
+        self.levelselect_iwad_browse_btn = QPushButton("Browse...")
+        self.levelselect_iwad_browse_btn.clicked.connect(self.browse_levelselect_iwad)
+        levelselect_iwad_layout.addWidget(levelselect_iwad_label)
+        levelselect_iwad_layout.addWidget(self.levelselect_iwad_edit)
+        levelselect_iwad_layout.addWidget(self.levelselect_iwad_browse_btn)
+        levelselect_layout.addLayout(levelselect_iwad_layout)
+
+        # IWAD field only matters while rendering is enabled
+        self.levelselect_cb.toggled.connect(self.levelselect_iwad_edit.setEnabled)
+        self.levelselect_cb.toggled.connect(self.levelselect_iwad_browse_btn.setEnabled)
+
+        layout.addWidget(levelselect_group)
         
         # PK3 Options
         pk3_group = QGroupBox("PK3 Options")
@@ -651,6 +677,16 @@ class WadAdvanceGUI(QMainWindow):
             QMessageBox.critical(self, "Error", error_msg)
             self.status_label.setText("Failed to launch SRB2")
   
+    def browse_levelselect_iwad(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select IWAD for Level Select Renders",
+            self.levelselect_iwad_edit.text() or "",
+            "WAD Files (*.wad *.WAD);;All Files (*)"
+        )
+        if file_path:
+            self.levelselect_iwad_edit.setText(file_path)
+
     def browse_fallback_wad(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -679,7 +715,9 @@ class WadAdvanceGUI(QMainWindow):
             'auto_pk3': self.auto_pk3_cb.isChecked(),
             'stcfn_uppercase_to_lowercase': self.stcfn_uppercase_to_lowercase_cb.isChecked(),
             'suppress_pskin_errors': self.suppress_pskin_errors_cb.isChecked(),
-            'use_srb2_conventions': self.use_srb2_playerconventions_cb.isChecked()
+            'use_srb2_conventions': self.use_srb2_playerconventions_cb.isChecked(),
+            'levelselect_renders': self.levelselect_cb.isChecked(),
+            'levelselect_iwad': self.levelselect_iwad_edit.text().strip() or None
         }
     
     def reset_options(self):
@@ -695,6 +733,8 @@ class WadAdvanceGUI(QMainWindow):
         self.auto_pk3_cb.setChecked(True)
         self.stcfn_uppercase_to_lowercase_cb.setChecked(True)
         self.suppress_pskin_errors_cb.setChecked(False)
+        self.levelselect_cb.setChecked(True)
+        self.levelselect_iwad_edit.clear()
 
     def start_conversion(self):
         if not CORE_AVAILABLE:

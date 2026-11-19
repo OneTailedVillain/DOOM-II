@@ -16,6 +16,7 @@ SafeFreeSlot("SPR_SKEL",
 "sfx_skesit",
 "sfx_skeact",
 "sfx_skedth",
+"sfx_skeatk",
 "sfx_skeswg",
 "sfx_skepch")
 local name = "Revenant"
@@ -116,7 +117,7 @@ local states = {
 	},
 	missile = {
 		{action = A_DoomFaceTarget, frame = J|FF_FULLBRIGHT, tics = 0},
-		{action = A_DoomFaceTarget, frame = J|FF_FULLBRIGHT, tics = 10, var1 = 0, var2 = 2},
+		{action = A_DoomFaceTarget, frame = J|FF_FULLBRIGHT, tics = 10},
 		{action = A_SkelMissile,    frame = K, tics = 8},
 		{action = A_DoomFaceTarget, frame = K, tics = 8, next = "chase"},
 	},

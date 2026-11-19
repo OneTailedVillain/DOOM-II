@@ -50,7 +50,7 @@ local states = {
 	},
 	missile = {
 		{action = A_DoomFaceTarget, frame = E, tics = 10},
-		{action = A_DoomFire, frame = F|FF_FULLBRIGHT, tics = 8, var1 = 0, var2 = 2},
+		{action = A_DoomSPosAttack, frame = F|FF_FULLBRIGHT, tics = 8},
 		{action = nil, frame = E, tics = 8, next = "chase"},
 	},
 	pain = {

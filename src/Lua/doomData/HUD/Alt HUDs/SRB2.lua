@@ -30,6 +30,8 @@ local srb2hud = {
 		if ammo != false then
 			-- FIXME: SRB2 SIGSEGVs whenever we cache a patch like SBOAMMO1?? Reserving the patch doesn't fix it
 			-- Weirder is that the other SBO patches don't do this??
+			-- UPDATE: Quake patches. What the hell even is that?
+			--  Why did Doom Legacy bother to support that, much less make it a part of their HUD assets? Now I need to make the converter supportive of them
 			local funcs = P_GetMethodsForSkin(player)
 			local myWep = doom.weapons[weapon]
 			local myAmmoType = myWep.ammotype

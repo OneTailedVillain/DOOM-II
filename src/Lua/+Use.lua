@@ -203,6 +203,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 	-- Strife port needs this for the "message" thinker
 	-- Should be otherwise harmless to include
 	whatIs.triggerer = ray.target
+	whatIs.tag = usedLine.tag
 
 	if whatIs.activationType == "switch" then
 		if whatIs.type == "exit" then
@@ -227,7 +228,7 @@ rawset(_G, "DOOM_HandleUseRayHit", function(ray, usedLine)
 			denyMessage = whatIs.denyMessage,
 			onSound = whatIs.onSound,
 			offSound = whatIs.offSound,
-			delay = whatIs.delay,
+			delay = whatIs.buttondelay,
 			-- Exit-specific shit
 			willExit = whatIs.type == "exit",
 			exitSecret = whatIs.secret,
@@ -249,6 +250,22 @@ end)
 rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, silent, dontkill)
     local interacted = true -- we hit a line at least
     local activated = false
+
+    if doom.hexen_linespecials and doom.hexen_linespecials[usedLine] then
+        local interacted = false
+        local activated = false
+	
+		local special = doom.hexen_linespecials[usedLine]
+		-- activationtype is in flags 10 thru 12
+		local activation = usedLine.flags >> 10 & 7
+
+		if activation != HXL_USE then return interacted, activated end
+
+        interacted = true
+        activated = true
+        doom.activateHexenSpecial(usedLine, doom.hexen_linespecials[usedLine], HXL_USE, doom.hexen_lineargs[1], doom.hexen_lineargs[2], doom.hexen_lineargs[3], doom.hexen_lineargs[4], doom.hexen_lineargs[5], mobj)
+        return interacted, activated
+    end
 
     local lineSpecial = doom.linespecials[usedLine]
     if not lineSpecial then
@@ -277,19 +294,47 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         return false, false
     end
 
+    if useType == "switch" then
+        local at = whatIs.activationType
+        local user = ray.target
+        if at == "switch" then
+            if user and user.valid and P_PointOnLineSide(user.x, user.y, usedLine) == 1 then
+                if not dontkill then
+                    P_KillMobj(ray)
+                end
+                return interacted, false
+            end
+        elseif at == "walk" or at == "gunshot" then
+            if not dontkill then
+                P_KillMobj(ray)
+            end
+            return interacted, false
+        end
+    end
+
     -- Correct interactable, wrong activation type
     if whatIs.activationType != useType then
         return false, false
     end
 
+    if useType == "gunshot" then
+        local shooter = ray.target
+        local byPlayer = shooter and shooter.valid and shooter.player
+        if not byPlayer and not whatIs.monsters then
+            return false, false
+        end
+    end
+
     -- From this point on, activation WILL happen
     activated = true
+
+    whatIs.tag = usedLine.tag
 
     local targSide = usedLine.sidenum[0]
     if sides[targSide] then
         local sector = sides[targSide].sector
         whatIs.newfloorpic = sector.floorpic
-        whatIs.newceilpic  = sector.ceilpic
+        whatIs.newceilpic  = sector.ceilingpic
         whatIs.newSectorSpecial = sector.special
     end
 
@@ -323,7 +368,7 @@ rawset(_G, "DOOM_UseRaycastInteractionChecks", function(ray, usedLine, useType, 
         denyMessage = whatIs.denyMessage,
         onSound = whatIs.onSound,
         offSound = whatIs.offSound,
-        delay = whatIs.delay,
+        delay = whatIs.buttondelay,
 		-- Exit-specific shit
         willExit = whatIs.type == "exit",
         exitSecret = whatIs.secret,
@@ -416,22 +461,25 @@ local function P_SpawnBlood(x, y, z, damage)
 end
 
 local function P_SpawnPuff(x, y, z, attackrange)
-	local th
+    doom.attackrange = attackrange
+	z = z + (P_RandomByte() - P_RandomByte()) * 1024
 
-	z = $ + (DOOM_Random()-DOOM_Random()) << 10
+	local puff = P_SpawnMobj(x, y, z, MT_DOOM_BULLETPUFF)
+	if not (puff and puff.valid) then return end
 
-	th = P_SpawnMobj(x, y, z, MT_DOOM_BULLETPUFF)
-	th.momz = FRACUNIT
-	th.tics = $ - (DOOM_Random() - 3)
-
-	if th.tics < 1 then
-		th.tics = 1
+	if doom.attackrange ~= nil and doom.attackrange == MELEERANGE then
+		puff.state = S_DOOM_BPUFF_PUFF3
+	else
+		puff.state = S_DOOM_BPUFF_PUFF1
 	end
 
-	if attackrange == MELEERANGE then
-		th.state = S_DOOM_BPUFF_PUFF2
-	end
+	puff.momz = FRACUNIT
+	puff.tics = puff.tics - (P_RandomByte() & 3)
+	if puff.tics < 1 then puff.tics = 1 end
+
+	return puff
 end
+
 
 local function BulletHitObject_Simple(tmthing, thing)
     if tmthing.hitenemy then return false end
@@ -511,17 +559,21 @@ local function Clamp(val, min, max)
     return val
 end
 
-rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs, shootmobj, shootflags2, shootfuse, firefunc, hitsound)
-    if not (source and source.valid) then return end
+rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets, min, max, incs, shootmobj, shootflags2, shootfuse, firefunc, hitsound, angoffset, aimoffset)
+    if not (source and source.valid) then return {} end
+    angoffset = $ or 0
+    aimoffset = $ or 0
 
     -- normalize arguments
     dist        = dist        or MISSILERANGE
-	if horizspread == nil then
-		horizspread = 0
-	end
+    if horizspread == nil then
+        horizspread = 0
+    end
 
     vertspread  = vertspread  or 0
     pellets     = pellets     or 1
+
+    local projectiles = {}
 
     local shooter, player = nil, nil
 
@@ -541,44 +593,45 @@ rawset(_G, "DOOM_Fire", function(source, dist, horizspread, vertspread, pellets,
 
     local offset = shooter.height >> 1
     local zoff = 8*FRACUNIT
-	local curwepdef
-	if player then
-		curwepdef = DOOM_GetWeaponDef(player)
-	end
+    local curwepdef
+
+    if player then
+        curwepdef = DOOM_GetWeaponDef(player)
+    end
 
     for i = 1, pellets do
-		local angle = shooter.angle
-		local pitch = player and player.aiming or 0
+        local angle = shooter.angle + angoffset
+        local pitch = (player and player.aiming or 0) + aimoffset
 
-		local hspr = 0
-		local vspr = 0
+        local hspr = 0
+        local vspr = 0
 
-		if type(horizspread) == "boolean" then
-			if not horizspread then
-				local difference = (DOOM_Random()-DOOM_Random()) << 18
-				hspr = AngleFixed(difference)
-				angle = $ + difference
-			end
-		else
-			hspr = FixedMul(P_RandomFixed() - FRACUNIT/2, horizspread*2)
-			angle = $ + FixedAngle(hspr)
-		end
+        if type(horizspread) == "boolean" then
+            if not horizspread then
+                local difference = (DOOM_Random()-DOOM_Random()) << 18
+                hspr = AngleFixed(difference)
+                angle = $ + difference
+            end
+        else
+            hspr = FixedMul(P_RandomFixed() - FRACUNIT/2, horizspread*2)
+            angle = $ + FixedAngle(hspr)
+        end
 
-		if player then
-			if type(vertspread) == "boolean" then
-				if not vertspread then
-					local difference = (DOOM_Random()-DOOM_Random()) << 18
-					vspr = AngleFixed(difference)
-					pitch = $ + difference
-				end
-			else
-				vspr = FixedMul(P_RandomFixed() - FRACUNIT/2, vertspread*2)
-				pitch = $ + FixedAngle(vspr)
-			end
-end
+        if player then
+            if type(vertspread) == "boolean" then
+                if not vertspread then
+                    local difference = (DOOM_Random()-DOOM_Random()) << 18
+                    vspr = AngleFixed(difference)
+                    pitch = $ + difference
+                end
+            else
+                vspr = FixedMul(P_RandomFixed() - FRACUNIT/2, vertspread*2)
+                pitch = $ + FixedAngle(vspr)
+            end
+        end
 
         if not player then
-            local dest = source.target
+            local dest = source.target or source
             local shootz  = source.z + (source.height >> 1) + 8*FRACUNIT
             local targetz = dest.z + (dest.height >> 1)
 
@@ -593,7 +646,7 @@ end
 
             slope = Clamp(slope, bottomslope, topslope)
 
-            pitch = slope  -- approximation
+            pitch = slope
         end
 
         local spawnz = FixedMul(shooter.height - offset, shooter.scale) + zoff
@@ -602,50 +655,70 @@ end
             spawnz = FixedMul(offset, shooter.scale) - zoff
         end
 
-        local bullet = P_SpawnMobjFromMobj(shooter, 0, 0, spawnz, shootmobj or MT_DOOM_BULLETRAYCAST)
+        local bullet = P_SpawnMobjFromMobj(
+            shooter, 0, 0, spawnz,
+            shootmobj or MT_DOOM_BULLETRAYCAST
+        )
 
         if bullet and bullet.valid then
             bullet.flags2 = shootflags2 or 0
+
             local speed = mobjinfo[bullet.type].speed
+
             bullet.momx = FixedMul(FixedMul(speed, cos(angle)), cos(pitch))
             bullet.momy = FixedMul(FixedMul(speed, sin(angle)), cos(pitch))
             bullet.momz = FixedMul(speed, sin(pitch))
             bullet.angle = angle
-			S_StartSound(bullet, bullet.info.seesound)
+
+            S_StartSound(bullet, bullet.info.seesound)
 
             local divisor = incs or min
-            bullet.doom = $ or {}
-            bullet.doom.damage = min != max and ((DOOM_Random() % (max / divisor) + 1) * divisor) or max
-			bullet.doom.preferselfdamage = true
-			bullet.doom.hitsound = hitsound
 
-			if curwepdef then
-				bullet.doom.shooteranglesnapbehavior = curwepdef.anglesnapbehavior
-				bullet.doom.hitaction = curwepdef.hitaction
-				bullet.doom.missaction = curwepdef.missaction
-			end
+            bullet.doom = $ or {}
+            bullet.doom.pitch = pitch
+            bullet.doom.missileIsRipper = mobjinfo[bullet.type].doom_ripper or false
+            bullet.doom.damage = min != max
+                and ((DOOM_Random() % (max / divisor) + 1) * divisor)
+                or max
+
+            bullet.doom.preferselfdamage = true
+            bullet.doom.hitsound = hitsound
+
+            if curwepdef then
+                bullet.doom.shooteranglesnapbehavior = curwepdef.anglesnapbehavior
+                bullet.doom.hitaction = curwepdef.hitaction
+                bullet.doom.missaction = curwepdef.missaction
+            end
 
             bullet.scale   = shooter.scale
             bullet.target  = shooter
             bullet.shooter = shooter
             bullet.dist    = dist
-			bullet.fuse    = shootfuse or 0
+            bullet.fuse    = shootfuse or 0
 
-			if firefunc then
-				if type(firefunc) != "function" then error("firefunc field should be of type 'function'!") end
-				firefunc(shooter and shooter.player or shooter, bullet)
-			end
+            if firefunc then
+                if type(firefunc) != "function" then
+                    error("firefunc field should be of type 'function'!")
+                end
+
+                firefunc(shooter and shooter.player or shooter, bullet)
+            end
 
             -- raycast cleanup
-			if bullet.type == MT_DOOM_BULLETRAYCAST then
-				DOOM_GenericRaycast(bullet, {
-					maxdist = dist,
-					onfinish = function(ray, hit)
-						if not (ray and ray.valid) then return end
-						P_KillMobj(ray)
-					end
-				})
-			end
+            if bullet.type == MT_DOOM_BULLETRAYCAST then
+                DOOM_GenericRaycast(bullet, {
+                    maxdist = dist,
+                    onfinish = function(ray, hit)
+                        if not (ray and ray.valid) then return end
+                        P_KillMobj(ray)
+                    end
+                })
+            end
+
+            -- Add successfully spawned pellet to the return array.
+            projectiles[#projectiles + 1] = bullet
         end
     end
+
+    return projectiles
 end)

@@ -41,18 +41,22 @@ def _read_wad_lump_names(source_path):
         return []
 
 
+
 def detect_engine_mode(source_path, force_engine=None):
-    """Detect whether a WAD should be processed with the Strife pipeline.
+    """Detect which engine should process a WAD.
 
     Order of precedence:
-    1. explicit force_engine value ("strife" or "doom")
-    2. content-based detection from known Strife lumps and markers
+    1. explicit force_engine value
+    2. content-based detection from known engine markers
     3. default to Doom
     """
     if force_engine:
         normalized = str(force_engine).strip().lower()
+
         if normalized in {"strife", "strife-engine", "strife_engine"}:
             return "strife"
+        if normalized in {"heretic", "heretic-engine", "heretic_engine"}:
+            return "heretic"
         if normalized in {"doom", "doom2", "srb2", "default", "auto"}:
             return "doom"
 
@@ -71,13 +75,31 @@ def detect_engine_mode(source_path, force_engine=None):
         return "doom"
 
     normalized_names = [name.upper() for name in lump_names]
-    strife_markers = [
+
+    strife_markers = {
         "SCRIPT00",
         "ENDSTRF",
-    ]
+    }
 
-    for marker in strife_markers:
-        if any(marker in name for name in normalized_names):
-            return "strife"
+    heretic_markers = {
+        "M_HTIC",
+        "M_GAUNT",
+        "M_WAND",
+        "M_MACE",
+        "M_CBOW",
+        "M_GOLD",
+        "M_SKL00",
+    }
+
+    if any(
+        marker in name
+        for marker in strife_markers
+        for name in normalized_names
+    ):
+        return "strife"
+
+    if any(name in heretic_markers for name in normalized_names):
+        return "heretic"
 
     return "doom"
+

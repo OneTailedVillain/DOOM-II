@@ -13,10 +13,12 @@ from modules.wad_processor import (
 	parse_soc_templates, DOOM2_SOC_TEXT, generate_soc_patch,
 	append_stcfn_uppercase_to_lowercase
 )
+from modules.map_hashes import get_hash_based_map_names, generate_soc_map_names, has_mapinfo_lump
 from modules.utils import CUTSCENE_GRAPHICS
 from modules.umapinfo_processor import MAPINFOProcessor
 from omg import WAD
 import glob
+from modules import doomrender
 
 def extract_stcfn_lumps(wad, graphics_dir):
 	"""Extract all STCFN lumps from wad.graphics to graphics_dir as .lmp files,
@@ -46,8 +48,109 @@ def extract_stcfn_lumps(wad, graphics_dir):
 		# Remove from WAD
 		del wad.graphics[name]
 
-def process_pk3_file(src_pk3_path, out_pk3_path):
+# Directories whose loose, raw Doom-format lumps can feed the level renderer
+_RENDER_RESOURCE_DIRS = {'.', 'flats', 'sprites', 'patches', 'textures', 'colormaps', 'graphics'}
+
+def _pk3_loose_resources_wad(temp_dir):
+	"""Gather loose lumps (flats, sprites, patches, PLAYPAL, TEXTURE1, ...) from an
+	extracted PK3 into an in-memory WAD for the level renderer. PNG/other formats are
+	ignored. Returns a doomrender.Wad or None."""
+	other, flats, sprites = [], [], []
+	for root, dirs, files in os.walk(temp_dir):
+		rel_root = os.path.relpath(root, temp_dir).replace('\\', '/').lower()
+		top = rel_root.split('/')[0]
+		if top not in _RENDER_RESOURCE_DIRS:
+			continue
+		for file in sorted(files):
+			stem, ext = os.path.splitext(file)
+			if ext.lower() not in ('', '.lmp') or not stem or len(stem) > 8:
+				continue
+			try:
+				with open(os.path.join(root, file), 'rb') as f:
+					data = f.read()
+			except OSError:
+				continue
+			entry = (stem.upper(), data)
+			if top == 'flats':
+				flats.append(entry)
+			elif top == 'sprites':
+				sprites.append(entry)
+			else:
+				other.append(entry)
+	if not (other or flats or sprites):
+		return None
+	lumps = list(other)
+	if flats:
+		lumps += [('F_START', b'')] + flats + [('F_END', b'')]
+	if sprites:
+		lumps += [('S_START', b'')] + sprites + [('S_END', b'')]
+	return doomrender.Wad(doomrender.build_wad_bytes(lumps), name='<pk3 loose lumps>')
+
+def render_pk3_level_selects(temp_dir, map_wads, resource_wad_paths, graphics_dir,
+							 src_pk3_path, iwad_path=None, skill=3):
+	"""Render MAPxxP (160x100) and MAPxxW (564x100) level select pictures for every
+	map WAD found in the PK3's Maps/ folder and write them to Graphics/ as .lmp files.
+
+	map_wads: [(map_name, path)]; resource_wad_paths: nested non-map WADs in the PK3.
+	Returns the number of files written.
+	"""
+	wads = []
+	iwad = doomrender.resolve_iwad(iwad_path, src_pk3_path, None, log=print)
+	if iwad is not None:
+		wads.append(iwad)
+	for path in sorted(resource_wad_paths):
+		try:
+			wads.append(doomrender.Wad(path))
+		except Exception as e:
+			print(f"  Skipping resource WAD {os.path.basename(path)} for renders: {e}")
+	loose = _pk3_loose_resources_wad(temp_dir)
+	if loose is not None:
+		wads.append(loose)
+
+	try:
+		res = doomrender.Resources(wads)
+	except doomrender.RenderError as e:
+		print(f"  Level select renders skipped: {e}")
+		return 0
+
+	# Don't clobber pictures the PK3 already ships
+	existing = set()
+	for root, dirs, files in os.walk(temp_dir):
+		for file in files:
+			existing.add(Path(file).stem.upper())
+
+	written = 0
+	for map_name, path in sorted(map_wads):
+		try:
+			map_wad = doomrender.Wad(path)
+		except Exception as e:
+			print(f"  {map_name}: could not read map WAD for render ({e})")
+			continue
+		headers = map_wad.level_headers()
+		if not headers:
+			print(f"  {map_name}: no binary-format map found, level select render skipped")
+			continue
+		# A single-map WAD is named after its file (MAP01.wad -> MAP01P / MAP01W)
+		base_names = {headers[0].upper(): map_name} if len(headers) == 1 else None
+		images = doomrender.render_level_select_images(
+			res, map_wad, headers, skill=skill, base_names=base_names, log=print
+		)
+		for lump_name, data in images.items():
+			if lump_name.upper() in existing:
+				print(f"  {lump_name} already exists in the PK3, keeping the original")
+				continue
+			os.makedirs(graphics_dir, exist_ok=True)
+			with open(os.path.join(graphics_dir, f"{lump_name}.lmp"), 'wb') as f:
+				f.write(data)
+			existing.add(lump_name.upper())
+			written += 1
+			print(f"  Wrote Graphics/{lump_name}.lmp")
+	return written
+
+def process_pk3_file(src_pk3_path, out_pk3_path, options=None):
 	"""Process a PK3 file with WAD-like operations and Lua generation."""
+	if options is None:
+		options = {}
 	print(f"Processing PK3: {src_pk3_path}")
 	
 	with tempfile.TemporaryDirectory() as temp_dir:
@@ -55,15 +158,19 @@ def process_pk3_file(src_pk3_path, out_pk3_path):
 			zip_ref.extractall(temp_dir)
 		
 		wad_files_processed = 0
+		pk3_map_wads = []        # (map name, path) of Maps/*.wad
+		pk3_resource_wads = []   # nested non-map WADs (textures, sprites, ...)
 		lua_content_lines = []
 		soc_content_lines = []
 		external_umapinfo_text = None
 		external_umapinfo_format = None
+		has_external_mapinfo = False
 
 		for root, dirs, files in os.walk(temp_dir):
 			for file in files:
 				stem = Path(file).stem.upper()
 				if stem in ("UMAPINFO", "MAPINFO") and external_umapinfo_text is None:
+					has_external_mapinfo = True
 					file_path = os.path.join(root, file)
 					try:
 						raw_bytes = open(file_path, 'rb').read()
@@ -121,6 +228,13 @@ def process_pk3_file(src_pk3_path, out_pk3_path):
 
 							print(f"	Treating {file} as map {map_name}")
 
+							if not has_external_mapinfo and not has_mapinfo_lump(wad):
+								map_names = get_hash_based_map_names(wad)
+								soc_content = generate_soc_map_names(map_names, base_templates)
+								if soc_content:
+									soc_content_lines.append(soc_content)
+									print(f"  Added hash-based level names for {len(map_names)} map(s)")
+
 							patch_linedefs_add(wad, 941)
 							print("\tPatched linedef specials (+941)")
 
@@ -135,7 +249,8 @@ def process_pk3_file(src_pk3_path, out_pk3_path):
 							converted = convert_exmx_maps(
 								wad,
 								wad,
-								file_path
+								file_path,
+								external_umapinfo_present=has_external_mapinfo,
 							)
 							if converted > 0:
 								print(f"\tConverted {converted} ExMx maps")
@@ -148,6 +263,10 @@ def process_pk3_file(src_pk3_path, out_pk3_path):
 
 						wad.to_file(file_path)
 						wad_files_processed += 1
+						if is_pk3_map:
+							pk3_map_wads.append((Path(file).stem.upper(), file_path))
+						else:
+							pk3_resource_wads.append(file_path)
 
 					except Exception as e:
 						import traceback
@@ -191,6 +310,20 @@ def process_pk3_file(src_pk3_path, out_pk3_path):
 		wad = WAD()
 		append_stcfn_uppercase_to_lowercase(wad)
 		extract_stcfn_lumps(wad, graphics_dir)
+
+		# Render MAPxxP / MAPxxW level select pictures from the PK3's map WADs
+		if options.get('levelselect_renders', True) and pk3_map_wads:
+			print("  Rendering level select images...")
+			try:
+				ls_count = render_pk3_level_selects(
+					temp_dir, pk3_map_wads, pk3_resource_wads, graphics_dir,
+					src_pk3_path, options.get('levelselect_iwad') or None
+				)
+				print(f"  Level select images written: {ls_count}")
+			except Exception as e:
+				import traceback
+				traceback.print_exc()
+				print(f"  Level select rendering failed: {e}")
 
 		# Convert Graphics/*.png files to LMP patch files so PK3 sources
 		# get the same PNG->LMP conversion as WAD-based workflows.

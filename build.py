@@ -9,6 +9,7 @@ import sys
 import shutil
 import zipfile
 import subprocess
+import hashlib
 from pathlib import Path
 import argparse
 import re
@@ -29,6 +30,7 @@ DEFAULT_PKG_PREFIX = "SL"
 DEFAULT_PKG_NAME = "DoomII"
 DEFAULT_MOD_PREFIX = "CL"
 DEFAULT_MOD_NAME = "ExtraClasses"
+
 
 def get_version():
 	"""Try to get version from git tag, fallback to '0.0.0'."""
@@ -459,6 +461,28 @@ def is_relpath_under(path_str, parent_str):
 	return path == parent or path.is_relative_to(parent)
 
 
+def get_file_hash(file_path):
+	"""Return a short hash of a file's contents, used for cache keys."""
+	h = hashlib.sha256()
+	with open(file_path, "rb") as f:
+		for chunk in iter(lambda: f.read(65536), b""):
+			h.update(chunk)
+	return h.hexdigest()[:16]
+
+
+def get_png_cache_path(cache_dir, source_root, file_path):
+	"""
+	Compute the cache file path for a converted PNG.
+	Mirrors the source tree structure under cache_dir so names don't collide.
+	"""
+	rel = file_path.relative_to(source_root)
+	# Use the relative path (with .png replaced by .lmp-ish) plus a content hash
+	# to invalidate stale entries when the source PNG changes.
+	file_hash = get_file_hash(file_path)
+	cache_name = f"{rel.as_posix().replace('/', '_')}.{file_hash}.lmp"
+	return cache_dir / cache_name
+
+
 def build_pk3(
 	source_root,
 	output_path,
@@ -540,6 +564,8 @@ def resolve_palette_bytes(project_root, engine_mode="doom"):
 	candidates = []
 	if str(engine_mode).lower() == "strife":
 		candidates = [base_playpal_dir / "strife.pal", base_playpal_dir / "doom.pal"]
+	elif str(engine_mode).lower() == "heretic":
+		candidates = [base_playpal_dir / "heretic.pal", base_playpal_dir / "doom.pal"]
 	else:
 		candidates = [base_playpal_dir / "doom.pal", base_playpal_dir / "strife.pal"]
 
@@ -553,7 +579,16 @@ def resolve_palette_bytes(project_root, engine_mode="doom"):
 	return FALLBACK_PALETTE
 
 
-def write_pk3(source_root, output_path, package_info, verbose=True, palette_bytes=None):
+def get_png_cache_dir(output_dir, engine_mode):
+	"""Return the cache directory for converted PNG lumps for a given engine."""
+	engine_key = str(engine_mode or "doom").lower()
+	cache_dir = Path(output_dir) / "cache" / engine_key
+	cache_dir.mkdir(parents=True, exist_ok=True)
+	return cache_dir
+
+
+def write_pk3(source_root, output_path, package_info, verbose=True, palette_bytes=None,
+			  cache_dir=None):
 	"""Write a PK3 zip archive from a source root and package info."""
 	processed_files = package_info["processed_files"]
 	ignored_dirs = package_info["ignored_dirs"]
@@ -563,6 +598,9 @@ def write_pk3(source_root, output_path, package_info, verbose=True, palette_byte
 
 	if output_path.exists():
 		output_path.unlink()
+
+	cache_hits = 0
+	cache_misses = 0
 
 	with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
 		for root, dirs, files in os.walk(source_root):
@@ -593,13 +631,38 @@ def write_pk3(source_root, output_path, package_info, verbose=True, palette_byte
 						print(f"  Processed file: {arcname}")
 				elif should_convert_graphics_png(arcname, source_root):
 					active_palette = palette_bytes if palette_bytes is not None else FALLBACK_PALETTE
-					patch = png_file_to_patch(str(file_path), active_palette)
 					output_arcname = Path(arcname).with_suffix("").as_posix()
-					zf.writestr(output_arcname, patch.toBytes())
-					#if verbose:
-					print(f"  Converted PNG to patch: {arcname} -> {output_arcname}")
+
+					cache_path = None
+					if cache_dir is not None:
+						cache_path = get_png_cache_path(cache_dir, source_root, file_path)
+
+					if cache_path is not None and cache_path.exists():
+						patch_bytes = cache_path.read_bytes()
+						cache_hits += 1
+						if verbose:
+							print(f"  Cached patch: {arcname} -> {output_arcname}")
+					else:
+						patch = png_file_to_patch(str(file_path), active_palette)
+						patch_bytes = patch.toBytes()
+						cache_misses += 1
+
+						if cache_path is not None:
+							cache_path.parent.mkdir(parents=True, exist_ok=True)
+							# Write atomically-ish: write to temp then rename
+							tmp_path = cache_path.with_suffix(cache_path.suffix + ".tmp")
+							with open(tmp_path, "wb") as f:
+								f.write(patch_bytes)
+							tmp_path.replace(cache_path)
+
+						print(f"  Converted PNG to patch: {arcname} -> {output_arcname}")
+
+					zf.writestr(output_arcname, patch_bytes)
 				else:
 					zf.write(file_path, arcname)
+
+	if cache_dir is not None and (cache_hits or cache_misses):
+		print(f"  PNG cache: {cache_hits} hit(s), {cache_misses} miss(es) [{cache_dir}]")
 
 	return output_path
 
@@ -665,7 +728,8 @@ def main():
 	parser.add_argument("--define", "-D", action="append", default=[], help="Define build flags (can be used multiple times)")
 	parser.add_argument("--no-preserve-linenums", action="store_true", help="Remove deleted lines instead of replacing them with whitespace")
 	parser.add_argument("--ignore_buildflags", action="store_true", help="Ignore build flags and include all code (for debugging)")
-	parser.add_argument("--engine", choices=["auto", "doom", "strife"], default="auto", help="Force the processing engine for the base WAD. Default: auto")
+	parser.add_argument("--engine", choices=["auto", "doom", "strife", "heretic"], default="auto", help="Force the processing engine for the base WAD. Default: auto")
+	parser.add_argument("--no-png-cache", action="store_true", help="Disable caching of converted PNG lumps")
 	args = parser.parse_args()
 
 	script_dir = Path(__file__).parent.absolute()
@@ -815,6 +879,32 @@ def main():
 				print(f"ERROR: Failed to run pywadadvance_core.py: {e}")
 				return 1
 
+	if args.engine != "auto":
+		engine_mode = args.engine
+	elif engine_mode == "auto":
+		try:
+			if base_wad_file and base_wad_file.exists():
+				engine_mode = detect_engine_mode(
+					str(base_wad_file),
+					force_engine=None
+				)
+			else:
+				candidate = next(base_wad_dir.glob("*.wad"), None)
+				if candidate is not None:
+					engine_mode = detect_engine_mode(
+						str(candidate),
+						force_engine=None
+					)
+				else:
+					engine_mode = "doom"
+		except Exception:
+			engine_mode = "doom"
+
+	png_cache_dir = None
+	if not args.no_png_cache:
+		png_cache_dir = get_png_cache_dir(output_dir, engine_mode)
+		print(f"PNG cache directory: {png_cache_dir}")
+
 	# Step 2: Build PK3
 	print("[2/4] Building PK3 package...")
 
@@ -859,6 +949,7 @@ def main():
 					package_info,
 					verbose=False,
 					palette_bytes=resolve_palette_bytes(script_dir, engine_mode),
+					cache_dir=png_cache_dir,
 				)
 				print(f"PK3 package created: {output_pk3.name}\n")
 			except Exception as e:
@@ -915,6 +1006,7 @@ def main():
 					package_info,
 					verbose=False,
 					palette_bytes=resolve_palette_bytes(script_dir, engine_mode),
+					cache_dir=png_cache_dir,
 				)
 				print(f"PK3 package created: {modding_pk3.name}\n")
 			except Exception as e:

@@ -1,9 +1,4 @@
-local responsetable = {
-	"MORE INFO. FOR 5",
-	"BYE!"
-}
-
-local function drawDialogue(v, player, convo)
+function doom.drawDialogue(v, player, convo)
 	if convo.backpic and v.patchExists(convo.backpic) then
 		v.draw(0, 0, v.cachePatch(convo.backpic))
 	end
@@ -13,7 +8,7 @@ local function drawDialogue(v, player, convo)
 		FRACUNIT,
 		"STCFN",
 		convo.speakerName,
-		V_PERPLAYER,
+		V_PERPLAYER|V_ALLOWLOWERCASE,
 		"left"
 	)
 
@@ -22,7 +17,7 @@ local function drawDialogue(v, player, convo)
 		FRACUNIT,
 		"STCFN",
 		convo.dialogueText,
-		V_PERPLAYER,
+		V_PERPLAYER|V_ALLOWLOWERCASE,
 		"left",
 		nil,
 		nil,
@@ -59,7 +54,7 @@ local function drawDialogue(v, player, convo)
 		if i <= #convo.choices then
 			text = convo.choices[i].displayText
 		else
-			text = "BYE!"
+			text = "Bye!"
 		end
 
 		-- draw option text
@@ -70,7 +65,7 @@ local function drawDialogue(v, player, convo)
 			FRACUNIT,
 			"STCFN",
 			text,
-			V_PERPLAYER,
+			V_PERPLAYER|V_ALLOWLOWERCASE,
 			"left",
 			nil,
 			nil,
@@ -83,6 +78,6 @@ end
 table.insert(doom.hud_postdraw, function(v, player)
 	local convo = player.doom.conversation
 	if convo and convo.active then
-		drawDialogue(v, player, convo)
+		doom.drawDialogue(v, player, convo)
 	end
 end)

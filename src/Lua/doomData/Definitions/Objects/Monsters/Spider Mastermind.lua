@@ -55,8 +55,8 @@ local states = {
 
 	missile = {
 		{action = A_DoomFaceTarget,      frame = A|FF_FULLBRIGHT, tics = 20},
-		{action = A_DoomFire,            frame = G|FF_FULLBRIGHT, tics = 4, var1 = 0, var2 = 2},
-		{action = A_DoomFire,            frame = H|FF_FULLBRIGHT, tics = 4, var1 = 0, var2 = 2},
+		{action = A_DoomSPosAttack,      frame = G|FF_FULLBRIGHT, tics = 4},
+		{action = A_DoomSPosAttack,      frame = H|FF_FULLBRIGHT, tics = 4},
 		{action = A_SpidRefire,          frame = H|FF_FULLBRIGHT, tics = 1, next = "missile", nextframe = 2},
 	},
 

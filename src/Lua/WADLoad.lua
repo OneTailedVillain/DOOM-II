@@ -288,34 +288,31 @@ local EndoomRegistry = {
 	})
 }
 
-local function getMFFlagsForNumber(num)
-    local result = 0
-    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
-        if flag.type == "MF" and (num & bitmask) ~= 0 then
-            result = result | bitmask
-        end
+local function getBitPositionExact(flag)
+    if flag <= 0 or (flag & (flag - 1)) ~= 0 then
+        return nil
     end
-    return result
+
+    local pos = 0
+    while (flag >> 1) > 0 do
+        flag = flag >> 1
+        pos = pos + 1
+    end
+    return pos
 end
 
-local function getMF2FlagsForNumber(num)
-    local result = 0
-    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
-        if flag.type == "MF2" and (num & bitmask) ~= 0 then
-            result = result | bitmask
-        end
-    end
-    return result
-end
-
-local function getDFFlagsForNumber(num)
-    local result = 0
-    for bitmask, flag in pairs(doom.dehackedpointers.flags) do
-        if flag.type == "DF" and (num & bitmask) ~= 0 then
-            result = result | bitmask
-        end
-    end
-    return result
+-- Converts a DEH "Bits" number into the port's constants for one flag family ("MF", "MF2" or "DF")
+local function getFlagsForNumber(num, ftype)
+	local result = 0
+	for bitmask, flag in pairs(doom.dehackedpointers.flags) do
+		if flag.type == ftype and (num & bitmask) ~= 0 then
+			-- Fall back to 0
+			local value = flag.num
+			if value == nil then value = 0 print("WARNING: Flag " .. getBitPositionExact(bitmask) .. " is undefined") end
+			result = result | value
+		end
+	end
+	return result
 end
 
 local function printTable(data, prefix)
@@ -413,6 +410,12 @@ local validTracks = {
 	ultima = true,
 }
 
+-- DEH text often carries stray CR/whitespace; compare on a normalised form
+local function normString(s)
+	local t = s:gsub("\r", "")
+	return t:match("^%s*(.-)%s*$")
+end
+
 local function applyDehackedStrings()
 	if not (doom and doom.dehacked and doom.strings) then
 		print("ERROR: doom, doom.dehacked, or doom.strings is missing!")
@@ -452,11 +455,13 @@ local function applyDehackedStrings()
 				)
 			end
 
-			lookup[entry.original] = entry
-			applied[entry.original] = false
+			local normKey = normString(entry.original)
+			lookup[normKey] = entry
+			applied[normKey] = false
 
-			if validTracks[entry.original] then
-				local musicID = entry.original
+			if validTracks[normKey:lower()] then
+				applied[normKey] = true -- music swaps never appear in doom.strings
+				local musicID = normKey
 				local mapID = entry.new
 
 				doom.dehacked_musicswaps[musicID:lower()] = mapID
@@ -480,11 +485,12 @@ local function applyDehackedStrings()
 
 	-- Apply patches
 	for key, str in pairs(doom.strings) do
-		local entry = lookup[str]
+		local normStr = type(str) == "string" and normString(str) or nil
+		local entry = normStr and lookup[normStr]
 
 		if entry then
 			doom.dehacked.strings[key] = entry.new
-			applied[str] = true
+			applied[normStr] = true
 
 			print(
 				"Updated string key '"..
@@ -514,9 +520,7 @@ addHook("MusicChange", function(old, new)
 	-- Hack into the music and swap it if a DEHACKED entry exists for it
 	if doom and doom.dehacked_musicswaps then
 		local newMusicID = doom.dehacked_musicswaps[new:lower()]
-		print(new, newMusicID)
 		if newMusicID then
-			print("Found override!")
 			if old == newMusicID then
 				return true
 			end
@@ -567,15 +571,141 @@ You can set the lump names for sprites and sounds in the table sections of the d
 3930 = TWISTR
 */
 
-local warnedfor = {}
+-- stupid... 0 falsy rules...
+local function pick(v, default)
+	if v ~= nil then return v end
+	return default
+end
+
+-- TODO: NORMALIZE!!!
+local function getDEHSprite(pointers, n)
+	if pointers.sprites[0] ~= nil then return pointers.sprites[n] end
+	return pointers.sprites[n + 2]
+end
+
+local function setDEHSprite(pointers, n, value)
+	if pointers.sprites[0] ~= nil then
+		pointers.sprites[n] = value
+	else
+		pointers.sprites[n + 2] = value
+	end
+end
+
+-- Vanilla DEHACKED "Codep Frame" copies the ORIGINAL action of the source frame,
+-- so snapshot the actions once, before anything gets patched.
+local function snapshotOriginalActions(pointers)
+	if doom.dehackedOriginalActions == nil then
+		local snap = {}
+		for frameNumber, stateIndex in pairs(pointers.frames) do
+			local st = states[stateIndex]
+			if st then
+				snap[frameNumber] = {action = st.action}
+			end
+		end
+		doom.dehackedOriginalActions = snap
+	end
+	return doom.dehackedOriginalActions
+end
+
+local codeptrCache
+local function resolveCodeptr(pointers, name)
+	if not (pointers and pointers.bex_codeptr) then return nil end
+	if codeptrCache == nil or codeptrCache.source ~= pointers.bex_codeptr then
+		codeptrCache = {source = pointers.bex_codeptr, lookup = {}}
+		for k, v in pairs(pointers.bex_codeptr) do
+			local lk = tostring(k):lower()
+			lk = lk:gsub("^a_", "")
+			codeptrCache.lookup[lk] = v
+		end
+	end
+	local key = tostring(name):lower()
+	key = key:gsub("^%s+", "")
+	key = key:gsub("%s+$", "")
+	key = key:gsub("^a_", "")
+	return codeptrCache.lookup[key]
+end
 
 -- "This sink is so hard to clean, if only there was an easier way!"
 local function doDehacked()
 	if doom and doom.dehacked then
+
 		print("applying DEHACKED fields...")
 		local isDSDHacked = doom.dehacked.doomversion and doom.dehacked.doomversion >= 2021
 		local deh = doom.dehacked
 		local pointers = doom.dehackedpointers
+		local originals = pointers and snapshotOriginalActions(pointers)
+
+	-- Check that an actor's DEHACKED state chain is completely resolvable.
+	-- A state chain is considered broken when we eventually try to resolve
+	-- a DEHACKED frame number through pointers.frames and get nil.
+	local frameForState -- built lazily, once per run
+	local function checkStateChain(info, actorNumber, fieldName, startingFrame)
+		if startingFrame == nil then return end
+
+		-- Build state-index -> DEHACKED frame-number lookup.
+		if frameForState == nil then
+			frameForState = {}
+			for frameNumber, stateIndex in pairs(pointers.frames) do
+				if stateIndex != nil then
+					frameForState[stateIndex] = frameNumber
+				end
+			end
+		end
+
+		local framenumberhere = startingFrame
+		local visited = {}
+
+		while framenumberhere != nil do
+			-- Avoid infinite loops in normal looping state chains.
+			if visited[framenumberhere] then
+				return
+			end
+			visited[framenumberhere] = true
+
+			local stateIndex = pointers.frames[framenumberhere]
+
+			if stateIndex == nil then
+				print("WARNING: Actor #" .. tostring(actorNumber) ..
+					" (" .. tostring(info.doomname) .. ") has a " ..
+					tostring(fieldName) .. " patch chain broken by a nonexistent state pointer #" ..
+					tostring(framenumberhere) .. "!")
+				return
+			end
+
+			local state = states[stateIndex]
+
+			-- The pointer exists, but if the engine state itself doesn't,
+			-- there's nothing useful to follow
+			if state == nil then
+				print("WARNING: Actor #" .. tostring(actorNumber) ..
+					" (" .. tostring(info.doomname) .. ") has a " ..
+					tostring(fieldName) .. " patch chain broken by state pointer #" ..
+					tostring(framenumberhere) .. " pointing to nonexistent state index #" ..
+					tostring(stateIndex) .. "!")
+				return
+			end
+
+			local nextState = state.nextstate
+
+			if nextState == nil then
+				return
+			end
+
+			framenumberhere = frameForState[nextState]
+
+			-- If nextstate doesn't correspond to any DEHACKED frame,
+			-- the next iteration would be unable to resolve it through
+			-- pointers.frames, so report it immediately
+			if framenumberhere == nil then
+				print("WARNING: Actor #" .. tostring(actorNumber) ..
+					" (" .. tostring(info.doomname) .. ") has a " ..
+					tostring(fieldName) .. " patch chain broken by a nonexistent state pointer #" ..
+					tostring(nextState) .. "!")
+				return
+			end
+		end
+	end
+
 		applyDehackedStrings()
 		if deh.ammo then
 			local map = {
@@ -596,29 +726,33 @@ local function doDehacked()
 		end
 		if deh.misc then
 			local misc = deh.misc[0]
-			doom.pistolstartstate.maxhealth = misc.maxhealth or doom.pistolstartstate.maxhealth
-			doom.pistolstartstate.maxarmor = misc.maxarmor or doom.pistolstartstate.maxarmor
-			doom.soulspheregrant = misc.soulspherehealth or doom.soulspheregrant
-			doom.maxsoulsphere = misc.maxsoulsphere or doom.maxsoulsphere
-			doom.megaspheregrant = misc.megaspherehealth or doom.megaspheregrant
+			if misc then
+				local pss = doom.pistolstartstate
+				if pss then
+					pss.maxhealth = pick(misc.maxhealth, pss.maxhealth)
+					pss.maxarmor = pick(misc.maxarmor, pss.maxarmor)
+				end
+				doom.soulspheregrant = pick(misc.soulspherehealth, doom.soulspheregrant)
+				doom.maxsoulsphere = pick(misc.maxsoulsphere, doom.maxsoulsphere)
+				doom.megaspheregrant = pick(misc.megaspherehealth, doom.megaspheregrant)
+			end
 		end
 		if not pointers then print("Pointers table devalidated itself") return end
 		if deh.bex_sprites then
 			for pnum, sprite in pairs(deh.bex_sprites) do
-				pointers.sprites[pnum + 1] = freeslot("SPR_" .. sprite:upper())
+				setDEHSprite(pointers, pnum, freeslot("SPR_" .. sprite:upper()))
 			end
 		end
 		if deh.bex_sounds then
 			for pnum, sound in pairs(deh.bex_sounds) do
-				pointers.sounds[pnum + 1] = freeslot("sfx_" .. sound:lower())
+				pointers.sounds[pnum] = freeslot("sfx_" .. sound:lower())
 			end
 		end
-		/*
 		if deh.frames then
 			for number, data in pairs(deh.frames) do
 				local FF_DOOMFB = 32768
 
-				if not pointers.frames[number] then
+				if pointers.frames[number] == nil then
 					if isDSDHacked then
 						local stateNum = freeslot("S_DSDHACKED_" .. tostring(number))
 						states[stateNum] = {
@@ -637,16 +771,16 @@ local function doDehacked()
 					end
 				end
 
-				if pointers.frames[number] then
+				if pointers.frames[number] ~= nil then
 					local frame = states[pointers.frames[number]]
 
 					-- Sprite handling
 					if data.spritenumber != nil then
-						local sprite = pointers.sprites[(data.spritenumber or 0) + 1]
+						local sprite = getDEHSprite(pointers, data.spritenumber or 0)
 						if sprite == nil then
 							print("WARNING: FRAME #" .. tostring(number) ..
 								" (state index " .. tostring(pointers.frames[number]) ..
-								") has invalid sprite #" .. tostring((data.spritenumber or 0) + 1) ..
+								") has invalid sprite #" .. tostring(data.spritenumber or 0) ..
 								" which has not been freeslotted yet!")
 							frame.sprite = SPR_UNKN
 						else
@@ -663,19 +797,20 @@ local function doDehacked()
 						end
 					end
 					if data.duration != nil then
-						--frame.tics = data.duration
+						frame.tics = data.duration
 					end
 
 					doom.extradata = $ or {}
-					doom.extradata[frame] = $ or {}
-					doom.extradata[frame].var1 = data.args1 or data.unknown1 or 0
-					doom.extradata[frame].var2 = data.args2 or data.unknown2 or 0
-					doom.extradata[frame].var3 = data.args3 or 0
-					doom.extradata[frame].var4 = data.args4 or 0
-					doom.extradata[frame].var5 = data.args5 or 0
-					doom.extradata[frame].var6 = data.args6 or 0
-					doom.extradata[frame].var7 = data.args7 or 0
-					doom.extradata[frame].var8 = data.args8 or 0
+					if doom.extradata[frame] == nil then
+						doom.extradata[frame] = {var1 = 0, var2 = 0, var3 = 0, var4 = 0, var5 = 0, var6 = 0, var7 = 0, var8 = 0}
+					end
+					for argi = 1, 8 do
+						local v = data["args" .. argi]
+						if v == nil and argi <= 2 then v = data["unknown" .. argi] end
+						if v != nil then
+							doom.extradata[frame]["var" .. argi] = v
+						end
+					end
 
 					-- Next frame handling
 					if data.nextframe != nil then
@@ -698,7 +833,7 @@ local function doDehacked()
 						end
 
 						if nextState != nil then
-							--frame.nextstate = nextState
+							frame.nextstate = nextState
 						else
 							print("WARNING: FRAME #" .. tostring(number) ..
 								" (state index " .. tostring(pointers.frames[number]) ..
@@ -712,7 +847,6 @@ local function doDehacked()
 		end
 
 		if deh.things then
-			local thingslotBreach = false
 			for number, data in pairs(deh.things) do
 				if not pointers.things[number] then
 					if isDSDHacked then
@@ -741,23 +875,24 @@ local function doDehacked()
 						continue
 					end
 				end
-				if thingslotBreach then break end
 				local mobjtype = pointers.things[number]
 				if mobjtype != nil and mobjinfo[mobjtype] then
 					local info = mobjinfo[mobjtype]
 					print("Applying DEHACKED to '" .. tostring(info.doomname) .. "' (Pointer # " .. tostring(number) .. ")...")
-					if data.bits then
-						info.flags = getMFFlagsForNumber(data.bits)
-						info.doomflags = getDFFlagsForNumber(data.bits)
-						local mf2flags = getMF2FlagsForNumber(data.bits)
-						if mf2flags then
+					if data.bits ~= nil then
+						info.flags = getFlagsForNumber(data.bits, "MF")
+						info.doomflags = getFlagsForNumber(data.bits, "DF")
+						local mf2flags = getFlagsForNumber(data.bits, "MF2")
+						if mf2flags ~= 0 then
 							print("WARNING: DEHACKED THING # " .. tostring(number) .. " HAS BITS CORRESPONDING TO MF2 FLAGS!")
 						end
 					end
 
-					info.doomednum = data["id #"] or info.doomednum
-					if info.doomednum <= 35 then
-						doom.mthingReplacements[info.doomednum] = pointers.things[number]
+					if data["id #"] ~= nil then
+						info.doomednum = data["id #"]
+						if info.doomednum > 0 and info.doomednum <= 35 and doom.mthingReplacements then
+							doom.mthingReplacements[info.doomednum] = pointers.things[number]
+						end
 					end
 
 					-- Spawn state
@@ -889,14 +1024,56 @@ local function doDehacked()
 						end
 					end
 
+					-- Attack sound
+					if data.attacksound ~= nil then
+						local attackSound = pointers.sounds[data.attacksound]
+						if attackSound ~= nil then
+							info.attacksound = attackSound
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid attack sound #" .. tostring(data.attacksound))
+						end
+					end
+
+					-- Exploding / extreme death frame (field name assumed: xdeathframe or explodingframe)
+					local xdeathframe = data.xdeathframe
+					if xdeathframe == nil then xdeathframe = data.explodingframe end
+					if xdeathframe ~= nil then
+						local xdeathState = pointers.frames[xdeathframe]
+						if xdeathState ~= nil then
+							info.xdeathstate = xdeathState
+						else
+							print("WARNING: THING '" .. tostring(info.doomname) .. "' (pointer #" .. tostring(number) ..
+								") has invalid exploding frame #" .. tostring(xdeathframe))
+						end
+					end
+
 					-- Basic properties
-					info.spawnhealth = data.hitpoints or info.spawnhealth
-					info.speed = (data.speed and data.speed * FRACUNIT) or info.speed
-					info.radius = data.width or info.radius
-					info.height = data.height or info.height
-					info.mass = data.mass or info.mass
+					info.spawnhealth = pick(data.hitpoints, info.spawnhealth)
+					if data.speed ~= nil then
+						-- TODO: Should confirm
+						if data.speed >= 256 or data.speed <= -256 then
+							info.speed = data.speed
+						else
+							info.speed = data.speed * FRACUNIT
+						end
+					end
+					info.radius = pick(data.width, info.radius)
+					info.height = pick(data.height, info.height)
+					info.mass = pick(data.mass, info.mass)
+					if data.reactiontime ~= nil then info.reactiontime = data.reactiontime end
+					if data.missiledamage ~= nil then info.damage = data.missiledamage end
 
 					print("Done.")
+
+					-- Validate all state chains after applying the actor's fields
+					checkStateChain(info, number, "spawnstate", data.initialframe)
+					checkStateChain(info, number, "deathstate", data.deathframe)
+					checkStateChain(info, number, "seestate", data.firstmovingframe)
+					checkStateChain(info, number, "painstate", data.painframe)
+					checkStateChain(info, number, "raisestate", data.respawnframe)
+					checkStateChain(info, number, "meleestate", data.closeattackframe)
+					checkStateChain(info, number, "missilestate", data.farattackframe)
 				else
 					if mobjtype == nil then
 						print("NOTICE: DEHACKED THING # " .. tostring(number) .. " DOESN'T HAVE AN ASSOCIATED POINTER!")
@@ -907,59 +1084,61 @@ local function doDehacked()
 			end
 		end
 		
-		if deh.pointers then
+		if deh.pointers and originals then
 			for number, data in pairs(deh.pointers) do
-				local number = number + 1
-				local codepframe = data.codepframe + 1
-				if number == codepframe then print("Frame pointer " .. tostring(number) .. " is referring to themselves, skipping...") continue end
-				-- Source frame (where the action comes from)
-				local srcFrameIndex = pointers.frames[codepframe]
-				print("Frame pointer " .. tostring(number) .. " calls for action from frame pointer # " .. tostring(codepframe))
-				if srcFrameIndex == nil then
-					if codepframe == nil then
-						print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " has no codepframe defined!")
-					else
-						print("WARNING: DEHACKED Pointer source frame # " .. tostring(codepframe) ..
-							  " doesn't exist! (Attempted by pointer # " .. tostring(number) .. ")")
-					end
+				-- "number" is the DEH frame number being patched; frames[] is keyed by it directly
+				local codepframe = data.codepframe
+				if codepframe == nil then
+					print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " has no codepframe defined!")
+					continue
+				end
+				if number == codepframe then
+					print("Frame pointer " .. tostring(number) .. " is referring to itself, skipping...")
 					continue
 				end
 
-				local srcState = states[srcFrameIndex]
-				if not srcState or not srcState.action then
-					print("WARNING: DEHACKED Pointer # " .. tostring(number) ..
-						  " is copying from a frame with no action! (Attempting to pull from frame pointer # " .. tostring(codepframe) .. ")")
-				end
-
-				-- Case 1: normal frame target
-				local dstFrameIndex = pointers.frames[number]
-				if dstFrameIndex ~= nil then
-					local dstState = states[dstFrameIndex]
-					if dstState then
-						--dstState.action = srcState.action
-					end
+				local src = originals[codepframe]
+				if src == nil then
+					print("WARNING: DEHACKED Pointer source frame # " .. tostring(codepframe) ..
+						  " doesn't exist! (Attempted by pointer # " .. tostring(number) .. ")")
 					continue
 				end
 
-				print("NOTICE: DEHACKED Pointer # " .. tostring(number) ..
-					  " doesn't map to a frame!")
+				local dstIndex = pointers.frames[number]
+				local dstState = dstIndex ~= nil and states[dstIndex] or nil
+				if dstState == nil then
+					print("NOTICE: DEHACKED Pointer # " .. tostring(number) .. " doesn't map to a frame!")
+					continue
+				end
+
+				if src.action == nil then
+					print("NOTICE: DEHACKED Pointer # " .. tostring(number) ..
+						  " copies from frame # " .. tostring(codepframe) .. " which has no action; clearing.")
+					dstState.action = A_Dummy
+				else
+					dstState.action = src.action
+				end
 			end
 		end
-		*/
+
 		if deh.bex_codeptrs then
 			print("Applying codeptrs")
-			for frame, codeptr in pairs(deh.bex_codeptrs) do
-				if not (pointers.bex_codeptr[codeptr]) then
-					if not warnedfor[codeptr] then
-						print("WARNING: No codeptr mapped for '" .. tostring(codeptr) .. "'")
-						--warnedfor[codeptr] = true
-					end
+			for frameNumber, codeptr in pairs(deh.bex_codeptrs) do
+				local action = resolveCodeptr(pointers, codeptr)
+				if action == nil then
+					print("WARNING: No codeptr mapped for '" .. tostring(codeptr) .. "'")
 					continue
 				end
 
-				local frame = states[pointers.frames[frame]]
-				frame.action = pointers.bex_codeptr[codeptr]
-				print("Applied codepointer '" .. tostring(codeptr) .. "' to frame " .. tostring(frame))
+				local stateIndex = pointers.frames[frameNumber]
+				local state = stateIndex ~= nil and states[stateIndex] or nil
+				if state == nil then
+					print("WARNING: Codeptr '" .. tostring(codeptr) .. "' targets nonexistent frame # " .. tostring(frameNumber))
+					continue
+				end
+
+				state.action = action
+				print("Applied codepointer '" .. tostring(codeptr) .. "' to frame " .. tostring(frameNumber))
 			end
 		end
 	end

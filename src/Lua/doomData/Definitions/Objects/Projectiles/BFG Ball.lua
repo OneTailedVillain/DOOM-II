@@ -1,7 +1,8 @@
 SafeFreeSlot(
     "SPR_BFS1","SPR_BFE1",
     "MT_DOOM_BFGBALL",
-	"sfx_rxplod"
+	"sfx_rxplod",
+    "SPR_BFE2"
 )
 
 local plasmastates = {
@@ -18,6 +19,13 @@ local plasmastates = {
         {sprite = SPR_BFE1, frame = E|FF_FULLBRIGHT, tics = 8},
         {sprite = SPR_BFE1, frame = F|FF_FULLBRIGHT, tics = 8},
     },
+
+    tracer = {
+        {sprite = SPR_BFE2, frame = A|FF_FULLBRIGHT, tics = 8},
+        {sprite = SPR_BFE2, frame = B|FF_FULLBRIGHT, tics = 8},
+        {sprite = SPR_BFE2, frame = C|FF_FULLBRIGHT, tics = 8},
+        {sprite = SPR_BFE2, frame = D|FF_FULLBRIGHT, tics = 8},
+    }
 }
 
 local states = FreeDoomStates("BFGBall", plasmastates)
